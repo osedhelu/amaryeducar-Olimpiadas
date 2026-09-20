@@ -33,8 +33,10 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     try:
         while True:
             msg = await ws.receive_text()
-            # heartbeat de aplicación: responder pong
-            if msg == "__ping__":
+            # heartbeat: cualquier mensaje del cliente indica que está vivo;
+            # responder pong al ping del servidor para mantener is_alive.
+            ws.is_alive = True  # type: ignore[attr-defined]
+            if msg == "__ping__" or msg == "__pong__":
                 await ws.send_text("__pong__")
     except WebSocketDisconnect:
         meta = manager.desconectar(ws)

@@ -87,6 +87,16 @@ export function useWebSocket(
 
       ws.onmessage = (event) => {
         if (event.data === "__pong__") return;
+        // El backend FastAPI envía {tipo:"__ping__"} como heartbeat;
+        // responder con __pong__ para que el servidor no nos termine.
+        if (typeof event.data === "string" && event.data.includes("__ping__")) {
+          try {
+            ws.send("__pong__");
+          } catch {
+            /* socket cerrado */
+          }
+          return;
+        }
         try {
           const data = JSON.parse(event.data) as EventoWS;
           setLastEvent(data);
