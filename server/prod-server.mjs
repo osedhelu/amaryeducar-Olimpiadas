@@ -63,9 +63,12 @@ async function start() {
         .catch(() => {});
     }
 
-    ws.on("close", () => {
+    ws.on("close", (code, reason) => {
       const meta = clients.get(ws);
       clients.delete(ws);
+      console.log(
+        `[prod] WS cerrado: role=${meta?.role} session=${meta?.sessionId || "-"} code=${code} reason=${reason || "(vacío)"} (total ${clients.size})`,
+      );
       if (meta?.role === "student" && meta.jugadorId && pgClient) {
         pgClient
           .query("UPDATE jugadores SET conectado = false WHERE id = $1", [
@@ -75,7 +78,9 @@ async function start() {
       }
     });
 
-    ws.on("error", () => {});
+    ws.on("error", (err) => {
+      console.error("[prod] WS error:", err.message);
+    });
   });
 
   function parseSessionId(tabla, data) {
