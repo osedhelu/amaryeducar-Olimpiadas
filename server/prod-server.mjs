@@ -151,6 +151,7 @@ async function start() {
     });
 
     pgClient.on("notification", (msg) => {
+      console.log("[prod] NOTIFY recibido:", msg.channel, msg.payload?.slice(0, 120));
       try {
         const parsed = JSON.parse(msg.payload ?? "{}");
         const { tabla, tipo, data, ts } = parsed;
@@ -174,8 +175,8 @@ async function start() {
         } else if (tabla === "puntajes_retos") {
           broadcast({ tipo: "reto", data, ts, _tabla: tabla });
         }
-      } catch {
-        /* payload inválido */
+      } catch (e) {
+        console.error("[prod] Error parseando NOTIFY:", e.message);
       }
     });
 
