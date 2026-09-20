@@ -4,6 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import ColegiosPanel from "@/components/admin/ColegiosPanel";
+import AlumnosPanel from "@/components/admin/AlumnosPanel";
+import EnfrentamientoPanel from "@/components/admin/EnfrentamientoPanel";
+import DuelosPanel from "@/components/admin/DuelosPanel";
 import type {
   Grado,
   SesionJuego,
@@ -12,9 +16,19 @@ import type {
   PodiumEntry,
   Respuesta,
   EventoWS,
+  TablaColegio,
 } from "@/types/game";
 
-type Vista = "menu" | "control" | "preguntas" | "retos" | "podium";
+type Vista =
+  | "menu"
+  | "control"
+  | "preguntas"
+  | "retos"
+  | "podium"
+  | "colegios"
+  | "alumnos"
+  | "enfrentamiento"
+  | "duelos";
 
 export default function AdminSessionPage() {
   const router = useRouter();
@@ -28,6 +42,7 @@ export default function AdminSessionPage() {
   const [jugadores, setJugadores] = useState<Jugador[]>([]);
   const [respuestasPregunta, setRespuestasPregunta] = useState<Respuesta[]>([]);
   const [podium, setPodium] = useState<PodiumEntry[]>([]);
+  const [tablaColegios, setTablaColegios] = useState<TablaColegio[]>([]);
   const [nuevoPin, setNuevoPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [tiempoRestante, setTiempoRestante] = useState(0);
@@ -249,6 +264,10 @@ export default function AdminSessionPage() {
     if (!sesionActiva) return;
     const p = await api.podium(sesionActiva.id);
     setPodium(p);
+    api
+      .tablaGrado(sesionActiva.grado_id)
+      .then(setTablaColegios)
+      .catch(() => {});
     setVista("podium");
     await api.actualizarSesion(sesionActiva.id, { estado: "podium" });
   }
@@ -258,6 +277,70 @@ export default function AdminSessionPage() {
   }
 
   const sesionConGrado = sesiones.find((s) => s.id === sesionActiva?.id);
+
+  if (vista === "colegios") {
+    return (
+      <main className="min-h-screen bg-bg p-6">
+        <div className="max-w-4xl mx-auto">
+          <button
+            onClick={() => setVista("menu")}
+            className="text-azul mb-4 hover:text-azul-light"
+          >
+            ← Volver al menú
+          </button>
+          <ColegiosPanel />
+        </div>
+      </main>
+    );
+  }
+
+  if (vista === "alumnos") {
+    return (
+      <main className="min-h-screen bg-bg p-6">
+        <div className="max-w-4xl mx-auto">
+          <button
+            onClick={() => setVista("menu")}
+            className="text-azul mb-4 hover:text-azul-light"
+          >
+            ← Volver al menú
+          </button>
+          <AlumnosPanel />
+        </div>
+      </main>
+    );
+  }
+
+  if (vista === "enfrentamiento") {
+    return (
+      <main className="min-h-screen bg-bg p-6">
+        <div className="max-w-4xl mx-auto">
+          <button
+            onClick={() => setVista("menu")}
+            className="text-azul mb-4 hover:text-azul-light"
+          >
+            ← Volver al menú
+          </button>
+          <EnfrentamientoPanel />
+        </div>
+      </main>
+    );
+  }
+
+  if (vista === "duelos") {
+    return (
+      <main className="min-h-screen bg-bg p-6">
+        <div className="max-w-4xl mx-auto">
+          <button
+            onClick={() => setVista("menu")}
+            className="text-azul mb-4 hover:text-azul-light"
+          >
+            ← Volver al menú
+          </button>
+          <DuelosPanel />
+        </div>
+      </main>
+    );
+  }
 
   if (vista === "menu") {
     return (
@@ -269,7 +352,7 @@ export default function AdminSessionPage() {
                 Panel del Docente
               </h1>
               <p className="text-texto-light">
-                Selecciona un grado para crear o controlar una sesión
+                Registra colegios y alumnos, arma duelos y controla las sesiones
               </p>
             </div>
             <button
@@ -280,6 +363,49 @@ export default function AdminSessionPage() {
               className="px-4 py-2 text-sm bg-rojo text-white rounded-lg hover:bg-rojo/80"
             >
               Cerrar sesión
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+            <button
+              onClick={() => setVista("colegios")}
+              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
+            >
+              <div className="text-3xl mb-1">🏫</div>
+              <p className="font-heading font-bold text-azul">Colegios</p>
+              <p className="text-xs text-texto-light">
+                Registrar y administrar colegios
+              </p>
+            </button>
+            <button
+              onClick={() => setVista("alumnos")}
+              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
+            >
+              <div className="text-3xl mb-1">🎓</div>
+              <p className="font-heading font-bold text-azul">Alumnos</p>
+              <p className="text-xs text-texto-light">
+                Registrar alumnos por grado
+              </p>
+            </button>
+            <button
+              onClick={() => setVista("enfrentamiento")}
+              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
+            >
+              <div className="text-3xl mb-1">⚔️</div>
+              <p className="font-heading font-bold text-azul">Enfrentamiento</p>
+              <p className="text-xs text-texto-light">
+                Tabla colegio vs colegio
+              </p>
+            </button>
+            <button
+              onClick={() => setVista("duelos")}
+              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
+            >
+              <div className="text-3xl mb-1">🥊</div>
+              <p className="font-heading font-bold text-azul">Prueba 1v1</p>
+              <p className="text-xs text-texto-light">
+                Duelo interno alumno vs alumno
+              </p>
             </button>
           </div>
 
@@ -361,9 +487,14 @@ export default function AdminSessionPage() {
   }
 
   if (vista === "podium") {
+    const estudiantes = podium.filter((e) => !e.es_colegio);
+    const colegiosTabla =
+      tablaColegios.length > 0
+        ? tablaColegios
+        : podium.filter((e) => e.es_colegio);
     return (
       <main className="min-h-screen bg-gradient-to-b from-azul to-azul-dark p-6">
-        <div className="max-w-2xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center">
           <div className="flex gap-3 justify-center mb-4">
             <button
               onClick={() => setVista("control")}
@@ -381,37 +512,89 @@ export default function AdminSessionPage() {
           <h1 className="text-3xl font-heading font-extrabold text-dorado mb-8">
             🏆 Podium
           </h1>
-          <div className="space-y-3">
-            {podium.map((entry) => (
-              <div
-                key={entry.entity_id}
-                className={`flex items-center justify-between p-4 rounded-xl animate-slide-up ${
-                  entry.puesto === 1
-                    ? "bg-dorado text-azul-dark"
-                    : entry.puesto === 2
-                      ? "bg-white/90 text-azul-dark"
-                      : "bg-white/20 text-white"
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-3xl font-heading font-extrabold">
-                    {entry.puesto === 1
-                      ? "🥇"
-                      : entry.puesto === 2
-                        ? "🥈"
-                        : entry.puesto === 3
-                          ? "🥉"
-                          : `${entry.puesto}°`}
-                  </span>
-                  <span className="font-heading font-bold text-lg">
-                    {entry.nombre}
-                  </span>
-                </div>
-                <span className="text-2xl font-heading font-extrabold">
-                  {entry.puntos_total} pts
-                </span>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-left">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
+              <h2 className="text-lg font-heading font-bold text-white mb-3 text-center">
+                🎓 Estudiantes
+              </h2>
+              <div className="space-y-2">
+                {estudiantes.map((entry) => (
+                  <div
+                    key={entry.entity_id}
+                    className={`flex items-center justify-between p-3 rounded-xl ${
+                      entry.puesto === 1
+                        ? "bg-dorado text-azul-dark"
+                        : "bg-white/5 text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">
+                        {entry.puesto === 1
+                          ? "🥇"
+                          : entry.puesto === 2
+                            ? "🥈"
+                            : entry.puesto === 3
+                              ? "🥉"
+                              : `${entry.puesto}°`}
+                      </span>
+                      <span className="font-heading font-bold">
+                        {entry.nombre}
+                      </span>
+                    </div>
+                    <span className="font-heading font-extrabold">
+                      {entry.puntos_total} pts
+                    </span>
+                  </div>
+                ))}
+                {estudiantes.length === 0 && (
+                  <p className="text-white/60 text-sm text-center">
+                    Sin datos individuales.
+                  </p>
+                )}
               </div>
-            ))}
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
+              <h2 className="text-lg font-heading font-bold text-white mb-3 text-center">
+                🏫 Colegios
+              </h2>
+              <div className="space-y-2">
+                {colegiosTabla.map((entry, idx) => (
+                  <div
+                    key={`${entry.nombre}-${idx}`}
+                    className={`flex items-center justify-between p-3 rounded-xl ${
+                      entry.puesto === 1
+                        ? "bg-dorado text-azul-dark"
+                        : "bg-white/5 text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">
+                        {entry.puesto === 1
+                          ? "🥇"
+                          : entry.puesto === 2
+                            ? "🥈"
+                            : entry.puesto === 3
+                              ? "🥉"
+                              : `${entry.puesto}°`}
+                      </span>
+                      <span className="font-heading font-bold">
+                        {entry.nombre}
+                      </span>
+                    </div>
+                    <span className="font-heading font-extrabold">
+                      {entry.puntos_total} pts
+                    </span>
+                  </div>
+                ))}
+                {colegiosTabla.length === 0 && (
+                  <p className="text-white/60 text-sm text-center">
+                    Sin datos de colegios.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </main>

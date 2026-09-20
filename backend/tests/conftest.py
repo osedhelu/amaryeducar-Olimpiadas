@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from app.domain.entities import Grado, Jugador, Pregunta, SesionJuego
+from app.domain.entities import Alumno, Grado, Jugador, Pregunta, SesionJuego
 from tests.fakes import FakeRealtime, FakeRepos
 
 
@@ -63,6 +63,35 @@ def jugador(repos, sesion_lobby):
     )
     repos.jugador.jugadores[j.id] = j
     return j
+
+
+@pytest.fixture
+def colegio_1():
+    from app.domain.entities import Colegio
+
+    return Colegio(id=uuid.uuid4(), nombre="Colegio 1", codigo="C1")
+
+
+@pytest.fixture
+def colegio_2():
+    from app.domain.entities import Colegio
+
+    return Colegio(id=uuid.uuid4(), nombre="Colegio 2", codigo="C2")
+
+
+@pytest.fixture
+def alumno(repos, grado_individual, colegio_1):
+    a = Alumno(
+        id=uuid.uuid4(),
+        colegio_id=colegio_1.id,
+        grado_id=grado_individual.id,
+        nombre="Ana",
+        creado_en=_ahora(),
+    )
+    repos.alumno.alumnos[a.id] = a
+    repos.colegio.colegios[colegio_1.id] = colegio_1
+    repos.grado.grados[grado_individual.id] = grado_individual
+    return a
 
 
 @pytest.fixture

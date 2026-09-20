@@ -8,6 +8,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities import (
+    Alumno,
     Colegio,
     Grado,
     Jugador,
@@ -19,6 +20,7 @@ from app.domain.entities import (
     SesionJuego,
 )
 from app.infrastructure.db.models import (
+    AlumnoORM,
     ColegioORM,
     GradoORM,
     JugadorORM,
@@ -69,15 +71,117 @@ class ColegioRepo:
         )
         return [_row_to_obj(r, Colegio) for r in rows]
 
+    async def por_id(self, colegio_id: uuid.UUID) -> Colegio | None:
+        row = await self.db.get(ColegioORM, colegio_id)
+        return _row_to_obj(row, Colegio) if row else None
+
+    async def crear(self, nombre: str, codigo: str | None = None) -> Colegio:
+        row = ColegioORM(nombre=nombre, codigo=codigo)
+        self.db.add(row)
+        await self.db.flush()
+        return _row_to_obj(row, Colegio)
+
+    async def actualizar(
+        self,
+        colegio_id: uuid.UUID,
+        *,
+        nombre: str | None = None,
+        codigo: str | None = None,
+    ) -> Colegio | None:
+        values: dict = {}
+        if nombre is not None:
+            values["nombre"] = nombre
+        if codigo is not None:
+            values["codigo"] = codigo
+        if values:
+            await self.db.execute(
+                update(ColegioORM).where(ColegioORM.id == colegio_id).values(**values)
+            )
+            await self.db.flush()
+        return await self.por_id(colegio_id)
+
+    async def eliminar(self, colegio_id: uuid.UUID) -> None:
+        await self.db.execute(delete(ColegioORM).where(ColegioORM.id == colegio_id))
+        await self.db.flush()
+
+
+class AlumnoRepo:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def listar(
+        self, grado_id: uuid.UUID | None = None, colegio_id: uuid.UUID | None = None
+    ) -> list[Alumno]:
+        query = select(AlumnoORM).order_by(AlumnoORM.nombre)
+        if grado_id is not None:
+            query = query.where(AlumnoORM.grado_id == grado_id)
+        if colegio_id is not None:
+            query = query.where(AlumnoORM.colegio_id == colegio_id)
+        rows = (await self.db.execute(query)).scalars().all()
+        return [_row_to_obj(r, Alumno) for r in rows]
+
+    async def por_id(self, alumno_id: uuid.UUID) -> Alumno | None:
+        row = await self.db.get(AlumnoORM, alumno_id)
+        return _row_to_obj(row, Alumno) if row else None
+
+    async def crear(
+        self, colegio_id: uuid.UUID, grado_id: uuid.UUID, nombre: str
+    ) -> Alumno:
+        row = AlumnoORM(colegio_id=colegio_id, grado_id=grado_id, nombre=nombre)
+        self.db.add(row)
+        await self.db.flush()
+        return _row_to_obj(row, Alumno)
+
+    async def actualizar(
+        self,
+        alumno_id: uuid.UUID,
+        *,
+        nombre: str | None = None,
+        colegio_id: uuid.UUID | None = None,
+        grado_id: uuid.UUID | None = None,
+    ) -> Alumno | None:
+        values: dict = {}
+        if nombre is not None:
+            values["nombre"] = nombre
+        if colegio_id is not None:
+            values["colegio_id"] = colegio_id
+        if grado_id is not None:
+            values["grado_id"] = grado_id
+        if values:
+            await self.db.execute(
+                update(AlumnoORM).where(AlumnoORM.id == alumno_id).values(**values)
+            )
+            await self.db.flush()
+        return await self.por_id(alumno_id)
+
+    async def eliminar(self, alumno_id: uuid.UUID) -> None:
+        await self.db.execute(delete(AlumnoORM).where(AlumnoORM.id == alumno_id))
+        await self.db.flush()
+
 
 class SesionRepo:
     def __init__(self, db: AsyncSession):
         self.db = db
 
     async def crear(
-        self, pin: str, grado_id: uuid.UUID, estado: str = "lobby"
+        self,
+        pin: str,
+        grado_id: uuid.UUID,
+        estado: str = "lobby",
+        tipo: str = "oficial",
+        colegio_id: uuid.UUID | None = None,
+        alumno_a_id: uuid.UUID | None = None,
+        alumno_b_id: uuid.UUID | None = None,
     ) -> SesionJuego:
-        row = SesionJuegoORM(pin=pin, grado_id=grado_id, estado=estado)
+        row = SesionJuegoORM(
+            pin=pin,
+            grado_id=grado_id,
+            estado=estado,
+            tipo=tipo,
+            colegio_id=colegio_id,
+            alumno_a_id=alumno_a_id,
+            alumno_b_id=alumno_b_id,
+        )
         self.db.add(row)
         await self.db.flush()
         return _row_to_obj(row, SesionJuego)
@@ -115,11 +219,17 @@ class SesionRepo:
         reto_activo_id: uuid.UUID | None = None,
         cronometro_inicio: datetime | None = None,
         cronometro_segundos: int | None = None,
+        tipo: str | None = None,
+        colegio_id: uuid.UUID | None = None,
         reset_pregunta: bool = False,
     ) -> SesionJuego | None:
         values: dict = {}
         if estado is not None:
             values["estado"] = estado
+        if tipo is not None:
+            values["tipo"] = tipo
+        if colegio_id is not None:
+            values["colegio_id"] = colegio_id
         if reset_pregunta:
             values["pregunta_activa_id"] = None
         elif pregunta_activa_id is not None:
@@ -145,10 +255,18 @@ class JugadorRepo:
         self.db = db
 
     async def crear(
-        self, sesion_id: uuid.UUID, nombre: str, colegio_id: uuid.UUID | None
+        self,
+        sesion_id: uuid.UUID,
+        nombre: str,
+        colegio_id: uuid.UUID | None,
+        alumno_id: uuid.UUID | None = None,
     ) -> Jugador:
         row = JugadorORM(
-            sesion_id=sesion_id, nombre=nombre, colegio_id=colegio_id, conectado=True
+            sesion_id=sesion_id,
+            nombre=nombre,
+            colegio_id=colegio_id,
+            alumno_id=alumno_id,
+            conectado=True,
         )
         self.db.add(row)
         await self.db.flush()
@@ -161,6 +279,19 @@ class JugadorRepo:
             await self.db.execute(
                 select(JugadorORM).where(
                     JugadorORM.sesion_id == sesion_id, JugadorORM.nombre == nombre
+                )
+            )
+        ).scalar_one_or_none()
+        return _row_to_obj(row, Jugador) if row else None
+
+    async def por_sesion_y_alumno(
+        self, sesion_id: uuid.UUID, alumno_id: uuid.UUID
+    ) -> Jugador | None:
+        row = (
+            await self.db.execute(
+                select(JugadorORM).where(
+                    JugadorORM.sesion_id == sesion_id,
+                    JugadorORM.alumno_id == alumno_id,
                 )
             )
         ).scalar_one_or_none()
@@ -205,12 +336,15 @@ class JugadorRepo:
         *,
         conectado: bool | None = None,
         colegio_id: uuid.UUID | None = None,
+        alumno_id: uuid.UUID | None = None,
     ) -> Jugador | None:
         values: dict = {}
         if conectado is not None:
             values["conectado"] = conectado
         if colegio_id is not None:
             values["colegio_id"] = colegio_id
+        if alumno_id is not None:
+            values["alumno_id"] = alumno_id
         if values:
             values["ultima_conexion"] = datetime.now()
             await self.db.execute(
@@ -593,3 +727,83 @@ async def generar_pin_unico(db: AsyncSession) -> str:
         ).scalar_one_or_none()
         if not existe:
             return pin
+
+
+async def obtener_tabla_colegios(db: AsyncSession, grado_id: uuid.UUID) -> list[dict]:
+    """Tabla todos contra todos: puntos por colegio sumando respuestas y retos
+    de todas las sesiones OFICIALES del grado. Incluye colegios con 0 puntos
+    (los que tienen alumnos registrados en ese grado)."""
+    from sqlalchemy import func, text
+
+    # Colegios participantes = los que tienen alumnos en este grado
+    participantes = (
+        select(ColegioORM.id)
+        .join(AlumnoORM, AlumnoORM.colegio_id == ColegioORM.id)
+        .where(AlumnoORM.grado_id == grado_id)
+    )
+
+    # Sesiones oficiales del grado
+    sesiones_oficiales = select(SesionJuegoORM.id).where(
+        SesionJuegoORM.grado_id == grado_id, SesionJuegoORM.tipo == "oficial"
+    )
+
+    resp_col = (
+        select(
+            ColegioORM.id.label("entity_id"),
+            ColegioORM.nombre.label("nombre"),
+            func.coalesce(RespuestaORM.puntos, 0).label("puntos"),
+        )
+        .join(JugadorORM, JugadorORM.colegio_id == ColegioORM.id)
+        .outerjoin(RespuestaORM, RespuestaORM.jugador_id == JugadorORM.id)
+        .where(
+            JugadorORM.sesion_id.in_(sesiones_oficiales),
+            RespuestaORM.correcta.is_(True),
+        )
+    )
+    reto_col = (
+        select(
+            ColegioORM.id.label("entity_id"),
+            ColegioORM.nombre.label("nombre"),
+            func.coalesce(PuntajeRetoORM.puntos, 0).label("puntos"),
+        )
+        .join(PuntajeRetoORM, PuntajeRetoORM.colegio_id == ColegioORM.id)
+        .where(
+            PuntajeRetoORM.reto_id.in_(
+                select(RetoORM.id).where(RetoORM.grado_id == grado_id)
+            )
+        )
+    )
+    union = resp_col.union_all(reto_col).subquery()
+    query = (
+        select(
+            union.c.entity_id,
+            union.c.nombre,
+            func.coalesce(func.sum(union.c.puntos), 0).label("total"),
+        )
+        .where(union.c.entity_id.in_(participantes))
+        .group_by(union.c.entity_id, union.c.nombre)
+        .order_by(text("total DESC"), union.c.nombre)
+    )
+    rows = (await db.execute(query)).all()
+
+    # Asegurar que los colegios participantes sin puntos también aparezcan
+    colegios_participantes = (
+        (await db.execute(select(ColegioORM).where(ColegioORM.id.in_(participantes))))
+        .scalars()
+        .all()
+    )
+    todos = {(c.id, c.nombre): 0 for c in colegios_participantes}
+    for r in rows:
+        todos[(r.entity_id, r.nombre)] = r.total
+
+    ordenados = sorted(todos.items(), key=lambda kv: (-kv[1], kv[0][1]))
+    return [
+        {
+            "puesto": i + 1,
+            "colegio_id": str(cid),
+            "nombre": nombre,
+            "puntos_total": puntos,
+            "es_colegio": True,
+        }
+        for i, ((cid, nombre), puntos) in enumerate(ordenados)
+    ]

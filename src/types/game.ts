@@ -25,10 +25,30 @@ export interface Colegio {
   creado_en: string;
 }
 
+export interface Alumno {
+  id: string;
+  colegio_id: string;
+  grado_id: string;
+  nombre: string;
+  creado_en: string;
+}
+
+export interface TablaColegio {
+  puesto: number;
+  colegio_id: string;
+  nombre: string;
+  puntos_total: number;
+  es_colegio: boolean;
+}
+
 export interface SesionJuego {
   id: string;
   pin: string;
   grado_id: string;
+  tipo: "oficial" | "prueba";
+  colegio_id: string | null;
+  alumno_a_id: string | null;
+  alumno_b_id: string | null;
   estado: EstadoSesion;
   pregunta_activa_id: string | null;
   reto_activo_id: string | null;
@@ -70,6 +90,7 @@ export interface Jugador {
   sesion_id: string;
   nombre: string;
   colegio_id: string | null;
+  alumno_id: string | null;
   conectado: boolean;
   ultima_conexion: string | null;
   creado_en: string;

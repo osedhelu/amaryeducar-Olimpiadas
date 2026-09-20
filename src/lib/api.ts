@@ -1,4 +1,5 @@
 import type {
+  Alumno,
   Colegio,
   Grado,
   Jugador,
@@ -7,6 +8,7 @@ import type {
   Respuesta,
   Reto,
   SesionJuego,
+  TablaColegio,
 } from "@/types/game";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -63,20 +65,75 @@ export const api = {
     return r.token;
   },
 
-  joinSesion: (pin: string, nombre: string, colegioId: string | null = null) =>
+  joinSesion: (pin: string, alumnoId: string) =>
     request<{
       token: string;
       jugadorId: string;
       sesionId: string;
       nombre: string;
+      alumnoId: string;
+      colegioId: string | null;
     }>("/session/join", {
       method: "POST",
-      body: JSON.stringify({ pin, nombre, colegioId }),
+      body: JSON.stringify({ pin, alumno_id: alumnoId }),
     }),
 
   // ── Catálogos ────────────────────────────────────────
   grados: (): Promise<Grado[]> => request<Grado[]>("/grados"),
   colegios: (): Promise<Colegio[]> => request<Colegio[]>("/colegios"),
+  crearColegio: (nombre: string, codigo?: string) =>
+    request<Colegio>("/colegios", {
+      method: "POST",
+      body: JSON.stringify({ nombre, codigo: codigo ?? null }),
+    }),
+  actualizarColegio: (id: string, nombre: string) =>
+    request<Colegio>(`/colegios/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ nombre }),
+    }),
+  eliminarColegio: (id: string) =>
+    request<{ ok: boolean }>(`/colegios/${id}`, { method: "DELETE" }),
+
+  alumnos: (gradoId?: string, colegioId?: string): Promise<Alumno[]> => {
+    const params = new URLSearchParams();
+    if (gradoId) params.set("grado_id", gradoId);
+    if (colegioId) params.set("colegio_id", colegioId);
+    const qs = params.toString();
+    return request<Alumno[]>(`/alumnos${qs ? `?${qs}` : ""}`);
+  },
+  crearAlumno: (colegioId: string, gradoId: string, nombre: string) =>
+    request<Alumno>("/alumnos", {
+      method: "POST",
+      body: JSON.stringify({
+        colegio_id: colegioId,
+        grado_id: gradoId,
+        nombre,
+      }),
+    }),
+  actualizarAlumno: (id: string, nombre: string) =>
+    request<Alumno>(`/alumnos/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ nombre }),
+    }),
+  eliminarAlumno: (id: string) =>
+    request<{ ok: boolean }>(`/alumnos/${id}`, { method: "DELETE" }),
+
+  // ── Enfrentamiento / Duelos ───────────────────────────
+  tablaGrado: (gradoId: string): Promise<TablaColegio[]> =>
+    request<TablaColegio[]>(`/tabla/${gradoId}`),
+  crearDuelo: (gradoId: string, alumnoAId: string, alumnoBId: string) =>
+    request<SesionJuego>("/duelos", {
+      method: "POST",
+      body: JSON.stringify({
+        grado_id: gradoId,
+        alumno_a_id: alumnoAId,
+        alumno_b_id: alumnoBId,
+      }),
+    }),
+  alumnosPorPin: (pin: string) =>
+    request<{ sesion: SesionJuego; alumnos: Alumno[] }>(
+      `/sessions/by-pin/${pin}/alumnos`,
+    ),
 
   // ── Sesiones ─────────────────────────────────────────
   crearSesion: (gradoId: string) =>

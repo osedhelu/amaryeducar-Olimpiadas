@@ -58,6 +58,14 @@ Eventos que maneja el frontend: `jugador_unido`, `jugador_cambio`, `sesion_cambi
 - `obtener_respuestas_sesion(p_sesion_id)` devuelve solo respuestas de la sesión (mezclar por `pregunta_id` global es un bug conocido — filtra siempre por sesión).
 - `obtener_podium(p_sesion_id)` muestra **todos** los participantes con 0 puntos incluidos (LEFT JOIN), agrupando por jugador (1-3) o colegio (4-5).
 
+### Registro de participantes (alumnos, colegios, duelos, tabla)
+
+- **El alumno ya NO escribe su nombre**: el docente registra colegios (`/colegios`) y alumnos (`/alumnos`) vinculados a colegio + grado. El alumno entra a una sesión con el PIN y **toca su nombre** de la lista (`GET /sessions/by-pin/{pin}/alumnos`), no teclea nada.
+- `JoinRequest` usa `alumno_id` (no `nombre`). El join crea/reutiliza el `jugador` vinculado al alumno registrado.
+- **Enfrentamiento todos contra todos**: `GET /tabla/{grado_id}` suma puntos (respuestas + retos) por colegio SOLO de sesiones `tipo='oficial'`, con ceros incluidos.
+- **Duelo/prueba 1v1**: `POST /duelos` con `{grado_id, alumno_a_id, alumno_b_id}` (mismo grado; colegio igual o distinto). Crea sesión `tipo='prueba'` con PIN; la lista de alumnos para ese PIN muestra solo los 2 duelistas. Los puntos NO entran a `/tabla`. Varias preguntas del grado; gana el que más sume.
+- Resultados finales: el dashboard y la pantalla grande muestran **puntos por estudiante** (podium) y **total por colegio** (tabla).
+
 ## Sesión/identidad en el cliente (bugs sufridos)
 
 - **Estudiante**: identidad en `sessionStorage` (por pestaña) — `jugador_id`, `jugador_nombre`, `jwt_estudiante`. Imprescindible para que varios estudiantes en el mismo navegador (pestañas) no se pisen.

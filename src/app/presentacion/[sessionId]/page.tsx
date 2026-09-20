@@ -11,6 +11,7 @@ import type {
   PodiumEntry,
   Respuesta,
   EventoWS,
+  TablaColegio,
 } from "@/types/game";
 
 type Vista =
@@ -25,6 +26,7 @@ export default function PresentacionPage() {
   const [jugadores, setJugadores] = useState<Jugador[]>([]);
   const [respuestas, setRespuestas] = useState<Respuesta[]>([]);
   const [podium, setPodium] = useState<PodiumEntry[]>([]);
+  const [tabla, setTabla] = useState<TablaColegio[]>([]);
   const [vista, setVista] = useState<Vista>("bienvenida");
   const [tiempoRestante, setTiempoRestante] = useState(0);
   const [preguntasLista, setPreguntasLista] = useState<Pregunta[]>([]);
@@ -57,6 +59,10 @@ export default function PresentacionPage() {
     if (s.estado === "podium" || s.estado === "final") {
       const p = await api.podium(s.id);
       setPodium(p);
+      api
+        .tablaGrado(s.grado_id)
+        .then(setTabla)
+        .catch(() => {});
     }
   }, [sessionId]);
 
@@ -83,6 +89,10 @@ export default function PresentacionPage() {
         setSesion(ev.data);
         if (ev.data.estado === "podium" || ev.data.estado === "final") {
           api.podium(ev.data.id).then(setPodium);
+          api
+            .tablaGrado(ev.data.grado_id)
+            .then(setTabla)
+            .catch(() => {});
         }
         break;
       case "respuesta_recibida":
@@ -704,18 +714,102 @@ export default function PresentacionPage() {
   }
 
   if (vista === "final") {
+    const estudiantes = podium.filter((e) => !e.es_colegio);
+    const colegiosTabla =
+      tabla.length > 0 ? tabla : podium.filter((e) => e.es_colegio);
+
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
-        <div className="text-center space-y-6 animate-fade-in">
-          <div className="text-8xl">🏁</div>
-          <h1 className="text-5xl font-heading font-extrabold text-dorado">
+        <div className="max-w-5xl w-full text-center space-y-8">
+          <div className="text-6xl">🏁</div>
+          <h1 className="text-4xl font-heading font-extrabold text-dorado">
             ¡Sesión terminada!
           </h1>
-          <p className="text-2xl text-white font-heading font-bold">
-            Que pase el siguiente grupo
+          <p className="text-white/70 text-lg">
+            Resultados finales de este grupo
           </p>
-          <p className="text-xl text-white/80">Olimpiadas Matemáticas 2026</p>
-          <p className="text-lg text-white/60">Amar y Educar</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+              <h2 className="text-2xl font-heading font-bold text-white mb-4">
+                🎓 Puntos por estudiante
+              </h2>
+              <div className="space-y-2">
+                {estudiantes.length === 0 && (
+                  <p className="text-white/60 text-sm">Sin resultados.</p>
+                )}
+                {estudiantes.map((entry, idx) => (
+                  <div
+                    key={entry.entity_id}
+                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 animate-slide-up"
+                    style={{ animationDelay: `${idx * 100}ms` }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">
+                        {entry.puesto === 1
+                          ? "🥇"
+                          : entry.puesto === 2
+                            ? "🥈"
+                            : entry.puesto === 3
+                              ? "🥉"
+                              : `${entry.puesto}°`}
+                      </span>
+                      <span className="font-heading font-bold text-white text-lg">
+                        {entry.nombre}
+                      </span>
+                    </div>
+                    <span className="font-heading font-extrabold text-dorado text-xl">
+                      {entry.puntos_total} pts
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+              <h2 className="text-2xl font-heading font-bold text-white mb-4">
+                🏫 Puntos por colegio
+              </h2>
+              <div className="space-y-2">
+                {colegiosTabla.length === 0 && (
+                  <p className="text-white/60 text-sm">Sin resultados.</p>
+                )}
+                {colegiosTabla.map((entry, idx) => (
+                  <div
+                    key={`${entry.nombre}-${idx}`}
+                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 animate-slide-up"
+                    style={{ animationDelay: `${idx * 100}ms` }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">
+                        {entry.puesto === 1
+                          ? "🥇"
+                          : entry.puesto === 2
+                            ? "🥈"
+                            : entry.puesto === 3
+                              ? "🥉"
+                              : `${entry.puesto}°`}
+                      </span>
+                      <span className="font-heading font-bold text-white text-lg">
+                        {entry.nombre}
+                      </span>
+                    </div>
+                    <span className="font-heading font-extrabold text-dorado text-xl">
+                      {entry.puntos_total} pts
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={verPodium}
+            disabled={controlesLoading}
+            className="px-6 py-3 bg-dorado text-azul-dark rounded-xl font-heading font-bold text-lg hover:bg-dorado-light disabled:opacity-50"
+          >
+            Ver Podium 🏆
+          </button>
         </div>
         {barraControles}
       </div>

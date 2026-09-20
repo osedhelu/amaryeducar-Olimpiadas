@@ -85,6 +85,26 @@ class ColegioORM(Base):
     creado_en: Mapped[datetime] = _ts()
 
 
+class AlumnoORM(Base):
+    __tablename__ = "alumnos"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    colegio_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("colegios.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    grado_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("grados.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    nombre: Mapped[str] = mapped_column(Text, nullable=False)
+    creado_en: Mapped[datetime] = _ts()
+
+    __table_args__ = (UniqueConstraint("colegio_id", "grado_id", "nombre"),)
+
+
 class SesionJuegoORM(Base):
     __tablename__ = "sesiones_juego"
 
@@ -92,6 +112,16 @@ class SesionJuegoORM(Base):
     pin: Mapped[str] = mapped_column(String(4), nullable=False, unique=True)
     grado_id: Mapped[uuid.UUID] = mapped_column(
         PgUUID(as_uuid=True), ForeignKey("grados.id"), nullable=False
+    )
+    tipo: Mapped[str] = mapped_column(String, server_default="oficial", nullable=False)
+    colegio_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("colegios.id"), nullable=True
+    )
+    alumno_a_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("alumnos.id"), nullable=True
+    )
+    alumno_b_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True), ForeignKey("alumnos.id"), nullable=True
     )
     estado: Mapped[EstadoSesionEnum] = mapped_column(
         Enum(
@@ -128,6 +158,11 @@ class JugadorORM(Base):
         nullable=False,
     )
     nombre: Mapped[str] = mapped_column(Text, nullable=False)
+    alumno_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("alumnos.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     colegio_id: Mapped[uuid.UUID | None] = mapped_column(
         PgUUID(as_uuid=True), ForeignKey("colegios.id"), nullable=True
     )

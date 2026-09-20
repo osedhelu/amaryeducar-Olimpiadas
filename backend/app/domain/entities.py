@@ -26,10 +26,23 @@ class Colegio:
 
 
 @dataclass
+class Alumno:
+    id: UUID
+    colegio_id: UUID
+    grado_id: UUID
+    nombre: str
+    creado_en: Optional[datetime] = None
+
+
+@dataclass
 class SesionJuego:
     id: UUID
     pin: str
     grado_id: UUID
+    tipo: str = "oficial"
+    colegio_id: Optional[UUID] = None
+    alumno_a_id: Optional[UUID] = None
+    alumno_b_id: Optional[UUID] = None
     estado: str = "borrador"
     pregunta_activa_id: Optional[UUID] = None
     reto_activo_id: Optional[UUID] = None
@@ -45,6 +58,7 @@ class Jugador:
     sesion_id: UUID
     nombre: str
     colegio_id: Optional[UUID] = None
+    alumno_id: Optional[UUID] = None
     conectado: bool = False
     ultima_conexion: Optional[datetime] = None
     creado_en: Optional[datetime] = None

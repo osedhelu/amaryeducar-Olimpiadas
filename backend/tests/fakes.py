@@ -6,7 +6,15 @@ import uuid
 from datetime import datetime, timezone
 
 from app.application.ports import RealtimePublisher
-from app.domain.entities import Grado, Jugador, Pregunta, Respuesta, SesionJuego
+from app.domain.entities import (
+    Alumno,
+    Colegio,
+    Grado,
+    Jugador,
+    Pregunta,
+    Respuesta,
+    SesionJuego,
+)
 
 
 def _ahora() -> datetime:
@@ -77,17 +85,105 @@ class FakeGradoRepo(_Singleton):
         return self.grados.get(grado_id)
 
 
+class FakeColegioRepo(_Singleton):
+    def __init__(self, db=None):
+        self.colegios: dict[uuid.UUID, Colegio] = {}
+
+    async def listar(self):
+        return list(self.colegios.values())
+
+    async def por_id(self, colegio_id):
+        return self.colegios.get(colegio_id)
+
+    async def crear(self, nombre, codigo=None):
+        colegio = Colegio(
+            id=uuid.uuid4(), nombre=nombre, codigo=codigo, creado_en=_ahora()
+        )
+        self.colegios[colegio.id] = colegio
+        return colegio
+
+    async def actualizar(self, colegio_id, *, nombre=None, codigo=None):
+        colegio = self.colegios.get(colegio_id)
+        if not colegio:
+            return None
+        if nombre is not None:
+            colegio.nombre = nombre
+        if codigo is not None:
+            colegio.codigo = codigo
+        return colegio
+
+    async def eliminar(self, colegio_id):
+        self.colegios.pop(colegio_id, None)
+
+
+class FakeAlumnoRepo(_Singleton):
+    def __init__(self, db=None):
+        self.alumnos: dict[uuid.UUID, Alumno] = {}
+
+    async def listar(self, grado_id=None, colegio_id=None):
+        out = list(self.alumnos.values())
+        if grado_id is not None:
+            out = [a for a in out if a.grado_id == grado_id]
+        if colegio_id is not None:
+            out = [a for a in out if a.colegio_id == colegio_id]
+        return out
+
+    async def por_id(self, alumno_id):
+        return self.alumnos.get(alumno_id)
+
+    async def crear(self, colegio_id, grado_id, nombre):
+        alumno = Alumno(
+            id=uuid.uuid4(),
+            colegio_id=colegio_id,
+            grado_id=grado_id,
+            nombre=nombre,
+            creado_en=_ahora(),
+        )
+        self.alumnos[alumno.id] = alumno
+        return alumno
+
+    async def actualizar(
+        self, alumno_id, *, nombre=None, colegio_id=None, grado_id=None
+    ):
+        alumno = self.alumnos.get(alumno_id)
+        if not alumno:
+            return None
+        if nombre is not None:
+            alumno.nombre = nombre
+        if colegio_id is not None:
+            alumno.colegio_id = colegio_id
+        if grado_id is not None:
+            alumno.grado_id = grado_id
+        return alumno
+
+    async def eliminar(self, alumno_id):
+        self.alumnos.pop(alumno_id, None)
+
+
 class FakeSesionRepo(_Singleton):
     def __init__(self, db=None):
         self.sesiones: dict[uuid.UUID, SesionJuego] = {}
         self._secuencia = 0
 
-    async def crear(self, pin, grado_id, estado="lobby"):
+    async def crear(
+        self,
+        pin,
+        grado_id,
+        estado="lobby",
+        tipo="oficial",
+        colegio_id=None,
+        alumno_a_id=None,
+        alumno_b_id=None,
+    ):
         self._secuencia += 1
         sesion = SesionJuego(
             id=uuid.uuid4(),
             pin=pin,
             grado_id=grado_id,
+            tipo=tipo,
+            colegio_id=colegio_id,
+            alumno_a_id=alumno_a_id,
+            alumno_b_id=alumno_b_id,
             estado=estado,
             creado_en=_ahora(),
         )
@@ -124,13 +220,14 @@ class FakeJugadorRepo(_Singleton):
         self.jugadores: dict[uuid.UUID, Jugador] = {}
         self._secuencia = 0
 
-    async def crear(self, sesion_id, nombre, colegio_id=None):
+    async def crear(self, sesion_id, nombre, colegio_id=None, alumno_id=None):
         self._secuencia += 1
         jugador = Jugador(
             id=uuid.uuid4(),
             sesion_id=sesion_id,
             nombre=nombre,
             colegio_id=colegio_id,
+            alumno_id=alumno_id,
             conectado=True,
             creado_en=_ahora(),
         )
@@ -143,13 +240,21 @@ class FakeJugadorRepo(_Singleton):
                 return j
         return None
 
+    async def por_sesion_y_alumno(self, sesion_id, alumno_id):
+        for j in self.jugadores.values():
+            if j.sesion_id == sesion_id and j.alumno_id == alumno_id:
+                return j
+        return None
+
     async def por_id(self, jugador_id):
         return self.jugadores.get(jugador_id)
 
     async def listar_por_sesion(self, sesion_id):
         return [j for j in self.jugadores.values() if j.sesion_id == sesion_id]
 
-    async def actualizar(self, jugador_id, *, conectado=None, colegio_id=None):
+    async def actualizar(
+        self, jugador_id, *, conectado=None, colegio_id=None, alumno_id=None
+    ):
         jugador = self.jugadores.get(jugador_id)
         if not jugador:
             return None
@@ -157,6 +262,8 @@ class FakeJugadorRepo(_Singleton):
             jugador.conectado = conectado
         if colegio_id is not None:
             jugador.colegio_id = colegio_id
+        if alumno_id is not None:
+            jugador.alumno_id = alumno_id
         jugador.ultima_conexion = _ahora()
         return jugador
 
@@ -289,6 +396,8 @@ class FakeRepos:
             FakeJugadorRepo,
             FakePreguntaRepo,
             FakeRespuestaRepo,
+            FakeColegioRepo,
+            FakeAlumnoRepo,
         ):
             cls._reset()
         self.grado = FakeGradoRepo()
@@ -296,3 +405,5 @@ class FakeRepos:
         self.jugador = FakeJugadorRepo()
         self.pregunta = FakePreguntaRepo()
         self.respuesta = FakeRespuestaRepo()
+        self.colegio = FakeColegioRepo()
+        self.alumno = FakeAlumnoRepo()

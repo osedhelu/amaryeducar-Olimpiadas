@@ -19,6 +19,7 @@ from app.domain.entities import entity_to_dict
 from app.domain.enums import EstadoSesion, RolJWT
 from app.domain.rules import es_grado_grupal
 from app.infrastructure.db.repositories import (
+    AlumnoRepo,
     ColegioRepo,
     GradoRepo,
     JugadorRepo,
@@ -61,7 +62,11 @@ class SesionUseCases:
     async def crear(self, req: CrearSesionRequest) -> dict:
         pin = await generar_pin_unico(self.db)
         sesion = await SesionRepo(self.db).crear(
-            pin, req.grado_id, EstadoSesion.LOBBY.value
+            pin,
+            req.grado_id,
+            EstadoSesion.LOBBY.value,
+            tipo=req.tipo,
+            colegio_id=req.colegio_id,
         )
         await self.db.commit()
         return entity_to_dict(sesion)
@@ -69,29 +74,38 @@ class SesionUseCases:
     async def unirse(self, req: JoinRequest) -> dict:
         sesion_repo = SesionRepo(self.db)
         jugador_repo = JugadorRepo(self.db)
-        grado_repo = GradoRepo(self.db)
+        alumno_repo = AlumnoRepo(self.db)
 
         sesion = await sesion_repo.por_pin(req.pin)
         if not sesion or sesion.estado == EstadoSesion.BORRADOR.value:
             raise PinNoEncontrado()
 
-        grado = await grado_repo.por_id(sesion.grado_id)
-        necesita_colegio = grado is not None and es_grado_grupal(grado.orden)
-        if necesita_colegio and req.colegioId is None:
-            raise DatosInvalidos("Debes seleccionar tu colegio")
+        alumno = await alumno_repo.por_id(req.alumno_id)
+        if not alumno:
+            raise DatosInvalidos("Alumno no encontrado en el registro")
+        if alumno.grado_id != sesion.grado_id:
+            raise DatosInvalidos("El alumno no pertenece al grado de esta sesión")
+        if sesion.tipo == "prueba":
+            if alumno.id not in (sesion.alumno_a_id, sesion.alumno_b_id):
+                raise DatosInvalidos("Este alumno no participa en esta prueba")
 
-        jugador = await jugador_repo.por_sesion_y_nombre(sesion.id, req.nombre)
+        jugador = await jugador_repo.por_sesion_y_alumno(sesion.id, alumno.id)
         if jugador:
             await jugador_repo.actualizar(
-                jugador.id, conectado=True, colegio_id=req.colegioId
+                jugador.id,
+                conectado=True,
+                colegio_id=alumno.colegio_id,
+                alumno_id=alumno.id,
             )
-            jugador.colegio_id = req.colegioId
+            jugador.colegio_id = alumno.colegio_id
             await self.db.commit()
             await self.realtime.publish(
                 "jugador_cambio", entity_to_dict(jugador), str(sesion.id)
             )
         else:
-            jugador = await jugador_repo.crear(sesion.id, req.nombre, req.colegioId)
+            jugador = await jugador_repo.crear(
+                sesion.id, alumno.nombre, alumno.colegio_id, alumno.id
+            )
             await self.db.commit()
             await self.realtime.publish(
                 "jugador_unido", entity_to_dict(jugador), str(sesion.id)
@@ -102,7 +116,9 @@ class SesionUseCases:
             "token": token,
             "jugadorId": str(jugador.id),
             "sesionId": str(sesion.id),
-            "nombre": req.nombre,
+            "nombre": alumno.nombre,
+            "alumnoId": str(alumno.id),
+            "colegioId": str(alumno.colegio_id) if alumno.colegio_id else None,
         }
 
     async def listar(self) -> list[dict]:

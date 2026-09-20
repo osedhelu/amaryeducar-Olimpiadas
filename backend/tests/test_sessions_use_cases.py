@@ -11,7 +11,6 @@ from app.application.sessions.use_cases import AuthUseCases, SesionUseCases
 from app.core.exceptions import ClaveIncorrecta, DatosInvalidos, PinNoEncontrado
 from app.core.security import verificar_jwt
 from app.domain.enums import EstadoSesion
-from app.infrastructure.db.repositories import GradoRepo, JugadorRepo, SesionRepo
 
 
 @pytest.fixture
@@ -30,20 +29,15 @@ def uc_sesion(monkeypatch, repos, realtime):
     monkeypatch.setattr(uc, "SesionRepo", _factory(repos.sesion))
     monkeypatch.setattr(uc, "JugadorRepo", _factory(repos.jugador))
     monkeypatch.setattr(uc, "GradoRepo", _factory(repos.grado))
+    monkeypatch.setattr(uc, "AlumnoRepo", _factory(repos.alumno))
     return SesionUseCases(FakeDb(), realtime)
-
-
-@pytest.fixture
-def grado_presente(repos, grado_individual):
-    repos.grado.grados[grado_individual.id] = grado_individual
-    return grado_individual
 
 
 class TestUnirse:
     async def test_crea_jugador_nuevo_y_firma_token(
-        self, uc_sesion, realtime, sesion_lobby, grado_presente
+        self, uc_sesion, realtime, sesion_lobby, alumno
     ):
-        res = await uc_sesion.unirse(JoinRequest(pin="1234", nombre="Ana"))
+        res = await uc_sesion.unirse(JoinRequest(pin="1234", alumno_id=alumno.id))
         assert res["sesionId"] == str(sesion_lobby.id)
         assert res["nombre"] == "Ana"
         assert res["jugadorId"]
@@ -55,58 +49,54 @@ class TestUnirse:
         assert "jugador_unido" in tipos
 
     async def test_pin_inexistente_lanza_pin_no_encontrado(
-        self, uc_sesion, realtime, sesion_lobby
+        self, uc_sesion, realtime, sesion_lobby, alumno
     ):
         with pytest.raises(PinNoEncontrado):
-            await uc_sesion.unirse(JoinRequest(pin="9999", nombre="Ana"))
+            await uc_sesion.unirse(JoinRequest(pin="9999", alumno_id=alumno.id))
 
     async def test_pin_de_sesion_borrador_lanza_pin_no_encontrado(
-        self, uc_sesion, realtime, sesion_lobby, grado_presente
+        self, uc_sesion, realtime, sesion_lobby, alumno
     ):
         sesion_lobby.estado = EstadoSesion.BORRADOR.value
         with pytest.raises(PinNoEncontrado):
-            await uc_sesion.unirse(JoinRequest(pin="1234", nombre="Ana"))
+            await uc_sesion.unirse(JoinRequest(pin="1234", alumno_id=alumno.id))
 
     async def test_jugador_existente_se_marca_conectado_y_no_duplica(
-        self, uc_sesion, repos, realtime, sesion_lobby, grado_presente, jugador
+        self, uc_sesion, repos, realtime, sesion_lobby, alumno
     ):
-        jugador.conectado = False
-        res = await uc_sesion.unirse(JoinRequest(pin="1234", nombre="Ana"))
-        assert res["jugadorId"] == str(jugador.id)
-        assert jugador.conectado is True
+        j = await repos.jugador.crear(
+            sesion_lobby.id, "Ana", alumno.colegio_id, alumno.id
+        )
+        j.conectado = False
+        res = await uc_sesion.unirse(JoinRequest(pin="1234", alumno_id=alumno.id))
+        assert res["jugadorId"] == str(j.id)
+        assert j.conectado is True
         assert len(await repos.jugador.listar_por_sesion(sesion_lobby.id)) == 1
         tipos = [e[0] for e in realtime.eventos]
         assert "jugador_cambio" in tipos
         assert "jugador_unido" not in tipos
 
-    async def test_grado_grupal_requiere_colegio(
-        self, uc_sesion, repos, realtime, sesion_lobby, grado_grupal
+    async def test_alumno_de_otro_grado_rechazado(
+        self, uc_sesion, repos, realtime, sesion_lobby, grado_grupal, alumno
     ):
         repos.grado.grados[grado_grupal.id] = grado_grupal
         sesion_lobby.grado_id = grado_grupal.id
         with pytest.raises(DatosInvalidos):
-            await uc_sesion.unirse(JoinRequest(pin="1234", nombre="Ana"))
+            await uc_sesion.unirse(JoinRequest(pin="1234", alumno_id=alumno.id))
 
-    async def test_grado_grupal_con_colegio_ok(
-        self, uc_sesion, repos, realtime, sesion_lobby, grado_grupal
+    async def test_alumno_no_registrado_rechazado(
+        self, uc_sesion, repos, realtime, sesion_lobby
     ):
-        repos.grado.grados[grado_grupal.id] = grado_grupal
-        sesion_lobby.grado_id = grado_grupal.id
-        colegio_id = uuid.uuid4()
-        res = await uc_sesion.unirse(
-            JoinRequest(pin="1234", nombre="Ana", colegioId=colegio_id)
-        )
-        assert res["jugadorId"]
-        j = await repos.jugador.por_id(uuid.UUID(res["jugadorId"]))
-        assert j and j.colegio_id == colegio_id
+        with pytest.raises(DatosInvalidos):
+            await uc_sesion.unirse(JoinRequest(pin="1234", alumno_id=uuid.uuid4()))
 
-    async def test_nombre_vacio_es_invalido_en_dto(self):
+    async def test_alumno_id_obligatorio_en_dto(self):
         with pytest.raises(Exception):
-            JoinRequest(pin="1234", nombre="")
+            JoinRequest(pin="1234")
 
     async def test_pin_de_4_digitos_es_obligatorio(self):
         with pytest.raises(Exception):
-            JoinRequest(pin="12", nombre="Ana")
+            JoinRequest(pin="12", alumno_id=uuid.uuid4())
 
 
 class TestCrearSesion:
@@ -116,6 +106,14 @@ class TestCrearSesion:
         res = await uc_sesion.crear(CrearSesionRequest(grado_id=grado_individual.id))
         assert res["estado"] == EstadoSesion.LOBBY.value
         assert len(res["pin"]) == 4
+
+    async def test_crea_sesion_prueba(self, uc_sesion, realtime, grado_individual):
+        from app.application.dto import CrearSesionRequest
+
+        res = await uc_sesion.crear(
+            CrearSesionRequest(grado_id=grado_individual.id, tipo="prueba")
+        )
+        assert res["tipo"] == "prueba"
 
 
 class TestAuthUseCases:

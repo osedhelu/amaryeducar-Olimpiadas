@@ -43,6 +43,19 @@ async def obtener_sesion_por_pin(
     return s
 
 
+@router.get("/sessions/by-pin/{pin}/alumnos")
+async def alumnos_por_pin(
+    pin: str, db: AsyncSession = Depends(get_db)
+) -> dict | None:  # noqa: B008
+    from app.application.registro.use_cases import EnfrentamientoUseCases
+    from app.core.exceptions import DomainError
+
+    try:
+        return await EnfrentamientoUseCases(db).alumnos_por_pin(pin)
+    except DomainError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+
 @router.get("/sessions/{sesion_id}")
 async def obtener_sesion(
     sesion_id: str, db: AsyncSession = Depends(get_db)

@@ -69,11 +69,13 @@ export function guardarSesionEstudiante(
   jugadorId: string,
   sesionId: string,
   nombre: string,
+  alumnoId?: string,
 ) {
   storage.set(CLAVE_ESTUDIANTE, token);
   storage.set("jugador_id", jugadorId);
   storage.set("sesion_id", sesionId);
   storage.set("jugador_nombre", nombre);
+  if (alumnoId) storage.set("alumno_id", alumnoId);
   const refresh: RefreshData = {
     role: "estudiante",
     jugadorId,
@@ -90,6 +92,7 @@ export function limpiarSesiones() {
   storage.remove("jugador_id");
   storage.remove("sesion_id");
   storage.remove("jugador_nombre");
+  storage.remove("alumno_id");
 }
 
 export function getDatosSesionEstudiante(): {

@@ -3,90 +3,90 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import type { Grado, Colegio, SesionJuego } from "@/types/game";
+import type { Alumno, Colegio, SesionJuego } from "@/types/game";
 
 export default function JoinPage() {
   const [pin, setPin] = useState("");
-  const [nombre, setNombre] = useState("");
-  const [colegioId, setColegioId] = useState("");
-  const [grados, setGrados] = useState<Grado[]>([]);
-  const [colegios, setColegios] = useState<Colegio[]>([]);
   const [sesion, setSesion] = useState<SesionJuego | null>(null);
-  const [gradoActual, setGradoActual] = useState<Grado | null>(null);
+  const [alumnos, setAlumnos] = useState<Alumno[]>([]);
+  const [colegios, setColegios] = useState<Colegio[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [consultando, setConsultando] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    api
-      .grados()
-      .then(setGrados)
-      .catch(() => {});
     api
       .colegios()
       .then(setColegios)
       .catch(() => {});
   }, []);
 
-  async function consultarSesion(nuevoPin: string) {
-    if (nuevoPin.length !== 4) return;
+  async function consultarPin(nuevoPin: string) {
+    if (nuevoPin.length !== 4) {
+      setSesion(null);
+      setAlumnos([]);
+      return;
+    }
+    setConsultando(true);
     try {
-      const sesionEncontrada = await api.sesionPorPin(nuevoPin);
-      setSesion(sesionEncontrada);
-      const grado = grados.find((g) => g.id === sesionEncontrada.grado_id);
-      setGradoActual(grado ?? null);
+      const datos = await api.alumnosPorPin(nuevoPin);
+      setSesion(datos.sesion);
+      setAlumnos(datos.alumnos);
+      setError("");
     } catch {
-      /* PIN inválido, ignorar */
+      setSesion(null);
+      setAlumnos([]);
+      setError("PIN no válido");
+    } finally {
+      setConsultando(false);
     }
   }
 
-  useEffect(() => {
-    if (grados.length === 0 || !sesion) return;
-    const grado = grados.find((g) => g.id === sesion.grado_id);
-    setGradoActual(grado ?? null);
-  }, [grados, sesion]);
+  function nombreColegio(id: string | null): string {
+    const c = colegios.find((col) => col.id === id);
+    return c?.nombre ?? "";
+  }
 
-  async function handleJoin(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
+  // Agrupa por colegio si la sesión es oficial; en una prueba no hace falta.
+  const agruparPorColegio = sesion?.tipo === "oficial";
+  const porColegio = new Map<string, Alumno[]>();
+  for (const a of alumnos) {
+    const clave = a.colegio_id;
+    if (!porColegio.has(clave)) porColegio.set(clave, []);
+    porColegio.get(clave)!.push(a);
+  }
+
+  async function entrar(alumno: Alumno) {
     setLoading(true);
-
+    setError("");
     try {
-      const data = await api.joinSesion(pin, nombre, colegioId || null);
-
-      setSesion({ id: data.sesionId } as SesionJuego);
-
+      const data = await api.joinSesion(pin, alumno.id);
       const { guardarSesionEstudiante } = await import("@/lib/session");
       guardarSesionEstudiante(
         data.token,
         data.jugadorId,
         data.sesionId,
-        nombre,
+        data.nombre,
+        data.alumnoId,
       );
-
       router.push(`/game/${data.sesionId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de conexión");
-    } finally {
       setLoading(false);
     }
   }
 
-  const necesitaColegio = gradoActual && gradoActual.orden >= 4;
-
   return (
-    <main className="flex-1 flex items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
-      <form
-        onSubmit={handleJoin}
-        className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md space-y-6 animate-bounce-in"
-      >
+    <main className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg space-y-6 animate-bounce-in">
         <div className="text-center">
           <div className="text-4xl mb-2">🎓</div>
           <h1 className="text-2xl font-heading font-bold text-azul">
             Únete a la Olimpiada
           </h1>
           <p className="text-texto-light text-sm mt-1">
-            Ingresa el PIN y tu nombre para participar
+            Ingresa el PIN y toca tu nombre en la lista
           </p>
         </div>
 
@@ -103,57 +103,18 @@ export default function JoinPage() {
             value={pin}
             onChange={(e) => {
               setPin(e.target.value.slice(0, 4));
-              consultarSesion(e.target.value.slice(0, 4));
+              consultarPin(e.target.value.slice(0, 4));
             }}
             placeholder="Ej: 1234"
             maxLength={4}
+            autoComplete="off"
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-azul focus:outline-none transition-colors text-center text-2xl tracking-widest font-heading"
             required
           />
+          {consultando && (
+            <p className="text-texto-light text-xs mt-2">Buscando sesión...</p>
+          )}
         </div>
-
-        <div>
-          <label
-            htmlFor="nombre"
-            className="block text-sm font-medium text-texto mb-1"
-          >
-            Tu nombre
-          </label>
-          <input
-            id="nombre"
-            type="text"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Ej: María Pérez"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-azul focus:outline-none transition-colors"
-            required
-          />
-        </div>
-
-        {necesitaColegio && (
-          <div>
-            <label
-              htmlFor="colegio"
-              className="block text-sm font-medium text-texto mb-1"
-            >
-              Tu colegio
-            </label>
-            <select
-              id="colegio"
-              value={colegioId}
-              onChange={(e) => setColegioId(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-azul focus:outline-none transition-colors"
-              required
-            >
-              <option value="">Selecciona tu colegio</option>
-              {colegios.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         {error && (
           <div className="text-rojo-error text-sm text-center font-medium">
@@ -161,14 +122,64 @@ export default function JoinPage() {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 bg-dorado text-azul-dark font-heading font-bold rounded-xl hover:bg-dorado-light transition-colors disabled:opacity-50"
-        >
-          {loading ? "Uniéndote..." : "¡Unirme!"}
-        </button>
-      </form>
+        {sesion && alumnos.length === 0 && !consultando && (
+          <div className="text-center text-texto-light text-sm py-4">
+            No hay alumnos registrados para esta sesión.
+          </div>
+        )}
+
+        {sesion && alumnos.length > 0 && (
+          <div>
+            <p className="text-sm font-medium text-texto mb-2">
+              {sesion.tipo === "prueba"
+                ? "Prueba 1v1 — elige tu nombre:"
+                : "Elige tu nombre:"}
+            </p>
+            {agruparPorColegio ? (
+              <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
+                {[...porColegio.entries()].map(([colegioId, lista]) => (
+                  <div key={colegioId}>
+                    <p className="text-xs font-bold text-azul mb-1 uppercase">
+                      {nombreColegio(colegioId)}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {lista.map((a) => (
+                        <button
+                          key={a.id}
+                          onClick={() => entrar(a)}
+                          disabled={loading}
+                          className="px-4 py-2 bg-azul/10 text-azul rounded-full text-sm font-heading font-bold hover:bg-azul hover:text-white transition-colors disabled:opacity-50"
+                        >
+                          {a.nombre}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2 justify-center">
+                {alumnos.map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => entrar(a)}
+                    disabled={loading}
+                    className="px-5 py-2 bg-dorado text-azul-dark rounded-full text-base font-heading font-bold hover:bg-dorado-light transition-colors disabled:opacity-50"
+                  >
+                    {a.nombre}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {loading && (
+          <div className="text-center text-texto-light text-sm">
+            Uniéndote...
+          </div>
+        )}
+      </div>
     </main>
   );
 }

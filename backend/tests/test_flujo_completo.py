@@ -53,6 +53,7 @@ def uc_sesion(monkeypatch, repos, realtime, reloj):
     monkeypatch.setattr(uc, "SesionRepo", _factory(repos.sesion))
     monkeypatch.setattr(uc, "JugadorRepo", _factory(repos.jugador))
     monkeypatch.setattr(uc, "GradoRepo", _factory(repos.grado))
+    monkeypatch.setattr(uc, "AlumnoRepo", _factory(repos.alumno))
     return SesionUseCases(FakeDb(), realtime)
 
 
@@ -83,6 +84,13 @@ async def _lanzar_pregunta(uc_sesion, sesion_id, pregunta_opciones):
     )
 
 
+async def _registrar_y_unir(repos, uc_sesion, colegio_id, grado_id, nombre):
+    alumno = await repos.alumno.crear(colegio_id, grado_id, nombre)
+    res = await uc_sesion.unirse(JoinRequest(pin="1234", alumno_id=alumno.id))
+    assert res["nombre"] == nombre
+    return res
+
+
 async def test_flujo_completo_3_estudiantes_escalonados(
     uc_sesion,
     uc_respuestas,
@@ -90,6 +98,7 @@ async def test_flujo_completo_3_estudiantes_escalonados(
     realtime,
     reloj,
     grado_individual,
+    colegio_1,
     pregunta_opciones,
 ):
     repos.grado.grados[grado_individual.id] = grado_individual
@@ -100,10 +109,12 @@ async def test_flujo_completo_3_estudiantes_escalonados(
     sesion_id = sesion["id"]
     assert sesion["estado"] == EstadoSesion.LOBBY.value
 
-    # 2. Tres estudiantes se conectan con el PIN
+    # 2. Tres estudiantes (registrados) se conectan con el PIN
     conectados = []
     for nombre in ["Ana", "Bruno", "Carla"]:
-        res = await uc_sesion.unirse(JoinRequest(pin="1234", nombre=nombre))
+        res = await _registrar_y_unir(
+            repos, uc_sesion, colegio_1.id, grado_individual.id, nombre
+        )
         conectados.append(res)
         assert res["sesionId"] == sesion_id
         assert res["jugadorId"]
@@ -164,6 +175,7 @@ async def test_flujo_completo_mezcla_bien_y_mal(
     realtime,
     reloj,
     grado_individual,
+    colegio_1,
     pregunta_opciones,
 ):
     """El que acierta primero gana más puntos aunque otro acierte después;
@@ -174,9 +186,15 @@ async def test_flujo_completo_mezcla_bien_y_mal(
     sesion = await uc_sesion.crear(CrearSesionRequest(grado_id=grado_individual.id))
     sesion_id = sesion["id"]
     conectados = [
-        await uc_sesion.unirse(JoinRequest(pin="1234", nombre="Ana")),
-        await uc_sesion.unirse(JoinRequest(pin="1234", nombre="Bruno")),
-        await uc_sesion.unirse(JoinRequest(pin="1234", nombre="Carla")),
+        await _registrar_y_unir(
+            repos, uc_sesion, colegio_1.id, grado_individual.id, "Ana"
+        ),
+        await _registrar_y_unir(
+            repos, uc_sesion, colegio_1.id, grado_individual.id, "Bruno"
+        ),
+        await _registrar_y_unir(
+            repos, uc_sesion, colegio_1.id, grado_individual.id, "Carla"
+        ),
     ]
     await _lanzar_pregunta(uc_sesion, sesion_id, pregunta_opciones)
 

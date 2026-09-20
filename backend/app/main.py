@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.core.exceptions import DomainError
 from app.infrastructure.realtime.manager import ConnectionManager
-from app.interfaces.api.routers import answers, auth, sessions
+from app.interfaces.api.routers import answers, auth, registro, sessions
 from app.interfaces.websocket import ws
 
 logging.basicConfig(level=logging.INFO)
@@ -43,6 +43,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(sessions.router)
 app.include_router(answers.router)
+app.include_router(registro.router)
 app.include_router(ws.router)
 
 
