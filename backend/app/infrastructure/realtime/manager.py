@@ -53,12 +53,32 @@ class ConnectionManager(RealtimePublisher):
         self, ws: WebSocket, role: str, session_id: str, jugador_id: str = ""
     ) -> None:
         await ws.accept()
-        ws_state = getattr(ws, "state", None)
-        if ws_state is None:
-            # Guardamos is_alive en un atributo sencillo
-            ws.is_alive = True  # type: ignore[attr-defined]
-        else:
-            ws.is_alive = True  # type: ignore[attr-defined]
+
+        # Deduplicación: si el mismo estudiante ya tiene una conexión abierta
+        # (misma sesión y mismo jugador), cerrar la conexión anterior para
+        # evitar que "el mismo usuario se conecte 2 veces".
+        if role == "student" and jugador_id:
+            for ws_ant, meta_ant in list(self._clients.items()):
+                if (
+                    meta_ant.get("role") == "student"
+                    and meta_ant.get("jugador_id") == jugador_id
+                    and meta_ant.get("session_id") == session_id
+                    and ws_ant is not ws
+                ):
+                    logger.info(
+                        "Cerrando WS duplicado del jugador %s (sesión %s)",
+                        jugador_id,
+                        session_id,
+                    )
+                    try:
+                        await ws_ant.close(
+                            code=1000, reason="reemplazado por nueva conexión"
+                        )
+                    except Exception:  # noqa: BLE001
+                        pass
+                    self.desconectar(ws_ant)
+
+        ws.is_alive = True  # type: ignore[attr-defined]
 
         self._clients[ws] = {
             "role": role,

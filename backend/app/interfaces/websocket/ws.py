@@ -18,6 +18,12 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     session_id = ws.query_params.get("sessionId", "")
     jugador_id = ws.query_params.get("jugadorId", "")
 
+    # Un estudiante sin identidad no puede conectarse: cierra la conexión.
+    if role == "student" and not jugador_id:
+        await ws.accept()
+        await ws.close(code=4401, reason="jugadorId requerido")
+        return
+
     manager: ConnectionManager = ws.app.state.manager
     await manager.conectar(ws, role, session_id, jugador_id)
 

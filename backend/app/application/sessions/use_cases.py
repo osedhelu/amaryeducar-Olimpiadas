@@ -86,6 +86,10 @@ class SesionUseCases:
                 jugador.id, conectado=True, colegio_id=req.colegioId
             )
             jugador.colegio_id = req.colegioId
+            await self.db.commit()
+            await self.realtime.publish(
+                "jugador_cambio", entity_to_dict(jugador), str(sesion.id)
+            )
         else:
             jugador = await jugador_repo.crear(sesion.id, req.nombre, req.colegioId)
             await self.db.commit()

@@ -63,6 +63,13 @@ export function useWebSocket(
       }
     }
 
+    // Un estudiante SIN identidad no debe abrir WS: espera a tener jugador_id.
+    if (role === "student" && !jugadorId) {
+      attemptRef.current = 0;
+      reconnectTimer.current = setTimeout(connect, 2000);
+      return;
+    }
+
     const wsUrl = `${getWsBase()}?role=${role}&sessionId=${sessionId}&jugadorId=${jugadorId}`;
 
     try {
