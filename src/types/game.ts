@@ -117,6 +117,7 @@ export interface PuntajeReto {
   colegio_id: string | null;
   puesto: number;
   puntos: number;
+  nombre?: string;
   creado_en: string;
 }
 

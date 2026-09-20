@@ -296,6 +296,25 @@ export default function GamePage() {
     );
   }
 
+  if (sesion.estado === "reto") {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+        <div className="text-center animate-bounce-in space-y-4">
+          <div className="text-7xl">🎯</div>
+          <h1 className="text-3xl font-heading font-extrabold text-dorado">
+            ¡Actividad lúdica en curso!
+          </h1>
+          <p className="text-white/80 text-lg">
+            Escucha las instrucciones del docente y participa.
+          </p>
+          <p className="text-white/60 text-sm">
+            El jurado registrará tu puesto si logras terminar primero.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
       <div className="text-4xl mb-4">🎮</div>

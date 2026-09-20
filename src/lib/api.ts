@@ -5,6 +5,7 @@ import type {
   Jugador,
   PodiumEntry,
   Pregunta,
+  PuntajeReto,
   Respuesta,
   Reto,
   SesionJuego,
@@ -174,6 +175,45 @@ export const api = {
     request<Pregunta>(`/preguntas/${preguntaId}`),
   retos: (gradoId: string): Promise<Reto[]> =>
     request<Reto[]>(`/retos?grado_id=${gradoId}`),
+
+  asignarPuestoReto: (body: {
+    retoId: string;
+    jugadorId?: string;
+    colegioId?: string;
+    puesto: number;
+  }) =>
+    request<{
+      reto_id: string;
+      puesto: number;
+      puntos: number;
+      puntajes: PuntajeReto[];
+    }>(`/retos/${body.retoId}/puestos`, {
+      method: "POST",
+      body: JSON.stringify({
+        jugador_id: body.jugadorId ?? null,
+        colegio_id: body.colegioId ?? null,
+        puesto: body.puesto,
+      }),
+    }),
+
+  puntajesReto: (retoId: string): Promise<PuntajeReto[]> =>
+    request<PuntajeReto[]>(`/retos/${retoId}/puntajes`),
+
+  quitarPuestoReto: (body: {
+    retoId: string;
+    jugadorId?: string;
+    colegioId?: string;
+  }) =>
+    request<{ reto_id: string; puntajes: PuntajeReto[] }>(
+      `/retos/${body.retoId}/puestos`,
+      {
+        method: "DELETE",
+        body: JSON.stringify({
+          jugador_id: body.jugadorId ?? null,
+          colegio_id: body.colegioId ?? null,
+        }),
+      },
+    ),
   lanzarPregunta: (sesionId: string, preguntaId: string) =>
     request<SesionJuego>(
       `/sessions/${sesionId}/preguntas/${preguntaId}/lanzar`,

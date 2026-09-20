@@ -12,10 +12,17 @@ import type {
   Respuesta,
   EventoWS,
   TablaColegio,
+  Reto,
 } from "@/types/game";
 
 type Vista =
-  "bienvenida" | "lobby" | "pregunta" | "resultado" | "podium" | "final";
+  | "bienvenida"
+  | "lobby"
+  | "pregunta"
+  | "resultado"
+  | "reto"
+  | "podium"
+  | "final";
 
 export default function PresentacionPage() {
   const params = useParams();
@@ -23,6 +30,7 @@ export default function PresentacionPage() {
 
   const [sesion, setSesion] = useState<SesionJuego | null>(null);
   const [pregunta, setPregunta] = useState<Pregunta | null>(null);
+  const [retoActivo, setRetoActivo] = useState<Reto | null>(null);
   const [jugadores, setJugadores] = useState<Jugador[]>([]);
   const [respuestas, setRespuestas] = useState<Respuesta[]>([]);
   const [podium, setPodium] = useState<PodiumEntry[]>([]);
@@ -48,6 +56,14 @@ export default function PresentacionPage() {
 
     const preguntas = await api.preguntas(s.grado_id);
     setPreguntasLista(preguntas);
+
+    if (s.estado === "reto" && s.reto_activo_id) {
+      const retos = await api.retos(s.grado_id);
+      const activo = retos.find((r) => r.id === s.reto_activo_id) ?? null;
+      setRetoActivo(activo);
+    } else {
+      setRetoActivo(null);
+    }
 
     if (s.pregunta_activa_id) {
       const p = await api.preguntasPorId(s.pregunta_activa_id);
@@ -93,6 +109,15 @@ export default function PresentacionPage() {
             .tablaGrado(ev.data.grado_id)
             .then(setTabla)
             .catch(() => {});
+        }
+        if (ev.data.estado === "reto" && ev.data.reto_activo_id) {
+          api.retos(ev.data.grado_id).then((retos) => {
+            setRetoActivo(
+              retos.find((r) => r.id === ev.data.reto_activo_id) ?? null,
+            );
+          });
+        } else if (ev.data.estado !== "reto") {
+          setRetoActivo(null);
         }
         break;
       case "respuesta_recibida":
@@ -150,6 +175,7 @@ export default function PresentacionPage() {
     if (sesion.estado === "lobby") setVista("lobby");
     else if (sesion.estado === "pregunta") setVista("pregunta");
     else if (sesion.estado === "resultado") setVista("resultado");
+    else if (sesion.estado === "reto") setVista("reto");
     else if (sesion.estado === "podium") setVista("podium");
     else if (sesion.estado === "final") setVista("final");
   }, [sesion?.estado]);
@@ -288,6 +314,27 @@ export default function PresentacionPage() {
               className="px-5 py-2 bg-rojo text-white rounded-xl font-heading font-bold text-sm hover:bg-rojo/80 disabled:opacity-50"
             >
               Cerrar pregunta ⏹
+            </button>
+          )}
+          {vista === "reto" && (
+            <button
+              onClick={async () => {
+                if (!sesion || controlesLoading) return;
+                setControlesLoading(true);
+                try {
+                  const updated = await api.actualizarSesion(sesion.id, {
+                    estado: "lobby",
+                  });
+                  setSesion(updated);
+                  setRetoActivo(null);
+                } finally {
+                  setControlesLoading(false);
+                }
+              }}
+              disabled={controlesLoading}
+              className="px-5 py-2 bg-verde text-white rounded-xl font-heading font-bold text-sm hover:bg-verde/80 disabled:opacity-50"
+            >
+              Volver a preguntas →
             </button>
           )}
           {(vista === "resultado" ||
@@ -659,6 +706,37 @@ export default function PresentacionPage() {
               </div>
             )}
           </div>
+        </div>
+        {barraControles}
+      </div>
+    );
+  }
+
+  if (vista === "reto") {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+        <div className="max-w-4xl w-full text-center space-y-8">
+          <div className="text-7xl animate-bounce-in">🎯</div>
+          <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-dorado">
+            RETO LÚDICO
+          </h1>
+          {retoActivo ? (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 animate-fade-in space-y-4">
+              <h2 className="text-3xl md:text-4xl font-heading font-bold text-white">
+                {retoActivo.nombre}
+              </h2>
+              <span className="inline-block px-4 py-1 bg-dorado/20 text-dorado rounded-full text-sm font-heading font-bold">
+                {retoActivo.tipo === "grupal" ? "👥 Grupal" : "🙋 Individual"}
+              </span>
+              <p className="text-white/80 text-xl md:text-2xl font-body leading-relaxed max-w-3xl mx-auto">
+                {retoActivo.instrucciones}
+              </p>
+            </div>
+          ) : (
+            <p className="text-white/70 text-xl font-heading">
+              Cargando actividad...
+            </p>
+          )}
         </div>
         {barraControles}
       </div>

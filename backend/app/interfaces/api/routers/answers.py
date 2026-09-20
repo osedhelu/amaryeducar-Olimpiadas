@@ -59,7 +59,33 @@ async def asignar_puesto(
             reto_id,
             jugador_id=body.get("jugador_id"),
             colegio_id=body.get("colegio_id"),
-            puesto=body.get("puesto"),
+            puesto=body.get("puesto") or 0,
+        )
+    except DomainError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+
+@router.get("/retos/{reto_id}/puntajes")
+async def listar_puntajes_reto(
+    reto_id: str, db: AsyncSession = Depends(get_db)  # noqa: B008
+) -> list[dict]:
+    try:
+        return await RetoUseCases(db, get_manager()).listar_puntajes(reto_id)
+    except DomainError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+
+@router.delete("/retos/{reto_id}/puestos")
+async def quitar_puesto(
+    reto_id: str,
+    body: dict,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> dict:
+    try:
+        return await RetoUseCases(db, get_manager()).quitar_puesto(
+            reto_id,
+            jugador_id=body.get("jugador_id"),
+            colegio_id=body.get("colegio_id"),
         )
     except DomainError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc

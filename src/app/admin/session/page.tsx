@@ -8,13 +8,16 @@ import ColegiosPanel from "@/components/admin/ColegiosPanel";
 import AlumnosPanel from "@/components/admin/AlumnosPanel";
 import EnfrentamientoPanel from "@/components/admin/EnfrentamientoPanel";
 import DuelosPanel from "@/components/admin/DuelosPanel";
+import RetosPanel from "@/components/admin/RetosPanel";
 import type {
+  Colegio,
   Grado,
   SesionJuego,
   Pregunta,
   Jugador,
   PodiumEntry,
   Respuesta,
+  Reto,
   EventoWS,
   TablaColegio,
 } from "@/types/game";
@@ -43,6 +46,7 @@ export default function AdminSessionPage() {
   const [respuestasPregunta, setRespuestasPregunta] = useState<Respuesta[]>([]);
   const [podium, setPodium] = useState<PodiumEntry[]>([]);
   const [tablaColegios, setTablaColegios] = useState<TablaColegio[]>([]);
+  const [colegios, setColegios] = useState<Colegio[]>([]);
   const [nuevoPin, setNuevoPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [tiempoRestante, setTiempoRestante] = useState(0);
@@ -58,6 +62,10 @@ export default function AdminSessionPage() {
       grado: g.find((gr) => gr.id === ses.grado_id),
     }));
     setSesiones(sesionesConGrado);
+    api
+      .colegios()
+      .then(setColegios)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -721,6 +729,28 @@ export default function AdminSessionPage() {
             </div>
           )}
 
+          {sesionActiva.estado === "reto" && (
+            <div className="bg-azul/10 border-2 border-azul rounded-xl p-4 mb-6 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-heading font-bold text-azul">
+                    🎯 Actividad lúdica en curso
+                  </p>
+                  <p className="text-sm text-texto-light">
+                    El jurado está calificando el reto. La pantalla grande
+                    muestra las instrucciones.
+                  </p>
+                </div>
+                <button
+                  onClick={mostrarPodium}
+                  className="px-4 py-2 bg-azul text-white rounded-lg font-heading font-bold text-sm hover:bg-azul-light"
+                >
+                  Ver Podium
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-6">
             <h2 className="font-heading font-bold text-azul mb-3">
               Jugadores conectados
@@ -739,6 +769,16 @@ export default function AdminSessionPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="mb-6">
+            <RetosPanel
+              gradoId={sesionActiva.grado_id}
+              sesion={sesionActiva}
+              jugadores={jugadores}
+              colegios={colegios}
+              onIniciarReto={() => {}}
+            />
           </div>
 
           <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">

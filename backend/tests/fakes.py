@@ -12,7 +12,9 @@ from app.domain.entities import (
     Grado,
     Jugador,
     Pregunta,
+    PuntajeReto,
     Respuesta,
+    Reto,
     SesionJuego,
 )
 
@@ -389,6 +391,60 @@ class FakeRespuestaRepo(_Singleton):
             r.puntos = puntos
 
 
+class FakeRetoRepo(_Singleton):
+    def __init__(self, db=None):
+        self.retos: dict[uuid.UUID, Reto] = {}
+
+    async def listar_por_grado(self, grado_id):
+        return [r for r in self.retos.values() if r.grado_id == grado_id]
+
+    async def por_id(self, reto_id):
+        return self.retos.get(reto_id)
+
+
+class FakePuntajeRetoRepo(_Singleton):
+    def __init__(self, db=None):
+        self.puntajes: dict[uuid.UUID, PuntajeReto] = {}
+
+    async def upsert(
+        self, reto_id, jugador_id=None, colegio_id=None, puesto=0, puntos=0
+    ):
+        for p in list(self.puntajes.values()):
+            if p.reto_id != reto_id:
+                continue
+            if jugador_id is not None and p.jugador_id == jugador_id:
+                self.puntajes.pop(p.id, None)
+            if colegio_id is not None and p.colegio_id == colegio_id:
+                self.puntajes.pop(p.id, None)
+        row = PuntajeReto(
+            id=uuid.uuid4(),
+            reto_id=reto_id,
+            jugador_id=jugador_id,
+            colegio_id=colegio_id,
+            puesto=puesto,
+            puntos=puntos,
+            creado_en=_ahora(),
+        )
+        self.puntajes[row.id] = row
+
+    async def listar_por_reto(self, reto_id):
+        return sorted(
+            [p for p in self.puntajes.values() if p.reto_id == reto_id],
+            key=lambda p: p.puesto,
+        )
+
+    async def eliminar_por_participante(
+        self, reto_id, jugador_id=None, colegio_id=None
+    ):
+        for p in list(self.puntajes.values()):
+            if p.reto_id != reto_id:
+                continue
+            if jugador_id is not None and p.jugador_id == jugador_id:
+                self.puntajes.pop(p.id, None)
+            elif colegio_id is not None and p.colegio_id == colegio_id:
+                self.puntajes.pop(p.id, None)
+
+
 class FakeRepos:
     """Contenedor de fakes; expone los mismos nombres que el módulo de repos reales."""
 
@@ -401,6 +457,8 @@ class FakeRepos:
             FakeRespuestaRepo,
             FakeColegioRepo,
             FakeAlumnoRepo,
+            FakeRetoRepo,
+            FakePuntajeRetoRepo,
         ):
             cls._reset()
         self.grado = FakeGradoRepo()
@@ -410,3 +468,5 @@ class FakeRepos:
         self.respuesta = FakeRespuestaRepo()
         self.colegio = FakeColegioRepo()
         self.alumno = FakeAlumnoRepo()
+        self.reto = FakeRetoRepo()
+        self.puntaje_reto = FakePuntajeRetoRepo()

@@ -603,6 +603,34 @@ class PuntajeRetoRepo:
         self.db.add(row)
         await self.db.flush()
 
+    async def listar_por_reto(self, reto_id: uuid.UUID) -> list[PuntajeReto]:
+        rows = (
+            (
+                await self.db.execute(
+                    select(PuntajeRetoORM)
+                    .where(PuntajeRetoORM.reto_id == reto_id)
+                    .order_by(PuntajeRetoORM.puesto)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        return [_row_to_obj(r, PuntajeReto) for r in rows]
+
+    async def eliminar_por_participante(
+        self,
+        reto_id: uuid.UUID,
+        jugador_id: uuid.UUID | None,
+        colegio_id: uuid.UUID | None,
+    ) -> None:
+        conds = [PuntajeRetoORM.reto_id == reto_id]
+        if jugador_id is not None:
+            conds.append(PuntajeRetoORM.jugador_id == jugador_id)
+        elif colegio_id is not None:
+            conds.append(PuntajeRetoORM.colegio_id == colegio_id)
+        await self.db.execute(delete(PuntajeRetoORM).where(*conds))
+        await self.db.flush()
+
 
 async def obtener_podium_rows(
     db: AsyncSession, sesion_id: uuid.UUID
