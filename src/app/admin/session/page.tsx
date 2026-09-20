@@ -115,7 +115,10 @@ export default function AdminSessionPage() {
   const recargarRespuestas = useCallback(async () => {
     if (!sesionActiva?.pregunta_activa_id) return;
     try {
-      const r = await api.respuestasSesion(sesionActiva.id);
+      const r = await api.respuestasSesion(
+        sesionActiva.id,
+        sesionActiva.pregunta_activa_id,
+      );
       setRespuestasPregunta(r);
     } catch {
       /* mantener estado */
@@ -161,9 +164,9 @@ export default function AdminSessionPage() {
     setJugadores(j);
   }
 
-  async function cargarRespuestas(_preguntaId: string) {
+  async function cargarRespuestas(preguntaId: string) {
     if (!sesionActiva) return;
-    const r = await api.respuestasSesion(sesionActiva.id);
+    const r = await api.respuestasSesion(sesionActiva.id, preguntaId);
     setRespuestasPregunta(r);
   }
 

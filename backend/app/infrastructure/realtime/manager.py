@@ -195,7 +195,9 @@ class ConnectionManager(RealtimePublisher):
                     await self.publish(
                         "sesion_cambio", entity_to_dict(updated), sesion_id
                     )
-                    respuestas = await RespuestaRepo(db).listar_por_sesion(sesion.id)
+                    respuestas = await RespuestaRepo(db).listar_por_sesion(
+                        sesion.id, updated.pregunta_activa_id
+                    )
                     await self.publish(
                         "resultado_pregunta",
                         {

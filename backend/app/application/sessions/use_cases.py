@@ -259,7 +259,9 @@ class ControlRondaUseCases:
             )
             from app.infrastructure.db.repositories import RespuestaRepo
 
-            respuestas = await RespuestaRepo(self.db).listar_por_sesion(sesion.id)
+            respuestas = await RespuestaRepo(self.db).listar_por_sesion(
+                sesion.id, updated.pregunta_activa_id
+            )
             await self.realtime.publish(
                 "resultado_pregunta",
                 {

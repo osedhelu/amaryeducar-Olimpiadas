@@ -350,8 +350,11 @@ class FakeRespuestaRepo(_Singleton):
             out.append(r)
         return out
 
-    async def listar_por_sesion(self, sesion_id):
-        return [r for r in self.respuestas.values()]
+    async def listar_por_sesion(self, sesion_id, pregunta_id=None):
+        out = list(self.respuestas.values())
+        if pregunta_id is not None:
+            out = [r for r in out if r.pregunta_id == pregunta_id]
+        return out
 
     async def contar_correctas_previas(
         self, pregunta_id, sesion_id, enviado_en, secuencia

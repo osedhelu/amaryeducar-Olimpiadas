@@ -161,7 +161,9 @@ class RespuestaUseCases:
                 await self.realtime.publish(
                     "sesion_cambio", entity_to_dict(updated), str(sesion.id)
                 )
-                respuestas = await respuesta_repo.listar_por_sesion(sesion.id)
+                respuestas = await respuesta_repo.listar_por_sesion(
+                    sesion.id, updated.pregunta_activa_id
+                )
                 await self.realtime.publish(
                     "resultado_pregunta",
                     {
@@ -250,8 +252,11 @@ class PodiumUseCases:
             for r in rows
         ]
 
-    async def respuestas_sesion(self, sesion_id: str) -> list[dict]:
+    async def respuestas_sesion(
+        self, sesion_id: str, pregunta_id: str | None = None
+    ) -> list[dict]:
+        pid = uuid.UUID(pregunta_id) if pregunta_id else None
         respuestas = await RespuestaRepo(self.db).listar_por_sesion(
-            uuid.UUID(sesion_id)
+            uuid.UUID(sesion_id), pid
         )
         return [entity_to_dict(r) for r in respuestas]

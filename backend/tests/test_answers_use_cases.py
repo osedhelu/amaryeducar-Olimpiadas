@@ -197,6 +197,55 @@ class TestEnviar:
         assert res["puntos"] == 20
 
 
+class TestRespuestasSesionFiltro:
+    """Regresión: la pantalla de resultados NO debe mostrar una fila por
+    pregunta respondida (nombres repetidos). Se filtra por pregunta activa."""
+
+    async def test_respuestas_sesion_filtra_por_pregunta(
+        self, monkeypatch, repos, grado_individual
+    ):
+        import app.application.answers.use_cases as uc
+        from app.domain.entities import Pregunta, Respuesta
+        from tests.fakes import FakeDb
+
+        def _factory(fake):
+            return lambda db=None: fake
+
+        monkeypatch.setattr(uc, "RespuestaRepo", _factory(repos.respuesta))
+
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc)
+        p1 = Pregunta(
+            id=uuid.uuid4(), grado_id=grado_individual.id, enunciado="P1", orden=1
+        )
+        p2 = Pregunta(
+            id=uuid.uuid4(), grado_id=grado_individual.id, enunciado="P2", orden=2
+        )
+        sesion_id = uuid.uuid4()
+        jugador_id = uuid.uuid4()
+        # Dos preguntas respondidas por el mismo jugador
+        for i, p in enumerate((p1, p2)):
+            repos.respuesta.respuestas[uuid.uuid4()] = Respuesta(
+                id=uuid.uuid4(),
+                pregunta_id=p.id,
+                jugador_id=jugador_id,
+                opcion_seleccionada="4",
+                correcta=True,
+                enviado_en=now,
+                secuencia=i + 1,
+                numero_orden=i + 1,
+                puntos=20,
+            )
+
+        caso = uc.PodiumUseCases(FakeDb())
+        todas = await caso.respuestas_sesion(str(sesion_id))
+        assert len(todas) == 2  # sin filtro: ambas preguntas
+        solo_p1 = await caso.respuestas_sesion(str(sesion_id), str(p1.id))
+        assert len(solo_p1) == 1
+        assert solo_p1[0]["pregunta_id"] == str(p1.id)
+
+
 class TestPreguntaAbierta:
     async def test_abierta_no_calcula_puntos_y_queda_para_docente(
         self, uc_respuestas, realtime, repos, sesion_lobby, jugador, pregunta_abierta

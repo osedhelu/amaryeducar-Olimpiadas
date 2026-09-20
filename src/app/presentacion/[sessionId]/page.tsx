@@ -52,7 +52,7 @@ export default function PresentacionPage() {
     if (s.pregunta_activa_id) {
       const p = await api.preguntasPorId(s.pregunta_activa_id);
       setPregunta(p);
-      const r = await api.respuestasSesion(s.id);
+      const r = await api.respuestasSesion(s.id, s.pregunta_activa_id);
       setRespuestas(r);
     }
 
@@ -117,7 +117,10 @@ export default function PresentacionPage() {
       return;
     }
     try {
-      const r = await api.respuestasSesion(sesion.id);
+      const r = await api.respuestasSesion(
+        sesion.id,
+        sesion.pregunta_activa_id,
+      );
       setRespuestas(r);
     } catch {
       /* consulta fallida, mantener estado actual */
@@ -171,7 +174,7 @@ export default function PresentacionPage() {
         setPregunta(p);
         setRespuestas([]);
         api
-          .respuestasSesion(sesion.id)
+          .respuestasSesion(sesion.id, sesion.pregunta_activa_id)
           .then(setRespuestas)
           .catch(() => {});
       });

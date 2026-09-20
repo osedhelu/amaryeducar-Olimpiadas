@@ -494,13 +494,19 @@ class RespuestaRepo:
         )
         return len(result.scalars().all())
 
-    async def listar_por_sesion(self, sesion_id: uuid.UUID) -> list[Respuesta]:
+    async def listar_por_sesion(
+        self, sesion_id: uuid.UUID, pregunta_id: uuid.UUID | None = None
+    ) -> list[Respuesta]:
+        query = (
+            select(RespuestaORM, JugadorORM.nombre)
+            .join(JugadorORM, JugadorORM.id == RespuestaORM.jugador_id)
+            .where(JugadorORM.sesion_id == sesion_id)
+        )
+        if pregunta_id is not None:
+            query = query.where(RespuestaORM.pregunta_id == pregunta_id)
         rows = (
             await self.db.execute(
-                select(RespuestaORM, JugadorORM.nombre)
-                .join(JugadorORM, JugadorORM.id == RespuestaORM.jugador_id)
-                .where(JugadorORM.sesion_id == sesion_id)
-                .order_by(RespuestaORM.enviado_en, RespuestaORM.secuencia)
+                query.order_by(RespuestaORM.enviado_en, RespuestaORM.secuencia)
             )
         ).all()
         out: list[Respuesta] = []

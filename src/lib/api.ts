@@ -148,8 +148,15 @@ export const api = {
   sesion: (id: string) => request<SesionJuego>(`/sessions/${id}`),
   jugadores: (sesionId: string): Promise<Jugador[]> =>
     request<Jugador[]>(`/sessions/${sesionId}/jugadores`),
-  respuestasSesion: (sesionId: string): Promise<Respuesta[]> =>
-    request<Respuesta[]>(`/sessions/${sesionId}/respuestas`),
+  respuestasSesion: (
+    sesionId: string,
+    preguntaId?: string | null,
+  ): Promise<Respuesta[]> =>
+    request<Respuesta[]>(
+      `/sessions/${sesionId}/respuestas${
+        preguntaId ? `?pregunta_id=${preguntaId}` : ""
+      }`,
+    ),
 
   actualizarSesion: (id: string, body: Record<string, unknown>) =>
     request<SesionJuego>(`/sessions/${id}`, {

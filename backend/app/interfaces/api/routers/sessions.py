@@ -184,8 +184,10 @@ async def obtener_podium(
 
 @router.get("/sessions/{sesion_id}/respuestas")
 async def respuestas_sesion(
-    sesion_id: str, db: AsyncSession = Depends(get_db)
-) -> list[dict]:  # noqa: B008
+    sesion_id: str,
+    pregunta_id: str | None = None,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> list[dict]:
     from app.application.answers.use_cases import PodiumUseCases
 
-    return await PodiumUseCases(db).respuestas_sesion(sesion_id)
+    return await PodiumUseCases(db).respuestas_sesion(sesion_id, pregunta_id)
