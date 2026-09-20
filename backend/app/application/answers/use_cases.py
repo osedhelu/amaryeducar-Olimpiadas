@@ -11,7 +11,6 @@ from app.application.ports import RealtimePublisher
 from app.core.exceptions import (
     DatosInvalidos,
     PreguntaNoActiva,
-    RespuestaDuplicada,
     SesionNoActiva,
 )
 from app.domain.entities import entity_to_dict
@@ -63,8 +62,15 @@ class RespuestaUseCases:
         if not pregunta:
             raise DatosInvalidos("Pregunta no encontrada")
 
-        if await respuesta_repo.existe(req.pregunta_id, req.jugador_id):
-            raise RespuestaDuplicada()
+        respuesta_existente = await respuesta_repo.por_id_existente(
+            req.pregunta_id, req.jugador_id
+        )
+        if respuesta_existente:
+            # Idempotente: reenvío / doble clic → devolver la respuesta ya guardada
+            r_dict = entity_to_dict(respuesta_existente)
+            r_dict["jugador_nombre"] = jugador.nombre
+            r_dict["secuencia"] = respuesta_existente.secuencia
+            return r_dict
 
         enviado_en = corregir_reloj(req.enviado_en, _ahora())
         assert enviado_en is not None

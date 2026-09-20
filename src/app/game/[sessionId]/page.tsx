@@ -139,7 +139,9 @@ export default function GamePage() {
       });
     } catch (err) {
       const yaRespondio =
-        err instanceof Error && err.message.includes("duplicate");
+        err instanceof Error &&
+        (err.message.includes("duplicate") ||
+          err.message.includes("Ya respondiste"));
       if (!yaRespondio) {
         console.error("Error al enviar respuesta:", err);
         return;
