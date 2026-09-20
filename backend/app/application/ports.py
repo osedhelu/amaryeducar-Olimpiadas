@@ -25,5 +25,9 @@ class RealtimePublisher(ABC):
     async def programar_cierre(
         self, sesion_id: str, cronometro_inicio: datetime, segundos: int
     ) -> None:
-        """Programa (o reprograma) el cierre automático de la pregunta activa."""
+        """El cronómetro es SOLO VISUAL: no cierra la pregunta por tiempo.
+
+        La pregunta se cierra cuando el último jugador conectado responde
+        (auto-cierre) o cuando el docente la cierra manualmente.
+        """
         raise NotImplementedError

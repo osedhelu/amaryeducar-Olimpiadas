@@ -54,7 +54,7 @@ Eventos que maneja el frontend: `jugador_unido`, `jugador_cambio`, `sesion_cambi
 - Orden de respuestas: columna `enviado_en` (timestamp del **cliente** con ms) + `secuencia BIGSERIAL` (orden real de llegada a la BD). Desempate por `(enviado_en, secuencia)`.
 - Anti-trampa de reloj: en el trigger, si `|now() - enviado_en| > 60s` se corrige a `now()`.
 - Puntos por puesto: `preguntas.puntos_por_puesto` (JSONB). Primer correcto = 20 (grados 1-3) o 50 (grados 4-5), segundo = 10/30, etc.
-- Cierre automático: cuando todos los jugadores **conectados** (`conectado=true`) de la sesión responden la pregunta activa, la sesión pasa `pregunta → resultado` (trigger `auto_cerrar_cuando_todos_respondan`). Cronómetro es respaldo.
+- Cierre automático: cuando todos los jugadores **conectados** (`conectado=true`) de la sesión responden la pregunta activa, la sesión pasa `pregunta → resultado` (auto-cierre). El **cronómetro es solo visual**: NO cierra la pregunta ni impide responder. El docente puede cerrar a mano en cualquier momento.
 - `obtener_respuestas_sesion(p_sesion_id)` devuelve solo respuestas de la sesión (mezclar por `pregunta_id` global es un bug conocido — filtra siempre por sesión).
 - `obtener_podium(p_sesion_id)` muestra **todos** los participantes con 0 puntos incluidos (LEFT JOIN), agrupando por jugador (1-3) o colegio (4-5).
 

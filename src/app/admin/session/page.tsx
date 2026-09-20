@@ -212,7 +212,8 @@ export default function AdminSessionPage() {
     }
   }
 
-  // Cronómetro en vivo: cierra la pregunta automáticamente al agotarse el tiempo
+  // Cronómetro en vivo: SOLO visual. No cierra la pregunta; esta se cierra
+  // cuando el último jugador conectado responde o cuando el docente la cierra.
   useEffect(() => {
     if (!sesionActiva || sesionActiva.estado !== "pregunta") return;
     if (!sesionActiva.cronometro_inicio || !sesionActiva.cronometro_segundos)
@@ -220,17 +221,11 @@ export default function AdminSessionPage() {
 
     const inicio = new Date(sesionActiva.cronometro_inicio).getTime();
     const total = sesionActiva.cronometro_segundos;
-    let cerrada = false;
 
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - inicio) / 1000);
       const remaining = Math.max(0, total - elapsed);
       setTiempoRestante(remaining);
-      if (remaining === 0 && !cerrada) {
-        cerrada = true;
-        clearInterval(interval);
-        cerrarPregunta();
-      }
     }, 250);
 
     return () => clearInterval(interval);

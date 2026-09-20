@@ -116,6 +116,28 @@ class TestCrearSesion:
         assert res["tipo"] == "prueba"
 
 
+class TestCronometroVisual:
+    async def test_lanzar_pregunta_no_programa_cierre_por_tiempo(
+        self, monkeypatch, repos, realtime, sesion_lobby, pregunta_opciones
+    ):
+        """El cronómetro es solo visual: no se programa ningún cierre."""
+        import app.application.sessions.use_cases as uc
+        from app.application.sessions.use_cases import ControlRondaUseCases
+        from tests.fakes import FakeDb
+
+        def _factory(fake):
+            return lambda db=None: fake
+
+        monkeypatch.setattr(uc, "SesionRepo", _factory(repos.sesion))
+        monkeypatch.setattr(uc, "PreguntaRepo", _factory(repos.pregunta))
+        repos.pregunta.preguntas[pregunta_opciones.id] = pregunta_opciones
+
+        caso = ControlRondaUseCases(FakeDb(), realtime)
+        await caso.lanzar_pregunta(str(sesion_lobby.id), str(pregunta_opciones.id))
+        assert realtime.cierres_programados == []
+        assert sesion_lobby.estado == EstadoSesion.PREGUNTA.value
+
+
 class TestAuthUseCases:
     async def test_login_docente_con_clave_correcta(self):
         caso = AuthUseCases(None)

@@ -160,56 +160,17 @@ class ConnectionManager(RealtimePublisher):
     async def programar_cierre(
         self, sesion_id: str, cronometro_inicio: datetime, segundos: int
     ) -> None:
-        asyncio.create_task(
-            self._cierre_programado(sesion_id, cronometro_inicio, segundos)
+        """El cronómetro es SOLO VISUAL: la pregunta no se cierra por tiempo.
+
+        El estudiante siempre puede responder. La pregunta se cierra cuando
+        el último jugador conectado responde (auto-cierre en
+        RespuestaUseCases) o cuando el docente la cierra a mano.
+        """
+        logger.info(
+            "Sesión %s: cronómetro de %ss (visual; no cierra la pregunta)",
+            sesion_id,
+            segundos,
         )
-
-    async def _cierre_programado(
-        self, sesion_id: str, cronometro_inicio: datetime, segundos: int
-    ) -> None:
-        """Cierra la pregunta automáticamente cuando termina el cronómetro."""
-        inicio = cronometro_inicio
-        if inicio.tzinfo is None:
-            inicio = inicio.replace(tzinfo=timezone.utc)
-        fin = inicio + __import__("datetime").timedelta(seconds=segundos)
-        espera = max(0.0, (fin - datetime.now(timezone.utc)).total_seconds())
-        logger.info("Sesión %s: pregunta se cerrará en %ss", sesion_id, espera)
-        if espera == 0:
-            return
-        await asyncio.sleep(espera)
-        from app.infrastructure.db.session import SessionLocal
-        from app.infrastructure.db.repositories import RespuestaRepo, SesionRepo
-        from app.domain.enums import EstadoSesion
-
-        async with SessionLocal() as db:
-            sesion_repo = SesionRepo(db)
-            sesion = await sesion_repo.por_id(__import__("uuid").UUID(sesion_id))
-            if sesion and sesion.estado == EstadoSesion.PREGUNTA.value:
-                updated = await sesion_repo.actualizar(
-                    sesion.id, estado=EstadoSesion.RESULTADO.value
-                )
-                await db.commit()
-                if updated:
-                    from app.domain.entities import entity_to_dict
-
-                    await self.publish(
-                        "sesion_cambio", entity_to_dict(updated), sesion_id
-                    )
-                    respuestas = await RespuestaRepo(db).listar_por_sesion(
-                        sesion.id, updated.pregunta_activa_id
-                    )
-                    await self.publish(
-                        "resultado_pregunta",
-                        {
-                            "pregunta_id": (
-                                str(updated.pregunta_activa_id)
-                                if updated.pregunta_activa_id
-                                else None
-                            ),
-                            "respuestas": [entity_to_dict(r) for r in respuestas],
-                        },
-                        sesion_id,
-                    )
 
     # ── Heartbeat ───────────────────────────────────────────────────────
 

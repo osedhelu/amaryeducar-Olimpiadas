@@ -158,16 +158,6 @@ class SesionUseCases:
         if updated:
             data = entity_to_dict(updated)
             await self.realtime.publish("sesion_cambio", data, str(sesion.id))
-            if (
-                updated.estado == EstadoSesion.PREGUNTA.value
-                and updated.cronometro_inicio
-                and updated.cronometro_segundos
-            ):
-                await self.realtime.programar_cierre(
-                    str(sesion.id),
-                    updated.cronometro_inicio,
-                    updated.cronometro_segundos,
-                )
         return entity_to_dict(updated) if updated else {}
 
     async def finalizar(self, sesion_id: str) -> dict:
@@ -241,7 +231,6 @@ class ControlRondaUseCases:
         if updated:
             data = entity_to_dict(updated)
             await self.realtime.publish("sesion_cambio", data, str(sesion.id))
-            await self.realtime.programar_cierre(str(sesion.id), inicio, segundos)
         return entity_to_dict(updated) if updated else {}
 
     async def cerrar_pregunta(self, sesion_id: str) -> dict:
