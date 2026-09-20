@@ -35,6 +35,9 @@ async function start() {
     const sessionId = url.searchParams.get("sessionId") ?? "";
     const jugadorId = url.searchParams.get("jugadorId") ?? "";
     clients.set(ws, { role, sessionId, jugadorId });
+    console.log(
+      `[prod] WS conectado: role=${role} session=${sessionId} jugador=${jugadorId || "-"} (total ${clients.size})`,
+    );
 
     if (role === "student" && jugadorId && pgClient) {
       pgClient
@@ -70,16 +73,23 @@ async function start() {
   function broadcast(payload) {
     const msg = JSON.stringify(payload);
     const sessionId = parseSessionId(payload._tabla, payload.data);
+    let enviados = 0;
     for (const [ws, meta] of clients.entries()) {
       if (ws.readyState !== WebSocket.OPEN) continue;
       if (meta.role === "admin") {
         ws.send(msg);
+        enviados++;
       } else if (sessionId && meta.sessionId === sessionId) {
         ws.send(msg);
+        enviados++;
       } else if (!sessionId && meta.sessionId) {
         ws.send(msg);
+        enviados++;
       }
     }
+    console.log(
+      `[prod] Broadcast ${payload.tipo} (sesión ${sessionId || "-"}): ${enviados} clientes`,
+    );
   }
 
   const timers = new Map();
