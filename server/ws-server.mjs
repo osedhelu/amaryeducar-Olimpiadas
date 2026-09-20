@@ -18,7 +18,7 @@ const server = http.createServer((req, res) => {
   res.end(JSON.stringify({ ok: true, clients: clients.size }));
 });
 
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server, perMessageDeflate: false });
 
 wss.on("connection", (ws, req) => {
   const url = new URL(req.url ?? "/", "http://localhost");

@@ -98,7 +98,13 @@ export function useWebSocket(
       ws.onclose = () => {
         setConnected(false);
         if (heartbeatTimer.current) clearInterval(heartbeatTimer.current);
-        const delay = Math.min(1000 * 2 ** attemptRef.current, 15000);
+        // Backoff conservador para no disparar protecciones del edge:
+        // mín. 8s con jitter (evita ráfagas de handshakes que Railway
+        // interpreta como DDoS y corta).
+        const intento = Math.min(attemptRef.current, 5);
+        const base = 8000 * Math.pow(1.6, intento);
+        const jitter = Math.random() * 2000;
+        const delay = Math.min(base + jitter, 60000);
         attemptRef.current += 1;
         reconnectTimer.current = setTimeout(connect, delay);
       };

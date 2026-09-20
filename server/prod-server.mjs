@@ -21,7 +21,7 @@ async function start() {
     handle(req, res);
   });
 
-  wss = new WebSocketServer({ noServer: true });
+  wss = new WebSocketServer({ noServer: true, perMessageDeflate: false });
 
   server.on("upgrade", (req, socket, head) => {
     wss.handleUpgrade(req, socket, head, (ws) => {
