@@ -1,0 +1,1151 @@
+{
+  "nodes": [
+    {
+      "id": "agents_agents",
+      "label": "AGENTS.md — Guía de arquitectura Amar y Educar",
+      "file_type": "document",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "claude_claude",
+      "label": "CLAUDE.md — Indirección a AGENTS.md",
+      "file_type": "document",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_readme",
+      "label": "README.md — Scaffold create-next-app genérico",
+      "file_type": "document",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pnpm_workspace_pnpm_workspace",
+      "label": "pnpm-workspace.yaml — Configuración de builds permitidos",
+      "file_type": "document",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/pnpm-workspace.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pnpm_workspace_unrs_resolver",
+      "label": "onlyBuiltDependencies: unrs-resolver",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/pnpm-workspace.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_plataforma_amar_educar",
+      "label": "Plataforma Amar y Educar — Olimpiadas Matemáticas 2026 (estilo Kahoot)",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_nextjs16",
+      "label": "Next.js 16 (App Router, Turbopack, TypeScript)",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_tailwindv4",
+      "label": "Tailwind v4 (config CSS con @theme en globals.css)",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_postgrest",
+      "label": "PostgREST (REST + JWT, sin ORM)",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_postgres_railway",
+      "label": "Postgres en Railway",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_servidor_ws",
+      "label": "Servidor WebSocket server/ws-server.mjs (puerto 3001)",
+      "file_type": "code",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_canal_juego_pg_notify",
+      "label": "Canal pg_notify 'canal_juego' (triggers en jugadores, respuestas, sesiones_juego)",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_use_websocket_hook",
+      "label": "Hook useWebSocket(sessionId, role) en src/hooks/useWebSocket.ts",
+      "file_type": "code",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_eventos_tiempo_real",
+      "label": "Eventos en tiempo real: jugador_unido, jugador_cambio, sesion_cambio, respuesta_recibida",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_esquema_sql",
+      "label": "Schema SQL: sql/01-schema.sql … 05-roles-permissions.sql (fuente de verdad)",
+      "file_type": "code",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_roles_postgrest",
+      "label": "Roles PostgREST: anon, estudiante, docente",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_security_definer_patron",
+      "label": "Patrón SECURITY DEFINER para triggers que tocan tablas fuera del rol de escritura",
+      "file_type": "rationale",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_calcular_puntos_respuesta",
+      "label": "Función calcular_puntos_respuesta",
+      "file_type": "code",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_auto_cerrar_cuando_todos_respondan",
+      "label": "Trigger auto_cerrar_cuando_todos_respondan (SECURITY DEFINER)",
+      "file_type": "code",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_obtener_respuestas_sesion",
+      "label": "Función obtener_respuestas_sesion(p_sesion_id)",
+      "file_type": "code",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_obtener_podium",
+      "label": "Función obtener_podium(p_sesion_id)",
+      "file_type": "code",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_orden_respuestas",
+      "label": "Orden de respuestas: enviado_en (cliente, ms) + secuencia BIGSERIAL, desempate (enviado_en, secuencia)",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_antitrampa_reloj",
+      "label": "Anti-trampa de reloj: corrección si |now() - enviado_en| > 60s",
+      "file_type": "rationale",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_puntos_por_puesto",
+      "label": "Puntos por puesto: preguntas.puntos_por_puesto JSONB (20/10 grados 1-3, 50/30 grados 4-5)",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_cierre_automatico_preguntas",
+      "label": "Cierre automático de pregunta: transición pregunta → resultado",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_identidad_estudiante",
+      "label": "Identidad estudiante en sessionStorage por pestaña (jugador_id, jugador_nombre, jwt_estudiante)",
+      "file_type": "rationale",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_identidad_docente",
+      "label": "Identidad docente en localStorage (jwt_token persistente entre pestañas)",
+      "file_type": "rationale",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_jwt_servidor",
+      "label": "JWT firmado en el servidor: src/lib/jwt.ts + /api/auth/anon|login|student y /api/session/join",
+      "file_type": "rationale",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_cliente_postgrest",
+      "label": "Cliente PostgREST src/lib/postgrest.ts (resolución de token estudiante→docente→anon)",
+      "file_type": "code",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_rutas_frontend",
+      "label": "Endpoints clave: /join, /game/[sessionId], /admin, /presentacion/[sessionId]",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_api_session_join",
+      "label": "POST /api/session/join: valida PIN, crea/actualiza jugador, firma token estudiante",
+      "file_type": "code",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_clave_admin",
+      "label": "Clave admin (ADMadm1234 / CLAVE_ADMIN)",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_recarga_schema_cache",
+      "label": "Recarga de schema cache PostgREST: NOTIFY pgrst, 'reload schema' (evita PGRST202)",
+      "file_type": "rationale",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_sin_migraciones",
+      "label": "Schema aplicado a mano con psql contra Railway (sin migraciones automáticas)",
+      "file_type": "rationale",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_nextjs_agent_rules",
+      "label": "Regla de agente: 'Esta no es la Next.js que conoces' (breaking changes)",
+      "file_type": "rationale",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_comandos_dev",
+      "label": "Comandos dev: npm run dev:all, dev:ws, dev; npx tsc --noEmit",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_sin_framework_tests",
+      "label": "Sin framework de tests",
+      "file_type": "rationale",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_create_next_app",
+      "label": "Scaffold create-next-app",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_geist_font",
+      "label": "Geist — familia tipográfica de Vercel",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_next_font",
+      "label": "next/font — optimización automática de fuentes",
+      "file_type": "concept",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_file_svg",
+      "label": "file.svg — icono genérico de archivo (asset de plantilla)",
+      "file_type": "image",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/public/file.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_globe_svg",
+      "label": "globe.svg — icono genérico de globo terráqueo (asset de plantilla)",
+      "file_type": "image",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/public/globe.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_next_svg",
+      "label": "next.svg — logotipo de Next.js (texto + marca)",
+      "file_type": "image",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/public/next.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_vercel_svg",
+      "label": "vercel.svg — triángulo/logotipo de Vercel",
+      "file_type": "image",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/public/vercel.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_window_svg",
+      "label": "window.svg — icono genérico de ventana de navegador (asset de plantilla)",
+      "file_type": "image",
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/public/window.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "claude_claude",
+      "target": "agents_agents",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_plataforma_amar_educar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_nextjs16",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_tailwindv4",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_postgrest",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_postgres_railway",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_servidor_ws",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_esquema_sql",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_roles_postgrest",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_cliente_postgrest",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_rutas_frontend",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_jwt_servidor",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_comandos_dev",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_sin_migraciones",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_nextjs_agent_rules",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "agents_sin_framework_tests",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_agents",
+      "target": "pnpm_workspace_unrs_resolver",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_postgrest",
+      "target": "agents_postgres_railway",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_postgres_railway",
+      "target": "agents_canal_juego_pg_notify",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_canal_juego_pg_notify",
+      "target": "agents_servidor_ws",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_servidor_ws",
+      "target": "agents_use_websocket_hook",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_use_websocket_hook",
+      "target": "agents_eventos_tiempo_real",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_servidor_ws",
+      "target": "agents_eventos_tiempo_real",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_nextjs_agent_rules",
+      "target": "agents_nextjs16",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_esquema_sql",
+      "target": "agents_canal_juego_pg_notify",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_security_definer_patron",
+      "target": "agents_auto_cerrar_cuando_todos_respondan",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_security_definer_patron",
+      "target": "agents_roles_postgrest",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_auto_cerrar_cuando_todos_respondan",
+      "target": "agents_cierre_automatico_preguntas",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_calcular_puntos_respuesta",
+      "target": "agents_puntos_por_puesto",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_calcular_puntos_respuesta",
+      "target": "agents_orden_respuestas",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_puntos_por_puesto",
+      "target": "agents_orden_respuestas",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_antitrampa_reloj",
+      "target": "agents_orden_respuestas",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_obtener_respuestas_sesion",
+      "target": "agents_orden_respuestas",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_obtener_podium",
+      "target": "agents_puntos_por_puesto",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_obtener_podium",
+      "target": "agents_obtener_respuestas_sesion",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_identidad_estudiante",
+      "target": "agents_identidad_docente",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_jwt_servidor",
+      "target": "agents_identidad_estudiante",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_jwt_servidor",
+      "target": "agents_identidad_docente",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_cliente_postgrest",
+      "target": "agents_jwt_servidor",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_cliente_postgrest",
+      "target": "agents_identidad_estudiante",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_cliente_postgrest",
+      "target": "agents_identidad_docente",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_roles_postgrest",
+      "target": "agents_jwt_servidor",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_recarga_schema_cache",
+      "target": "agents_esquema_sql",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_recarga_schema_cache",
+      "target": "agents_roles_postgrest",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_clave_admin",
+      "target": "agents_rutas_frontend",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_api_session_join",
+      "target": "agents_jwt_servidor",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_api_session_join",
+      "target": "agents_rutas_frontend",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_rutas_frontend",
+      "target": "agents_plataforma_amar_educar",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_nextjs16",
+      "target": "agents_tailwindv4",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pnpm_workspace_pnpm_workspace",
+      "target": "pnpm_workspace_unrs_resolver",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/pnpm-workspace.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_readme",
+      "target": "readme_create_next_app",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_readme",
+      "target": "readme_geist_font",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_readme",
+      "target": "readme_next_font",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_next_font",
+      "target": "agents_nextjs16",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_create_next_app",
+      "target": "agents_nextjs16",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_next_svg",
+      "target": "agents_nextjs16",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/public/next.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_vercel_svg",
+      "target": "readme_readme",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/public/vercel.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_globe_svg",
+      "target": "public_window_svg",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/public/globe.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_file_svg",
+      "target": "public_window_svg",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/public/file.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "public_globe_svg",
+      "target": "public_file_svg",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/public/globe.svg",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "flujo_tiempo_real_bd_ws_frontend",
+      "label": "Pasarela de eventos en tiempo real (Postgres → WebSocket → frontend)",
+      "nodes": [
+        "agents_canal_juego_pg_notify",
+        "agents_servidor_ws",
+        "agents_use_websocket_hook",
+        "agents_eventos_tiempo_real"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md"
+    },
+    {
+      "id": "logica_juego_en_sql",
+      "label": "Lógica de juego implementada en SQL (nichos, orden, puntos, cierre y lecturas)",
+      "nodes": [
+        "agents_auto_cerrar_cuando_todos_respondan",
+        "agents_calcular_puntos_respuesta",
+        "agents_obtener_respuestas_sesion",
+        "agents_obtener_podium",
+        "agents_orden_respuestas",
+        "agents_puntos_por_puesto",
+        "agents_antitrampa_reloj"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md"
+    },
+    {
+      "id": "flujo_identidad_y_tokens",
+      "label": "Flujo de identidad y tokens (estudiante por pestaña, docente persistente, JWT de servidor)",
+      "nodes": [
+        "agents_identidad_estudiante",
+        "agents_identidad_docente",
+        "agents_jwt_servidor",
+        "agents_cliente_postgrest",
+        "agents_roles_postgrest"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/Volumes/Datos/proyectos/amaryeducar-olimpiadas2026/AGENTS.md"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}
