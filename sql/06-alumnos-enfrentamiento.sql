@@ -21,6 +21,12 @@ CREATE UNIQUE INDEX idx_jugadores_sesion_alumno
     ON jugadores(sesion_id, alumno_id)
     WHERE alumno_id IS NOT NULL;
 
+-- La identidad ahora es el alumno registrado, no el nombre: se elimina la
+-- restricción vieja UNIQUE(sesion_id, nombre) para permitir que dos alumnos
+-- distintos con el mismo nombre jueguen la misma sesión.
+ALTER TABLE jugadores
+    DROP CONSTRAINT IF EXISTS jugadores_sesion_id_nombre_key;
+
 -- Sesiones: tipo oficial/prueba y colegio restringido (duelos mismos-colegio).
 ALTER TABLE sesiones_juego
     ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'oficial';

@@ -172,8 +172,6 @@ class JugadorORM(Base):
     )
     creado_en: Mapped[datetime] = _ts()
 
-    __table_args__ = (UniqueConstraint("sesion_id", "nombre"),)
-
 
 class PreguntaORM(Base):
     __tablename__ = "preguntas"
