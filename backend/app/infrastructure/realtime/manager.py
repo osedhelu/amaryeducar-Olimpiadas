@@ -1,0 +1,215 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
+from fastapi import WebSocket
+
+from app.application.ports import RealtimePublisher
+from app.core.config import get_settings
+
+logger = logging.getLogger("realtime")
+
+
+class ConnectionManager(RealtimePublisher):
+    """Maneja todas las conexiones WebSocket por sala de sesión.
+
+    - `_rooms[session_id]` → conjunto de WebSockets de esa sesión
+    - `_clients[ws]` → metadatos (role, session_id, jugador_id)
+    - El rol `admin` recibe TODAS las sesiones.
+    - Heartbeat nativo: cada 30s se envía PING y se terminan los que no respondan.
+    """
+
+    def __init__(self) -> None:
+        self._rooms: dict[str, set[WebSocket]] = {}
+        self._clients: dict[WebSocket, dict[str, str]] = {}
+        self._heartbeat_task: asyncio.Task | None = None
+
+    # ── Ciclo de vida del servidor ──────────────────────────────────────
+
+    async def start(self) -> None:
+        settings = get_settings()
+        self._heartbeat_task = asyncio.create_task(
+            self._heartbeat_loop(settings.ws_heartbeat_seconds)
+        )
+        logger.info(
+            "ConnectionManager iniciado con heartbeat cada %ss",
+            settings.ws_heartbeat_seconds,
+        )
+
+    async def stop(self) -> None:
+        if self._heartbeat_task:
+            self._heartbeat_task.cancel()
+            try:
+                await self._heartbeat_task
+            except asyncio.CancelledError:
+                pass
+
+    # ── Conexión / desconexión ──────────────────────────────────────────
+
+    async def conectar(
+        self, ws: WebSocket, role: str, session_id: str, jugador_id: str = ""
+    ) -> None:
+        await ws.accept()
+        ws_state = getattr(ws, "state", None)
+        if ws_state is None:
+            # Guardamos is_alive en un atributo sencillo
+            ws.is_alive = True  # type: ignore[attr-defined]
+        else:
+            ws.is_alive = True  # type: ignore[attr-defined]
+
+        self._clients[ws] = {
+            "role": role,
+            "session_id": session_id,
+            "jugador_id": jugador_id,
+        }
+        self._rooms.setdefault(session_id, set()).add(ws)
+        logger.info(
+            "WS conectado: role=%s session=%s total=%d",
+            role,
+            session_id,
+            len(self._clients),
+        )
+
+    def desconectar(self, ws: WebSocket) -> dict[str, str] | None:
+        meta = self._clients.pop(ws, None)
+        if meta:
+            room = self._rooms.get(meta["session_id"])
+            if room:
+                room.discard(ws)
+                if not room:
+                    self._rooms.pop(meta["session_id"], None)
+        return meta
+
+    # ── Envío ───────────────────────────────────────────────────────────
+
+    async def enviar(self, ws: WebSocket, mensaje: dict[str, Any]) -> None:
+        try:
+            if ws.client_state and ws.client_state.name == "CONNECTED":
+                await ws.send_json(mensaje)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Error enviando mensaje: %s", exc)
+
+    async def broadcast(
+        self, mensaje: dict[str, Any], sesion_id: str | None = None
+    ) -> None:
+        """Envía a una sala concreta o a todas si sesion_id es None."""
+        targets: set[WebSocket] = set()
+        if sesion_id and sesion_id in self._rooms:
+            targets.update(self._rooms[sesion_id])
+        elif sesion_id is None:
+            for room in self._rooms.values():
+                targets.update(room)
+        for ws in targets:
+            await self.enviar(ws, mensaje)
+
+    # ── Implementación de RealtimePublisher ─────────────────────────────
+
+    async def publicar_evento(
+        self,
+        tipo: str,
+        data: dict[str, Any],
+        sesion_id: str | None = None,
+    ) -> None:
+        """Enviar a la sala de la sesión + a todos los admins."""
+        mensaje: dict[str, Any] = {
+            "tipo": tipo,
+            "data": data,
+            "ts": datetime.now(timezone.utc).isoformat(),
+        }
+        for ws, meta in list(self._clients.items()):
+            if meta["role"] == "admin":
+                await self.enviar(ws, mensaje)
+            elif sesion_id is not None and meta["session_id"] == sesion_id:
+                await self.enviar(ws, mensaje)
+
+    # ── Alias públicos (los usa el resto de la app) ─────────────────────
+
+    async def publish(
+        self, tipo: str, data: dict[str, Any], sesion_id: str | None = None
+    ) -> None:
+        await self.publicar_evento(tipo, data, sesion_id)
+
+    async def broadcast_sesion(
+        self, sesion_id: str, tipo: str, data: dict[str, Any]
+    ) -> None:
+        await self.publicar_evento(tipo, data, sesion_id)
+
+    async def programar_cierre(
+        self, sesion_id: str, cronometro_inicio: datetime, segundos: int
+    ) -> None:
+        asyncio.create_task(
+            self._cierre_programado(sesion_id, cronometro_inicio, segundos)
+        )
+
+    async def _cierre_programado(
+        self, sesion_id: str, cronometro_inicio: datetime, segundos: int
+    ) -> None:
+        """Cierra la pregunta automáticamente cuando termina el cronómetro."""
+        inicio = cronometro_inicio
+        if inicio.tzinfo is None:
+            inicio = inicio.replace(tzinfo=timezone.utc)
+        fin = inicio + __import__("datetime").timedelta(seconds=segundos)
+        espera = max(0.0, (fin - datetime.now(timezone.utc)).total_seconds())
+        logger.info("Sesión %s: pregunta se cerrará en %ss", sesion_id, espera)
+        if espera == 0:
+            return
+        await asyncio.sleep(espera)
+        from app.infrastructure.db.session import SessionLocal
+        from app.infrastructure.db.repositories import RespuestaRepo, SesionRepo
+        from app.domain.enums import EstadoSesion
+
+        async with SessionLocal() as db:
+            sesion_repo = SesionRepo(db)
+            sesion = await sesion_repo.por_id(__import__("uuid").UUID(sesion_id))
+            if sesion and sesion.estado == EstadoSesion.PREGUNTA.value:
+                updated = await sesion_repo.actualizar(
+                    sesion.id, estado=EstadoSesion.RESULTADO.value
+                )
+                await db.commit()
+                if updated:
+                    from app.domain.entities import entity_to_dict
+
+                    await self.publish(
+                        "sesion_cambio", entity_to_dict(updated), sesion_id
+                    )
+                    respuestas = await RespuestaRepo(db).listar_por_sesion(sesion.id)
+                    await self.publish(
+                        "resultado_pregunta",
+                        {
+                            "pregunta_id": (
+                                str(updated.pregunta_activa_id)
+                                if updated.pregunta_activa_id
+                                else None
+                            ),
+                            "respuestas": [entity_to_dict(r) for r in respuestas],
+                        },
+                        sesion_id,
+                    )
+
+    # ── Heartbeat ───────────────────────────────────────────────────────
+
+    async def _heartbeat_loop(self, intervalo: int) -> None:
+        while True:
+            await asyncio.sleep(intervalo)
+            for ws, meta in list(self._clients.items()):
+                if not getattr(ws, "is_alive", True):
+                    logger.info(
+                        "Terminando WS inactivo session=%s", meta.get("session_id", "")
+                    )
+                    try:
+                        await ws.close(code=1008, reason="heartbeat timeout")
+                    except Exception:  # noqa: BLE001
+                        pass
+                    self.desconectar(ws)
+                    continue
+                ws.is_alive = False  # type: ignore[attr-defined]
+                # Enviamos ping_keep=true como mensaje; el cliente responde pong
+                try:
+                    import json
+
+                    await ws.send_text(json.dumps({"tipo": "__ping__"}))
+                except Exception:  # noqa: BLE001
+                    pass

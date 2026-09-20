@@ -1,0 +1,279 @@
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.application.dto import ActualizarSesionRequest, CrearSesionRequest, JoinRequest
+from app.application.ports import RealtimePublisher
+from app.core.exceptions import (
+    ClaveIncorrecta,
+    DatosInvalidos,
+    PinNoEncontrado,
+    SesionNoActiva,
+)
+from app.core.security import crear_jwt, validar_clave_admin
+from app.domain.entities import entity_to_dict
+from app.domain.enums import EstadoSesion, RolJWT
+from app.domain.rules import es_grado_grupal
+from app.infrastructure.db.repositories import (
+    ColegioRepo,
+    GradoRepo,
+    JugadorRepo,
+    PreguntaRepo,
+    SesionRepo,
+    generar_pin_unico,
+)
+
+
+class AuthUseCases:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def login_docente(self, clave: str) -> dict:
+        if not validar_clave_admin(clave):
+            raise ClaveIncorrecta()
+        return {"token": crear_jwt(RolJWT.DOCENTE.value), "role": RolJWT.DOCENTE.value}
+
+    async def token_estudiante(self, jugador_id: str, sesion_id: str) -> dict:
+        return {
+            "token": crear_jwt(RolJWT.ESTUDIANTE.value, jugador_id, sesion_id),
+            "role": RolJWT.ESTUDIANTE.value,
+        }
+
+    async def token_anonimo(self) -> dict:
+        return {"token": crear_jwt(RolJWT.ANON.value), "role": RolJWT.ANON.value}
+
+    async def listar_grados(self) -> list[dict]:
+        return [entity_to_dict(g) for g in await GradoRepo(self.db).listar()]
+
+    async def listar_colegios(self) -> list[dict]:
+        return [entity_to_dict(c) for c in await ColegioRepo(self.db).listar()]
+
+
+class SesionUseCases:
+    def __init__(self, db: AsyncSession, realtime: RealtimePublisher):
+        self.db = db
+        self.realtime = realtime
+
+    async def crear(self, req: CrearSesionRequest) -> dict:
+        pin = await generar_pin_unico(self.db)
+        sesion = await SesionRepo(self.db).crear(
+            pin, req.grado_id, EstadoSesion.LOBBY.value
+        )
+        await self.db.commit()
+        return entity_to_dict(sesion)
+
+    async def unirse(self, req: JoinRequest) -> dict:
+        sesion_repo = SesionRepo(self.db)
+        jugador_repo = JugadorRepo(self.db)
+        grado_repo = GradoRepo(self.db)
+
+        sesion = await sesion_repo.por_pin(req.pin)
+        if not sesion or sesion.estado == EstadoSesion.BORRADOR.value:
+            raise PinNoEncontrado()
+
+        grado = await grado_repo.por_id(sesion.grado_id)
+        necesita_colegio = grado is not None and es_grado_grupal(grado.orden)
+        if necesita_colegio and req.colegioId is None:
+            raise DatosInvalidos("Debes seleccionar tu colegio")
+
+        jugador = await jugador_repo.por_sesion_y_nombre(sesion.id, req.nombre)
+        if jugador:
+            await jugador_repo.actualizar(
+                jugador.id, conectado=True, colegio_id=req.colegioId
+            )
+            jugador.colegio_id = req.colegioId
+        else:
+            jugador = await jugador_repo.crear(sesion.id, req.nombre, req.colegioId)
+            await self.db.commit()
+            await self.realtime.publish(
+                "jugador_unido", entity_to_dict(jugador), str(sesion.id)
+            )
+
+        token = crear_jwt(RolJWT.ESTUDIANTE.value, str(jugador.id), str(sesion.id))
+        return {
+            "token": token,
+            "jugadorId": str(jugador.id),
+            "sesionId": str(sesion.id),
+            "nombre": req.nombre,
+        }
+
+    async def listar(self) -> list[dict]:
+        return [entity_to_dict(s) for s in await SesionRepo(self.db).listar()]
+
+    async def obtener(self, sesion_id: str) -> dict | None:
+        sesion = await SesionRepo(self.db).por_id(uuid.UUID(sesion_id))
+        return entity_to_dict(sesion) if sesion else None
+
+    async def listar_jugadores(self, sesion_id: str) -> list[dict]:
+        return [
+            entity_to_dict(j)
+            for j in await JugadorRepo(self.db).listar_por_sesion(uuid.UUID(sesion_id))
+        ]
+
+    async def actualizar(self, sesion_id: str, req: ActualizarSesionRequest) -> dict:
+        sesion = await SesionRepo(self.db).por_id(uuid.UUID(sesion_id))
+        if not sesion:
+            raise PinNoEncontrado()
+
+        updated = await SesionRepo(self.db).actualizar(
+            sesion.id,
+            estado=req.estado,
+            pregunta_activa_id=req.pregunta_activa_id,
+            reto_activo_id=req.reto_activo_id,
+            cronometro_inicio=req.cronometro_inicio,
+            cronometro_segundos=req.cronometro_segundos,
+            reset_pregunta=bool(req.reset_pregunta),
+        )
+        await self.db.commit()
+        if updated:
+            data = entity_to_dict(updated)
+            await self.realtime.publish("sesion_cambio", data, str(sesion.id))
+            if (
+                updated.estado == EstadoSesion.PREGUNTA.value
+                and updated.cronometro_inicio
+                and updated.cronometro_segundos
+            ):
+                await self.realtime.programar_cierre(
+                    str(sesion.id),
+                    updated.cronometro_inicio,
+                    updated.cronometro_segundos,
+                )
+        return entity_to_dict(updated) if updated else {}
+
+    async def finalizar(self, sesion_id: str) -> dict:
+        sesion_repo = SesionRepo(self.db)
+        sesion = await sesion_repo.por_id(uuid.UUID(sesion_id))
+        if not sesion:
+            raise PinNoEncontrado()
+
+        await JugadorRepo(self.db).desconectar_todos(sesion.id)
+        await sesion_repo.actualizar(sesion.id, estado=EstadoSesion.FINAL.value)
+        await self.db.commit()
+
+        updated = await sesion_repo.por_id(sesion.id)
+        if updated:
+            await self.realtime.publish(
+                "sesion_cambio", entity_to_dict(updated), str(sesion.id)
+            )
+        return entity_to_dict(updated) if updated else {}
+
+
+class ControlRondaUseCases:
+    def __init__(self, db: AsyncSession, realtime: RealtimePublisher):
+        self.db = db
+        self.realtime = realtime
+
+    async def listar_preguntas(self, grado_id: str) -> list[dict]:
+        return [
+            entity_to_dict(p)
+            for p in await PreguntaRepo(self.db).listar_por_grado(uuid.UUID(grado_id))
+        ]
+
+    async def listar_retos(self, grado_id: str) -> list[dict]:
+        from app.infrastructure.db.repositories import RetoRepo
+
+        return [
+            entity_to_dict(r)
+            for r in await RetoRepo(self.db).listar_por_grado(uuid.UUID(grado_id))
+        ]
+
+    async def lanzar_pregunta(
+        self,
+        sesion_id: str,
+        pregunta_id: str,
+        cronometro_inicio: datetime | None = None,
+        cronometro_segundos: int | None = None,
+    ) -> dict:
+        sesion_repo = SesionRepo(self.db)
+        sesion = await sesion_repo.por_id(uuid.UUID(sesion_id))
+        if not sesion:
+            raise PinNoEncontrado()
+
+        pregunta = await PreguntaRepo(self.db).por_id(uuid.UUID(pregunta_id))
+        if not pregunta:
+            raise DatosInvalidos("Pregunta no encontrada")
+
+        inicio = cronometro_inicio or datetime.now(timezone.utc)
+        segundos = cronometro_segundos or pregunta.tiempo_limite
+
+        updated = await sesion_repo.actualizar(
+            sesion.id,
+            estado=EstadoSesion.PREGUNTA.value,
+            pregunta_activa_id=pregunta.id,
+            cronometro_inicio=inicio,
+            cronometro_segundos=segundos,
+        )
+        await self.db.commit()
+        if updated:
+            data = entity_to_dict(updated)
+            await self.realtime.publish("sesion_cambio", data, str(sesion.id))
+            await self.realtime.programar_cierre(str(sesion.id), inicio, segundos)
+        return entity_to_dict(updated) if updated else {}
+
+    async def cerrar_pregunta(self, sesion_id: str) -> dict:
+        sesion_repo = SesionRepo(self.db)
+        sesion = await sesion_repo.por_id(uuid.UUID(sesion_id))
+        if not sesion:
+            raise PinNoEncontrado()
+        updated = await sesion_repo.actualizar(
+            sesion.id, estado=EstadoSesion.RESULTADO.value
+        )
+        await self.db.commit()
+        if updated:
+            await self.realtime.publish(
+                "sesion_cambio", entity_to_dict(updated), str(sesion.id)
+            )
+            from app.infrastructure.db.repositories import RespuestaRepo
+
+            respuestas = await RespuestaRepo(self.db).listar_por_sesion(sesion.id)
+            await self.realtime.publish(
+                "resultado_pregunta",
+                {
+                    "pregunta_id": (
+                        str(updated.pregunta_activa_id)
+                        if updated.pregunta_activa_id
+                        else None
+                    ),
+                    "respuestas": [entity_to_dict(r) for r in respuestas],
+                },
+                str(sesion.id),
+            )
+        return entity_to_dict(updated) if updated else {}
+
+    async def siguiente_pregunta(self, sesion_id: str) -> dict:
+        sesion_repo = SesionRepo(self.db)
+        sesion = await sesion_repo.por_id(uuid.UUID(sesion_id))
+        if not sesion:
+            raise PinNoEncontrado()
+        preguntas = await PreguntaRepo(self.db).listar_por_grado(sesion.grado_id)
+        if not preguntas:
+            raise DatosInvalidos("Sin preguntas para este grado")
+        if sesion.pregunta_activa_id:
+            idx = next(
+                (
+                    i
+                    for i, p in enumerate(preguntas)
+                    if p.id == sesion.pregunta_activa_id
+                ),
+                -1,
+            )
+            siguiente = (
+                preguntas[idx + 1] if idx != -1 and idx + 1 < len(preguntas) else None
+            )
+        else:
+            siguiente = preguntas[0]
+        if siguiente:
+            return await self.lanzar_pregunta(sesion_id, str(siguiente.id))
+        updated = await sesion_repo.actualizar(
+            sesion.id, estado=EstadoSesion.FINAL.value
+        )
+        await self.db.commit()
+        if updated:
+            await self.realtime.publish(
+                "sesion_cambio", entity_to_dict(updated), str(sesion.id)
+            )
+        return entity_to_dict(updated) if updated else {}
