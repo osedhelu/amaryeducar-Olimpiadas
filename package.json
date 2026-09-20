@@ -7,7 +7,7 @@
     "dev:ws": "node server/ws-server.mjs",
     "dev:all": "npm run dev:ws & npm run dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node server/prod-server.mjs",
     "lint": "eslint"
   },
   "dependencies": {
