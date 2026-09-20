@@ -134,17 +134,20 @@ async function start() {
     pgClient = new pg.Client({ connectionString: DATABASE_URL });
     pgClient.connect((err) => {
       if (err) {
+        console.error("[prod] ERROR conectando a Postgres:", err.message);
         pgClient = null;
         setTimeout(connect, 3000);
         return;
       }
+      console.log("[prod] Conectado a Postgres, LISTEN canal_juego...");
       pgClient
         .query("LISTEN canal_juego")
         .then(() => {
+          console.log("[prod] LISTEN canal_juego establecido ✓");
           repararSesionesAtascadas();
           setInterval(repararSesionesAtascadas, 15000);
         })
-        .catch(() => {});
+        .catch((e) => console.error("[prod] ERROR en LISTEN:", e.message));
     });
 
     pgClient.on("notification", (msg) => {
