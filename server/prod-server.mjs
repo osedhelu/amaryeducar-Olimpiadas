@@ -34,12 +34,20 @@ async function start() {
     const role = url.searchParams.get("role") ?? "presentacion";
     const sessionId = url.searchParams.get("sessionId") ?? "";
     const jugadorId = url.searchParams.get("jugadorId") ?? "";
+    ws.isAlive = true;
     clients.set(ws, { role, sessionId, jugadorId });
     console.log(
       `[prod] WS conectado: role=${role} session=${sessionId} jugador=${jugadorId || "-"} (total ${clients.size})`,
     );
 
-    // Heartbeat: responde al ping del cliente para mantener vivas las conexiones móviles
+    // Heartbeat nativo del protocolo WebSocket: el navegador responde PONG
+    // automáticamente a los PING del servidor sin necesidad de JS. Mantiene
+    // vivas las conexiones a través de proxies y NAT de redes móviles.
+    ws.on("pong", () => {
+      ws.isAlive = true;
+    });
+
+    // Heartbeat de aplicación: responde al ping del cliente para mantener vivas las conexiones móviles
     ws.on("message", (msg) => {
       if (msg.toString() === "__ping__") {
         ws.send("__pong__");
@@ -98,6 +106,24 @@ async function start() {
       `[prod] Broadcast ${payload.tipo} (sesión ${sessionId || "-"}): ${enviados} clientes`,
     );
   }
+
+  // Heartbeat activo del servidor: envía PING a todos cada 30s y mata los
+  // sockets que no respondan PONG (navegador responde solo, sin JS extra).
+  // Esto evita que proxies/NAT de redes móviles cierren conexiones idle.
+  setInterval(() => {
+    for (const ws of clients.keys()) {
+      if (ws.isAlive === false) {
+        ws.terminate();
+        continue;
+      }
+      ws.isAlive = false;
+      try {
+        ws.ping();
+      } catch {
+        /* socket cerrado */
+      }
+    }
+  }, 30000);
 
   const timers = new Map();
 

@@ -25,9 +25,16 @@ wss.on("connection", (ws, req) => {
   const role = url.searchParams.get("role") ?? "presentacion";
   const sessionId = url.searchParams.get("sessionId") ?? "";
   const jugadorId = url.searchParams.get("jugadorId") ?? "";
+  ws.isAlive = true;
   clients.set(ws, { role, sessionId, jugadorId });
 
   console.log(`[ws] Conectado: role=${role} session=${sessionId} jugador=${jugadorId || "-"} (total ${clients.size})`);
+
+  // Heartbeat nativo: el navegador responde PONG automáticamente a los PING
+  // del servidor (sin JS). Mantiene vivas las conexiones móviles.
+  ws.on("pong", () => {
+    ws.isAlive = true;
+  });
 
   // Heartbeat: responde al ping del cliente para mantener vivas las conexiones móviles
   ws.on("message", (msg) => {
@@ -63,6 +70,24 @@ wss.on("connection", (ws, req) => {
 
   ws.on("error", () => {});
 });
+
+// Heartbeat activo del servidor: envía PING a todos cada 30s y mata los sockets
+// que no respondan (el navegador responde PONG solo, sin JS). Evita que
+// proxies/NAT de redes móviles cierren conexiones idle.
+setInterval(() => {
+  for (const ws of clients.keys()) {
+    if (ws.isAlive === false) {
+      ws.terminate();
+      continue;
+    }
+    ws.isAlive = false;
+    try {
+      ws.ping();
+    } catch {
+      /* socket cerrado */
+    }
+  }
+}, 30000);
 
 function parseSessionId(tabla, data) {
   if (!data) return null;
