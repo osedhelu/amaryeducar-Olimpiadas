@@ -29,6 +29,13 @@ wss.on("connection", (ws, req) => {
 
   console.log(`[ws] Conectado: role=${role} session=${sessionId} jugador=${jugadorId || "-"} (total ${clients.size})`);
 
+  // Heartbeat: responde al ping del cliente para mantener vivas las conexiones móviles
+  ws.on("message", (msg) => {
+    if (msg.toString() === "__ping__") {
+      ws.send("__pong__");
+    }
+  });
+
   // Marca al jugador como conectado en la BD (solo estudiantes)
   if (role === "student" && jugadorId && pgClient) {
     pgClient
