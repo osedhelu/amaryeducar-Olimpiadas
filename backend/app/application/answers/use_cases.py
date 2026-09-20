@@ -169,6 +169,24 @@ class RespuestaUseCases:
                     str(sesion.id),
                 )
 
+    async def existe_respuesta(self, pregunta_id: str, jugador_id: str) -> dict | None:
+        respuesta_repo = RespuestaRepo(self.db)
+        try:
+            existe = await respuesta_repo.existe(
+                uuid.UUID(pregunta_id), uuid.UUID(jugador_id)
+            )
+        except ValueError:
+            return None
+        if not existe:
+            return None
+        respuesta = await respuesta_repo.por_id_existente(
+            uuid.UUID(pregunta_id), uuid.UUID(jugador_id)
+        )
+        if respuesta:
+            data = entity_to_dict(respuesta)
+            return data
+        return None
+
     async def aprobar_abierta(
         self, respuesta_id: str, req: AprobarRespuestaRequest
     ) -> dict:

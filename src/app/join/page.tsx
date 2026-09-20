@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/postgrest";
+import { api } from "@/lib/api";
 import type { Grado, Colegio, SesionJuego } from "@/types/game";
 
 export default function JoinPage() {
@@ -19,11 +19,11 @@ export default function JoinPage() {
 
   useEffect(() => {
     api
-      .get<Grado[]>("/grados?order=orden.asc")
+      .grados()
       .then(setGrados)
       .catch(() => {});
     api
-      .get<Colegio[]>("/colegios?order=nombre.asc")
+      .colegios()
       .then(setColegios)
       .catch(() => {});
   }, []);
@@ -31,12 +31,9 @@ export default function JoinPage() {
   async function consultarSesion(nuevoPin: string) {
     if (nuevoPin.length !== 4) return;
     try {
-      const sesiones = await api.get<SesionJuego[]>(
-        `/sesiones_juego?pin=eq.${nuevoPin}&estado=neq.borrador&limit=1`,
-      );
-      if (sesiones.length === 0) return;
-      setSesion(sesiones[0]);
-      const grado = grados.find((g) => g.id === sesiones[0].grado_id);
+      const sesionEncontrada = await api.sesionPorPin(nuevoPin);
+      setSesion(sesionEncontrada);
+      const grado = grados.find((g) => g.id === sesionEncontrada.grado_id);
       setGradoActual(grado ?? null);
     } catch {
       /* PIN inválido, ignorar */
@@ -55,30 +52,8 @@ export default function JoinPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/session/join", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pin,
-          nombre,
-          colegioId: colegioId || null,
-        }),
-      });
+      const data = await api.joinSesion(pin, nombre, colegioId || null);
 
-      const data = (await res.json()) as {
-        token?: string;
-        jugadorId?: string;
-        sesionId?: string;
-        error?: string;
-      };
-
-      if (!res.ok || !data.token || !data.jugadorId || !data.sesionId) {
-        setError(data.error ?? "Error al unirse a la sesión");
-        setLoading(false);
-        return;
-      }
-
-      const grado = grados.find((g) => g.id === data.sesionId);
       setSesion({ id: data.sesionId } as SesionJuego);
 
       const { guardarSesionEstudiante } = await import("@/lib/session");

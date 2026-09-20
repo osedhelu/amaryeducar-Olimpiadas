@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { api } from "@/lib/postgrest";
+import { api } from "@/lib/api";
 import { getDatosSesionEstudiante } from "@/lib/session";
 import type { SesionJuego, Pregunta, Respuesta, EventoWS } from "@/types/game";
 
@@ -25,7 +25,6 @@ export default function GamePage() {
   const { lastEvent, connected } = useWebSocket(sessionId, "student");
 
   const cargarEstado = useCallback(async () => {
-    const { getDatosSesionEstudiante } = await import("@/lib/session");
     const datos = getDatosSesionEstudiante();
     if (!datos.nombre || !datos.sesionId || datos.sesionId !== sessionId) {
       router.push("/join");
@@ -33,35 +32,27 @@ export default function GamePage() {
     }
     setJugadorNombre(datos.nombre);
 
-    const [ses] = await api.get<SesionJuego[]>(
-      `/sesiones_juego?id=eq.${sessionId}&limit=1`,
-    );
+    const ses = await api.sesion(sessionId);
     setSesion(ses);
 
     if (ses?.pregunta_activa_id) {
-      const [p] = await api.get<Pregunta[]>(
-        `/preguntas?id=eq.${ses.pregunta_activa_id}&limit=1`,
-      );
-      setPreguntaActual(p);
+      const pregunta = await api.preguntasPorId(ses.pregunta_activa_id);
+      setPreguntaActual(pregunta);
       verificarRespuestaExistente(ses.pregunta_activa_id);
     }
   }, [sessionId, router]);
 
   async function verificarRespuestaExistente(preguntaId: string) {
-    const { getDatosSesionEstudiante } = await import("@/lib/session");
     const jugadorId = getDatosSesionEstudiante().jugadorId;
     if (!jugadorId) return;
 
     try {
-      const yaRespondidas = await api.get<Respuesta[]>(
-        `/respuestas?pregunta_id=eq.${preguntaId}&jugador_id=eq.${jugadorId}&limit=1`,
-      );
-      if (yaRespondidas.length > 0) {
-        const r = yaRespondidas[0];
+      const yaRespondida = await api.verificarRespuesta(preguntaId, jugadorId);
+      if (yaRespondida) {
         setRespuestaEnviada(true);
         setUltimoResultado({
-          correcta: r.correcta === true,
-          puntos: r.puntos,
+          correcta: yaRespondida.correcta === true,
+          puntos: yaRespondida.puntos,
         });
       }
     } catch {
@@ -82,14 +73,12 @@ export default function GamePage() {
         setSesion(ev.data);
         if (ev.data.pregunta_activa_id) {
           const preguntaId: string = ev.data.pregunta_activa_id;
-          api
-            .get<Pregunta[]>(`/preguntas?id=eq.${preguntaId}&limit=1`)
-            .then(([p]) => {
-              setPreguntaActual(p);
-              setRespuestaEnviada(false);
-              setUltimoResultado(null);
-              verificarRespuestaExistente(preguntaId);
-            });
+          api.preguntasPorId(preguntaId).then((p) => {
+            setPreguntaActual(p);
+            setRespuestaEnviada(false);
+            setUltimoResultado(null);
+            verificarRespuestaExistente(preguntaId);
+          });
         } else {
           setPreguntaActual(null);
         }
@@ -142,7 +131,7 @@ export default function GamePage() {
 
     try {
       const timestampCliente = new Date().toISOString();
-      await api.post("/respuestas", {
+      await api.enviarRespuesta({
         pregunta_id: preguntaActual.id,
         jugador_id: jugadorId,
         opcion_seleccionada: opcion,

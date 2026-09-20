@@ -1,6 +1,7 @@
 const CLAVE_DOCENTE = "jwt_token";
 const CLAVE_ESTUDIANTE = "jwt_estudiante";
 const CLAVE_REFRESH = "sesion_refresh";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 // La identidad del estudiante vive en sessionStorage: es POR PESTAÑA.
 // Así, si en un mismo navegador se abren varias pestañas (Cada estudiante
@@ -122,7 +123,7 @@ export async function renovarTokenEstudiante(): Promise<string | null> {
   }
 
   try {
-    const res = await fetch("/api/auth/student", {
+    const res = await fetch(`${API_URL}/auth/student`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

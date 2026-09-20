@@ -33,6 +33,16 @@ async def listar_sesiones(
     return await SesionUseCases(db, get_manager()).listar()
 
 
+@router.get("/sessions/by-pin/{pin}")
+async def obtener_sesion_por_pin(
+    pin: str, db: AsyncSession = Depends(get_db)
+) -> dict:  # noqa: B008
+    s = await SesionUseCases(db, get_manager()).obtener_por_pin(pin)
+    if not s:
+        raise HTTPException(status_code=404, detail="PIN no encontrado")
+    return s
+
+
 @router.get("/sessions/{sesion_id}")
 async def obtener_sesion(
     sesion_id: str, db: AsyncSession = Depends(get_db)
@@ -80,6 +90,18 @@ async def listar_preguntas(
     grado_id: str, db: AsyncSession = Depends(get_db)
 ) -> list[dict]:  # noqa: B008
     return await ControlRondaUseCases(db, get_manager()).listar_preguntas(grado_id)
+
+
+@router.get("/preguntas/{pregunta_id}")
+async def obtener_pregunta(
+    pregunta_id: str, db: AsyncSession = Depends(get_db)
+) -> dict:  # noqa: B008
+    pregunta = await ControlRondaUseCases(db, get_manager()).obtener_pregunta(
+        pregunta_id
+    )
+    if not pregunta:
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    return pregunta
 
 
 @router.get("/retos")

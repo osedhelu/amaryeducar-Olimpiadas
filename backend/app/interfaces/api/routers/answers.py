@@ -23,6 +23,17 @@ async def enviar_respuesta(
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
 
+@router.get("/answers/check")
+async def verificar_respuesta(
+    pregunta_id: str,
+    jugador_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> dict | None:
+    return await RespuestaUseCases(db, get_manager()).existe_respuesta(
+        pregunta_id, jugador_id
+    )
+
+
 @router.patch("/answers/{respuesta_id}/aprobar")
 async def aprobar_respuesta(
     respuesta_id: str,

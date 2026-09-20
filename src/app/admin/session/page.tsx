@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/postgrest";
+import { api } from "@/lib/api";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import type {
   Grado,
@@ -35,11 +35,9 @@ export default function AdminSessionPage() {
   const { lastEvent } = useWebSocket(sesionActiva?.id ?? null, "admin");
 
   const cargarDatos = useCallback(async () => {
-    const g = await api.get<Grado[]>("/grados?order=orden.asc");
+    const g = await api.grados();
     setGrados(g);
-    const s = await api.get<SesionJuego[]>(
-      "/sesiones_juego?order=creado_en.desc",
-    );
+    const s = await api.sesiones();
     const sesionesConGrado = s.map((ses) => ({
       ...ses,
       grado: g.find((gr) => gr.id === ses.grado_id),
@@ -102,9 +100,7 @@ export default function AdminSessionPage() {
   const recargarRespuestas = useCallback(async () => {
     if (!sesionActiva?.pregunta_activa_id) return;
     try {
-      const r = await api.rpc<Respuesta[]>("obtener_respuestas_sesion", {
-        p_sesion_id: sesionActiva.id,
-      });
+      const r = await api.respuestasSesion(sesionActiva.id);
       setRespuestasPregunta(r);
     } catch {
       /* mantener estado */
@@ -133,13 +129,8 @@ export default function AdminSessionPage() {
   async function crearSesion(gradoId: string) {
     setLoading(true);
     try {
-      const pin = await api.rpc<string>("/generar_pin_unico", {});
-      const [nueva] = await api.post<SesionJuego[]>("/sesiones_juego", {
-        pin,
-        grado_id: gradoId,
-        estado: "lobby",
-      });
-      setNuevoPin(pin);
+      const nueva = await api.crearSesion(gradoId);
+      setNuevoPin(nueva.pin);
       await cargarDatos();
       setSesionActiva(nueva);
       setVista("control");
@@ -151,17 +142,13 @@ export default function AdminSessionPage() {
   }
 
   async function cargarJugadores(sesionId: string) {
-    const j = await api.get<Jugador[]>(
-      `/jugadores?sesion_id=eq.${sesionId}&order=creado_en.asc`,
-    );
+    const j = await api.jugadores(sesionId);
     setJugadores(j);
   }
 
-  async function cargarRespuestas(preguntaId: string) {
+  async function cargarRespuestas(_preguntaId: string) {
     if (!sesionActiva) return;
-    const r = await api.rpc<Respuesta[]>("obtener_respuestas_sesion", {
-      p_sesion_id: sesionActiva.id,
-    });
+    const r = await api.respuestasSesion(sesionActiva.id);
     setRespuestasPregunta(r);
   }
 
@@ -174,35 +161,20 @@ export default function AdminSessionPage() {
   }
 
   async function cargarPreguntas(gradoId: string) {
-    const p = await api.get<Pregunta[]>(
-      `/preguntas?grado_id=eq.${gradoId}&order=sesion,orden`,
-    );
+    const p = await api.preguntas(gradoId);
     setPreguntas(p);
   }
 
   async function lanzarPregunta(p: Pregunta) {
     if (!sesionActiva) return;
     setRespuestasPregunta([]);
-    await api.patch(`/sesiones_juego?id=eq.${sesionActiva.id}`, {
-      estado: "pregunta",
-      pregunta_activa_id: p.id,
-      cronometro_inicio: new Date().toISOString(),
-      cronometro_segundos: p.tiempo_limite,
-    });
-    const [updated] = await api.get<SesionJuego[]>(
-      `/sesiones_juego?id=eq.${sesionActiva.id}`,
-    );
+    const updated = await api.lanzarPregunta(sesionActiva.id, p.id);
     setSesionActiva(updated);
   }
 
   async function cerrarPregunta() {
     if (!sesionActiva) return;
-    await api.patch(`/sesiones_juego?id=eq.${sesionActiva.id}`, {
-      estado: "resultado",
-    });
-    const [updated] = await api.get<SesionJuego[]>(
-      `/sesiones_juego?id=eq.${sesionActiva.id}`,
-    );
+    const updated = await api.cerrarPregunta(sesionActiva.id);
     setSesionActiva(updated);
     if (updated.pregunta_activa_id)
       cargarRespuestas(updated.pregunta_activa_id);
@@ -217,12 +189,7 @@ export default function AdminSessionPage() {
     if (next) {
       await lanzarPregunta(next);
     } else {
-      await api.patch(`/sesiones_juego?id=eq.${sesionActiva.id}`, {
-        estado: "final",
-      });
-      const [updated] = await api.get<SesionJuego[]>(
-        `/sesiones_juego?id=eq.${sesionActiva.id}`,
-      );
+      const updated = await api.finalizarSesion(sesionActiva.id);
       setSesionActiva(updated);
     }
   }
@@ -260,14 +227,9 @@ export default function AdminSessionPage() {
     if (!confirmar) return;
 
     try {
-      // Marca a todos los jugadores de la sesión como desconectados
-      await api.patch(`/jugadores?sesion_id=eq.${sesionActiva.id}`, {
-        conectado: false,
-      });
-      // Pone la sesión en estado final
-      await api.patch(`/sesiones_juego?id=eq.${sesionActiva.id}`, {
-        estado: "final",
-      });
+      // Pone la sesión en estado final y desconecta a todos
+      const updated = await api.finalizarSesion(sesionActiva.id);
+      if (updated) setSesionActiva(updated);
     } catch (err) {
       console.error("Error finalizando sesión:", err);
     }
@@ -285,21 +247,14 @@ export default function AdminSessionPage() {
 
   async function mostrarPodium() {
     if (!sesionActiva) return;
-    const p = await api.rpc<PodiumEntry[]>("/obtener_podium", {
-      p_sesion_id: sesionActiva.id,
-    });
+    const p = await api.podium(sesionActiva.id);
     setPodium(p);
     setVista("podium");
-    await api.patch(`/sesiones_juego?id=eq.${sesionActiva.id}`, {
-      estado: "podium",
-    });
+    await api.actualizarSesion(sesionActiva.id, { estado: "podium" });
   }
 
   async function aprobarRespuesta(respuestaId: string, correcta: boolean) {
-    await api.rpc("/aprobar_respuesta_abierta", {
-      p_respuesta_id: respuestaId,
-      p_correcta: correcta,
-    });
+    await api.aprobarRespuesta(respuestaId, correcta);
   }
 
   const sesionConGrado = sesiones.find((s) => s.id === sesionActiva?.id);

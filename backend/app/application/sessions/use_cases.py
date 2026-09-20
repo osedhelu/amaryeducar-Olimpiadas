@@ -108,6 +108,12 @@ class SesionUseCases:
         sesion = await SesionRepo(self.db).por_id(uuid.UUID(sesion_id))
         return entity_to_dict(sesion) if sesion else None
 
+    async def obtener_por_pin(self, pin: str) -> dict | None:
+        sesion = await SesionRepo(self.db).por_pin(pin)
+        if not sesion or sesion.estado == EstadoSesion.BORRADOR.value:
+            return None
+        return entity_to_dict(sesion)
+
     async def listar_jugadores(self, sesion_id: str) -> list[dict]:
         return [
             entity_to_dict(j)
@@ -172,6 +178,10 @@ class ControlRondaUseCases:
             entity_to_dict(p)
             for p in await PreguntaRepo(self.db).listar_por_grado(uuid.UUID(grado_id))
         ]
+
+    async def obtener_pregunta(self, pregunta_id: str) -> dict | None:
+        pregunta = await PreguntaRepo(self.db).por_id(uuid.UUID(pregunta_id))
+        return entity_to_dict(pregunta) if pregunta else None
 
     async def listar_retos(self, grado_id: str) -> list[dict]:
         from app.infrastructure.db.repositories import RetoRepo

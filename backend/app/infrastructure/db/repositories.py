@@ -380,6 +380,19 @@ class RespuestaRepo:
         row = await self.db.get(RespuestaORM, respuesta_id)
         return _row_to_obj(row, Respuesta) if row else None
 
+    async def por_id_existente(
+        self, pregunta_id: uuid.UUID, jugador_id: uuid.UUID
+    ) -> Respuesta | None:
+        row = (
+            await self.db.execute(
+                select(RespuestaORM).where(
+                    RespuestaORM.pregunta_id == pregunta_id,
+                    RespuestaORM.jugador_id == jugador_id,
+                )
+            )
+        ).scalar_one_or_none()
+        return _row_to_obj(row, Respuesta) if row else None
+
     async def aprobar(self, respuesta_id: uuid.UUID, correcta: bool) -> None:
         await self.db.execute(
             update(RespuestaORM)

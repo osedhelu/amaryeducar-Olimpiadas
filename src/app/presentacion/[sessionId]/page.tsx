@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { api } from "@/lib/postgrest";
+import { api } from "@/lib/api";
 import type {
   SesionJuego,
   Pregunta,
@@ -37,37 +37,25 @@ export default function PresentacionPage() {
   const { lastEvent, connected } = useWebSocket(sessionId, "presentacion");
 
   const cargarEstado = useCallback(async () => {
-    const [s] = await api.get<SesionJuego[]>(
-      `/sesiones_juego?id=eq.${sessionId}&limit=1`,
-    );
+    const s = await api.sesion(sessionId);
     if (!s) return;
     setSesion(s);
 
-    const j = await api.get<Jugador[]>(
-      `/jugadores?sesion_id=eq.${s.id}&order=creado_en.asc`,
-    );
+    const j = await api.jugadores(s.id);
     setJugadores(j);
 
-    const preguntas = await api.get<Pregunta[]>(
-      `/preguntas?grado_id=eq.${s.grado_id}&order=sesion,orden`,
-    );
+    const preguntas = await api.preguntas(s.grado_id);
     setPreguntasLista(preguntas);
 
     if (s.pregunta_activa_id) {
-      const [p] = await api.get<Pregunta[]>(
-        `/preguntas?id=eq.${s.pregunta_activa_id}&limit=1`,
-      );
+      const p = await api.preguntasPorId(s.pregunta_activa_id);
       setPregunta(p);
-      const r = await api.rpc<Respuesta[]>("obtener_respuestas_sesion", {
-        p_sesion_id: s.id,
-      });
+      const r = await api.respuestasSesion(s.id);
       setRespuestas(r);
     }
 
     if (s.estado === "podium" || s.estado === "final") {
-      const p = await api.rpc<PodiumEntry[]>("/obtener_podium", {
-        p_sesion_id: s.id,
-      });
+      const p = await api.podium(s.id);
       setPodium(p);
     }
   }, [sessionId]);
@@ -94,9 +82,7 @@ export default function PresentacionPage() {
       case "sesion_cambio":
         setSesion(ev.data);
         if (ev.data.estado === "podium" || ev.data.estado === "final") {
-          api
-            .rpc<PodiumEntry[]>("/obtener_podium", { p_sesion_id: ev.data.id })
-            .then(setPodium);
+          api.podium(ev.data.id).then(setPodium);
         }
         break;
       case "respuesta_recibida":
@@ -121,9 +107,7 @@ export default function PresentacionPage() {
       return;
     }
     try {
-      const r = await api.rpc<Respuesta[]>("obtener_respuestas_sesion", {
-        p_sesion_id: sesion.id,
-      });
+      const r = await api.respuestasSesion(sesion.id);
       setRespuestas(r);
     } catch {
       /* consulta fallida, mantener estado actual */
@@ -173,20 +157,14 @@ export default function PresentacionPage() {
   useEffect(() => {
     if (pregunta && sesion?.pregunta_activa_id === pregunta.id) return;
     if (sesion?.pregunta_activa_id) {
-      api
-        .get<Pregunta[]>(
-          `/preguntas?id=eq.${sesion.pregunta_activa_id}&limit=1`,
-        )
-        .then(([p]) => {
-          setPregunta(p);
-          setRespuestas([]);
-          api
-            .rpc<Respuesta[]>("obtener_respuestas_sesion", {
-              p_sesion_id: sesion.id,
-            })
-            .then(setRespuestas)
-            .catch(() => {});
-        });
+      api.preguntasPorId(sesion.pregunta_activa_id).then((p) => {
+        setPregunta(p);
+        setRespuestas([]);
+        api
+          .respuestasSesion(sesion.id)
+          .then(setRespuestas)
+          .catch(() => {});
+      });
     } else {
       setPregunta(null);
       setRespuestas([]);
@@ -199,22 +177,13 @@ export default function PresentacionPage() {
     setControlesLoading(true);
     setClaveError("");
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clave: claveInput }),
-      });
-      if (!res.ok) {
-        setClaveError("Clave incorrecta");
-        return;
-      }
-      const { token } = (await res.json()) as { token: string };
+      const { token } = await api.loginDocente(claveInput);
       localStorage.setItem("jwt_token", token);
       setControlUnlocked(true);
       setShowKeyModal(false);
       setClaveInput("");
     } catch {
-      setClaveError("Error de conexión");
+      setClaveError("Clave incorrecta");
     } finally {
       setControlesLoading(false);
     }
@@ -225,15 +194,7 @@ export default function PresentacionPage() {
     setControlesLoading(true);
     try {
       const primera = preguntasLista[0];
-      await api.patch(`/sesiones_juego?id=eq.${sesion.id}`, {
-        estado: "pregunta",
-        pregunta_activa_id: primera.id,
-        cronometro_inicio: new Date().toISOString(),
-        cronometro_segundos: primera.tiempo_limite,
-      });
-      const [updated] = await api.get<SesionJuego[]>(
-        `/sesiones_juego?id=eq.${sesion.id}`,
-      );
+      const updated = await api.lanzarPregunta(sesion.id, primera.id);
       setSesion(updated);
     } finally {
       setControlesLoading(false);
@@ -244,12 +205,7 @@ export default function PresentacionPage() {
     if (!sesion || controlesLoading) return;
     setControlesLoading(true);
     try {
-      await api.patch(`/sesiones_juego?id=eq.${sesion.id}`, {
-        estado: "resultado",
-      });
-      const [updated] = await api.get<SesionJuego[]>(
-        `/sesiones_juego?id=eq.${sesion.id}`,
-      );
+      const updated = await api.cerrarPregunta(sesion.id);
       setSesion(updated);
     } finally {
       setControlesLoading(false);
@@ -260,25 +216,7 @@ export default function PresentacionPage() {
     if (!sesion || controlesLoading) return;
     setControlesLoading(true);
     try {
-      const index = preguntasLista.findIndex(
-        (p) => p.id === sesion.pregunta_activa_id,
-      );
-      const next = preguntasLista[index + 1];
-      if (next) {
-        await api.patch(`/sesiones_juego?id=eq.${sesion.id}`, {
-          estado: "pregunta",
-          pregunta_activa_id: next.id,
-          cronometro_inicio: new Date().toISOString(),
-          cronometro_segundos: next.tiempo_limite,
-        });
-      } else {
-        await api.patch(`/sesiones_juego?id=eq.${sesion.id}`, {
-          estado: "final",
-        });
-      }
-      const [updated] = await api.get<SesionJuego[]>(
-        `/sesiones_juego?id=eq.${sesion.id}`,
-      );
+      const updated = await api.siguientePregunta(sesion.id);
       setSesion(updated);
     } finally {
       setControlesLoading(false);
@@ -289,16 +227,10 @@ export default function PresentacionPage() {
     if (!sesion || controlesLoading) return;
     setControlesLoading(true);
     try {
-      await api.patch(`/sesiones_juego?id=eq.${sesion.id}`, {
-        estado: "podium",
-      });
-      const p = await api.rpc<PodiumEntry[]>("/obtener_podium", {
-        p_sesion_id: sesion.id,
-      });
+      await api.actualizarSesion(sesion.id, { estado: "podium" });
+      const p = await api.podium(sesion.id);
       setPodium(p);
-      const [updated] = await api.get<SesionJuego[]>(
-        `/sesiones_juego?id=eq.${sesion.id}`,
-      );
+      const updated = await api.sesion(sesion.id);
       setSesion(updated);
     } finally {
       setControlesLoading(false);
@@ -309,15 +241,7 @@ export default function PresentacionPage() {
     if (!sesion || controlesLoading) return;
     setControlesLoading(true);
     try {
-      await api.patch(`/jugadores?sesion_id=eq.${sesion.id}`, {
-        conectado: false,
-      });
-      await api.patch(`/sesiones_juego?id=eq.${sesion.id}`, {
-        estado: "final",
-      });
-      const [updated] = await api.get<SesionJuego[]>(
-        `/sesiones_juego?id=eq.${sesion.id}`,
-      );
+      const updated = await api.finalizarSesion(sesion.id);
       setSesion(updated);
     } finally {
       setControlesLoading(false);

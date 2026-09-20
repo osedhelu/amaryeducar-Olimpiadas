@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
 
 export default function AdminLogin() {
   const [clave, setClave] = useState("");
@@ -15,24 +16,12 @@ export default function AdminLogin() {
     setError("");
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clave }),
-      });
-
-      if (!res.ok) {
-        setError("Clave incorrecta");
-        setLoading(false);
-        return;
-      }
-
-      const { token } = await res.json();
+      const { token } = await api.loginDocente(clave);
       const { guardarSesionDocente } = await import("@/lib/session");
       guardarSesionDocente(token);
       router.push("/admin/session");
     } catch {
-      setError("Error de conexión");
+      setError("Clave incorrecta");
       setLoading(false);
     }
   }
