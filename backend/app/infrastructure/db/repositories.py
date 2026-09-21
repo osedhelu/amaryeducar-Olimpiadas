@@ -561,6 +561,21 @@ class RespuestaRepo:
             .values(puntos=puntos)
         )
 
+    async def eliminar_por_pregunta_sesion(
+        self, pregunta_id: uuid.UUID, sesion_id: uuid.UUID
+    ) -> None:
+        """Borra las respuestas de una pregunta en una sesión (para re-lanzar)."""
+        jugadores_sesion = select(JugadorORM.id).where(
+            JugadorORM.sesion_id == sesion_id
+        )
+        await self.db.execute(
+            delete(RespuestaORM).where(
+                RespuestaORM.pregunta_id == pregunta_id,
+                RespuestaORM.jugador_id.in_(jugadores_sesion),
+            )
+        )
+        await self.db.flush()
+
 
 class RetoRepo:
     def __init__(self, db: AsyncSession):

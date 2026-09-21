@@ -402,6 +402,11 @@ class FakeRespuestaRepo(_Singleton):
         if r:
             r.puntos = puntos
 
+    async def eliminar_por_pregunta_sesion(self, pregunta_id, sesion_id):
+        for rid, r in list(self.respuestas.items()):
+            if r.pregunta_id == pregunta_id:
+                self.respuestas.pop(rid, None)
+
 
 class FakeRetoRepo(_Singleton):
     def __init__(self, db=None):

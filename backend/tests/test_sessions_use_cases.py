@@ -30,6 +30,7 @@ def uc_sesion(monkeypatch, repos, realtime):
     monkeypatch.setattr(uc, "JugadorRepo", _factory(repos.jugador))
     monkeypatch.setattr(uc, "GradoRepo", _factory(repos.grado))
     monkeypatch.setattr(uc, "AlumnoRepo", _factory(repos.alumno))
+    monkeypatch.setattr(uc, "RespuestaRepo", _factory(repos.respuesta))
     return SesionUseCases(FakeDb(), realtime)
 
 
@@ -130,6 +131,7 @@ class TestCronometroVisual:
 
         monkeypatch.setattr(uc, "SesionRepo", _factory(repos.sesion))
         monkeypatch.setattr(uc, "PreguntaRepo", _factory(repos.pregunta))
+        monkeypatch.setattr(uc, "RespuestaRepo", _factory(repos.respuesta))
         repos.pregunta.preguntas[pregunta_opciones.id] = pregunta_opciones
 
         caso = ControlRondaUseCases(FakeDb(), realtime)
@@ -152,6 +154,7 @@ class TestCronometroVisual:
         monkeypatch.setattr(uc, "SesionRepo", _factory(repos.sesion))
         monkeypatch.setattr(uc, "PreguntaRepo", _factory(repos.pregunta))
         monkeypatch.setattr(uc, "JugadorRepo", _factory(repos.jugador))
+        monkeypatch.setattr(uc, "RespuestaRepo", _factory(repos.respuesta))
         repos.pregunta.preguntas[pregunta_opciones.id] = pregunta_opciones
 
         j = await repos.jugador.crear(sesion_lobby.id, "Ana")
@@ -161,6 +164,41 @@ class TestCronometroVisual:
         caso = ControlRondaUseCases(FakeDb(), realtime)
         await caso.lanzar_pregunta(str(sesion_lobby.id), str(pregunta_opciones.id))
         assert j.conectado is True
+
+    async def test_relanzar_borra_respuestas_previas(
+        self, monkeypatch, repos, realtime, sesion_lobby, pregunta_opciones, jugador
+    ):
+        """Al re-lanzar una pregunta ya respondida, se borran sus respuestas
+        para que los estudiantes puedan volver a responder."""
+        from datetime import datetime, timezone
+
+        import app.application.sessions.use_cases as uc
+        from app.application.sessions.use_cases import ControlRondaUseCases
+        from tests.fakes import FakeDb
+
+        def _factory(fake):
+            return lambda db=None: fake
+
+        monkeypatch.setattr(uc, "SesionRepo", _factory(repos.sesion))
+        monkeypatch.setattr(uc, "PreguntaRepo", _factory(repos.pregunta))
+        monkeypatch.setattr(uc, "RespuestaRepo", _factory(repos.respuesta))
+        repos.pregunta.preguntas[pregunta_opciones.id] = pregunta_opciones
+
+        await repos.respuesta.crear(
+            pregunta_opciones.id,
+            jugador.id,
+            "4",
+            None,
+            True,
+            datetime.now(timezone.utc),
+            1,
+            20,
+        )
+        assert len(repos.respuesta.respuestas) == 1
+
+        caso = ControlRondaUseCases(FakeDb(), realtime)
+        await caso.lanzar_pregunta(str(sesion_lobby.id), str(pregunta_opciones.id))
+        assert len(repos.respuesta.respuestas) == 0
 
 
 class TestAuthUseCases:

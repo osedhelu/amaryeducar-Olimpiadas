@@ -24,6 +24,7 @@ from app.infrastructure.db.repositories import (
     GradoRepo,
     JugadorRepo,
     PreguntaRepo,
+    RespuestaRepo,
     SesionRepo,
     generar_pin_unico,
 )
@@ -219,6 +220,12 @@ class ControlRondaUseCases:
 
         inicio = cronometro_inicio or datetime.now(timezone.utc)
         segundos = cronometro_segundos or pregunta.tiempo_limite
+
+        # Al (re)lanzar se limpian las respuestas previas de esta pregunta en
+        # la sesión: así, si se reinicia, los estudiantes pueden responder de nuevo.
+        await RespuestaRepo(self.db).eliminar_por_pregunta_sesion(
+            pregunta.id, sesion.id
+        )
 
         updated = await sesion_repo.actualizar(
             sesion.id,

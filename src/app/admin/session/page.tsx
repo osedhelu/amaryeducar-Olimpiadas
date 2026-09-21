@@ -843,9 +843,18 @@ export default function AdminSessionPage() {
                       </p>
                     </div>
                     {esActiva ? (
-                      <span className="ml-3 text-dorado font-bold text-sm">
-                        ACTIVA
-                      </span>
+                      <div className="ml-3 flex items-center gap-2">
+                        <span className="text-dorado font-bold text-sm">
+                          ACTIVA
+                        </span>
+                        <button
+                          onClick={() => lanzarPregunta(p)}
+                          className="px-3 py-1 bg-azul/10 text-azul rounded-lg text-sm font-bold hover:bg-azul/20"
+                          title="Reiniciar la pregunta (borra las respuestas actuales)"
+                        >
+                          Reiniciar
+                        </button>
+                      </div>
                     ) : (
                       <button
                         onClick={() => lanzarPregunta(p)}
