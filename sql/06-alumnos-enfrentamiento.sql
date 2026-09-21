@@ -35,11 +35,13 @@ ALTER TABLE sesiones_juego
     ADD COLUMN IF NOT EXISTS colegio_id UUID REFERENCES colegios(id);
 
 -- Duelo 1v1: los dos alumnos que se enfrentan (tipo='prueba').
+-- ON DELETE SET NULL: borrar un alumno no debe bloquear la eliminación
+-- (el duelo histórico queda sin la referencia al duelista eliminado).
 ALTER TABLE sesiones_juego
-    ADD COLUMN IF NOT EXISTS alumno_a_id UUID REFERENCES alumnos(id);
+    ADD COLUMN IF NOT EXISTS alumno_a_id UUID REFERENCES alumnos(id) ON DELETE SET NULL;
 
 ALTER TABLE sesiones_juego
-    ADD COLUMN IF NOT EXISTS alumno_b_id UUID REFERENCES alumnos(id);
+    ADD COLUMN IF NOT EXISTS alumno_b_id UUID REFERENCES alumnos(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_alumnos_colegio ON alumnos(colegio_id);
 CREATE INDEX IF NOT EXISTS idx_alumnos_grado ON alumnos(grado_id);

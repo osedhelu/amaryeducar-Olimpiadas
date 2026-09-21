@@ -118,10 +118,14 @@ class SesionJuegoORM(Base):
         PgUUID(as_uuid=True), ForeignKey("colegios.id"), nullable=True
     )
     alumno_a_id: Mapped[uuid.UUID | None] = mapped_column(
-        PgUUID(as_uuid=True), ForeignKey("alumnos.id"), nullable=True
+        PgUUID(as_uuid=True),
+        ForeignKey("alumnos.id", ondelete="SET NULL"),
+        nullable=True,
     )
     alumno_b_id: Mapped[uuid.UUID | None] = mapped_column(
-        PgUUID(as_uuid=True), ForeignKey("alumnos.id"), nullable=True
+        PgUUID(as_uuid=True),
+        ForeignKey("alumnos.id", ondelete="SET NULL"),
+        nullable=True,
     )
     estado: Mapped[EstadoSesionEnum] = mapped_column(
         Enum(
