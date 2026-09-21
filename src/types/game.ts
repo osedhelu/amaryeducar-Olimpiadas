@@ -72,6 +72,7 @@ export interface Pregunta {
   activa: boolean;
   creado_en: string;
   actualizado_en: string;
+  imagen_actualizado_en?: string | null;
 }
 
 export interface Reto {

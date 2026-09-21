@@ -10,6 +10,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -213,8 +214,30 @@ class PreguntaORM(Base):
     actualizado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now()")
     )
+    imagen_actualizado_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     __table_args__ = (UniqueConstraint("grado_id", "sesion", "orden"),)
+
+
+class PreguntaImagenORM(Base):
+    """Binario de la imagen de una pregunta. Se sirve por la API, no por PostgREST."""
+
+    __tablename__ = "preguntas_imagenes"
+
+    pregunta_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("preguntas.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    mime: Mapped[str] = mapped_column(Text, nullable=False)
+    bytes: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    ancho: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    alto: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    actualizado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("now()")
+    )
 
 
 class RespuestaORM(Base):

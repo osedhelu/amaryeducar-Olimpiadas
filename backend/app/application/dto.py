@@ -72,3 +72,29 @@ class AsignarPuestoRetoRequest(BaseModel):
     jugador_id: Optional[uuid.UUID] = None
     colegio_id: Optional[uuid.UUID] = None
     puesto: int = Field(ge=1, le=10)
+
+
+class CrearPreguntaRequest(BaseModel):
+    grado_id: uuid.UUID
+    sesion: str = "1"
+    tipo: str = "opcion-multiple"
+    enunciado: str = Field(min_length=1)
+    opciones: Optional[list[str]] = None
+    respuesta_correcta: Optional[str] = None
+    tiempo_limite: int = Field(default=30, ge=5, le=600)
+    puntos_por_puesto: Optional[dict[str, int]] = None
+
+
+class ActualizarPreguntaRequest(BaseModel):
+    sesion: Optional[str] = None
+    tipo: Optional[str] = None
+    enunciado: Optional[str] = Field(default=None, min_length=1)
+    opciones: Optional[list[str]] = None
+    respuesta_correcta: Optional[str] = None
+    tiempo_limite: Optional[int] = Field(default=None, ge=5, le=600)
+    puntos_por_puesto: Optional[dict[str, int]] = None
+    activa: Optional[bool] = None
+
+
+class MoverPreguntaRequest(BaseModel):
+    delta: int = Field(ge=-1, le=1)

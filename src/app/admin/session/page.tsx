@@ -375,6 +375,16 @@ export default function AdminSessionPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
             <button
+              onClick={() => router.push("/admin/preguntas")}
+              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
+            >
+              <div className="text-3xl mb-1">📚</div>
+              <p className="font-heading font-bold text-azul">Preguntas</p>
+              <p className="text-xs text-texto-light">
+                Crear, editar y poner imagen
+              </p>
+            </button>
+            <button
               onClick={() => setVista("colegios")}
               className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
             >

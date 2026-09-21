@@ -9,7 +9,9 @@ import type {
   Respuesta,
   Reto,
   SesionJuego,
+  SesionNumero,
   TablaColegio,
+  TipoPregunta,
 } from "@/types/game";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -43,6 +45,46 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
+}
+
+async function subirImagen<T>(
+  path: string,
+  file: Blob,
+  ancho?: number,
+  alto?: number,
+): Promise<T> {
+  const token = await resolveToken();
+  const form = new FormData();
+  form.append("archivo", file, "imagen");
+  if (ancho != null) form.append("ancho", String(ancho));
+  if (alto != null) form.append("alto", String(alto));
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (!res.ok) {
+    let message = `API ${res.status}`;
+    try {
+      const body = (await res.json()) as { detail?: string; error?: string };
+      message = body.detail ?? body.error ?? message;
+    } catch {
+      /* sin JSON */
+    }
+    throw new Error(message);
+  }
+  return res.json() as Promise<T>;
+}
+
+/** URL de la imagen de una pregunta, con cache-buster; null si no tiene. */
+export function imagenPreguntaUrl(
+  pregunta: Pick<Pregunta, "id" | "imagen_actualizado_en">,
+): string | null {
+  if (!pregunta.imagen_actualizado_en) return null;
+  return `${BASE_URL}/preguntas/${pregunta.id}/imagen?v=${encodeURIComponent(
+    pregunta.imagen_actualizado_en,
+  )}`;
 }
 
 export const api = {
@@ -169,10 +211,56 @@ export const api = {
     request<SesionJuego>(`/sessions/${id}/finalizar`, { method: "PATCH" }),
 
   // ── Preguntas / Retos / Respuestas ─────────────────────────
-  preguntas: (gradoId: string): Promise<Pregunta[]> =>
-    request<Pregunta[]>(`/preguntas?grado_id=${gradoId}`),
+  preguntas: (gradoId: string, incluirInactivas = false): Promise<Pregunta[]> =>
+    request<Pregunta[]>(
+      `/preguntas?grado_id=${gradoId}${
+        incluirInactivas ? "&incluir_inactivas=true" : ""
+      }`,
+    ),
   preguntasPorId: (preguntaId: string): Promise<Pregunta> =>
     request<Pregunta>(`/preguntas/${preguntaId}`),
+
+  crearPregunta: (body: {
+    grado_id: string;
+    sesion: SesionNumero;
+    tipo?: TipoPregunta;
+    enunciado: string;
+    opciones?: string[] | null;
+    respuesta_correcta?: string | null;
+    tiempo_limite?: number;
+    puntos_por_puesto?: Record<string, number> | null;
+  }) =>
+    request<Pregunta>("/preguntas", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  actualizarPregunta: (preguntaId: string, body: Record<string, unknown>) =>
+    request<Pregunta>(`/preguntas/${preguntaId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
+  eliminarPregunta: (preguntaId: string) =>
+    request<Pregunta>(`/preguntas/${preguntaId}`, { method: "DELETE" }),
+
+  moverPregunta: (preguntaId: string, delta: number) =>
+    request<Pregunta>(`/preguntas/${preguntaId}/mover`, {
+      method: "POST",
+      body: JSON.stringify({ delta }),
+    }),
+
+  subirImagenPregunta: (
+    preguntaId: string,
+    file: Blob,
+    ancho?: number,
+    alto?: number,
+  ) =>
+    subirImagen<Pregunta>(`/preguntas/${preguntaId}/imagen`, file, ancho, alto),
+
+  eliminarImagenPregunta: (preguntaId: string) =>
+    request<Pregunta>(`/preguntas/${preguntaId}/imagen`, { method: "DELETE" }),
+
   retos: (gradoId: string): Promise<Reto[]> =>
     request<Reto[]>(`/retos?grado_id=${gradoId}`),
 

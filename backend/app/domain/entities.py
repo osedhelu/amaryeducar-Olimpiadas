@@ -79,6 +79,7 @@ class Pregunta:
     activa: bool = True
     creado_en: Optional[datetime] = None
     actualizado_en: Optional[datetime] = None
+    imagen_actualizado_en: Optional[datetime] = None
 
 
 @dataclass

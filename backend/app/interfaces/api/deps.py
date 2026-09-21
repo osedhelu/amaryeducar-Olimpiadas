@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from fastapi import Depends, HTTPException, WebSocket
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Header, HTTPException
 
 from app.core.exceptions import DomainError
 from app.core.security import verificar_jwt
@@ -28,8 +27,7 @@ def get_current_usuario(
 
 
 def require_docente(
-    db: AsyncSession = Depends(get_db),  # noqa: B008
-    authorization: str | None = None,
+    authorization: str | None = Header(default=None),
 ) -> dict:
     payload = get_current_usuario(authorization)
     if not payload or payload.get("role") != "docente":
@@ -38,8 +36,7 @@ def require_docente(
 
 
 def require_estudiante(
-    db: AsyncSession = Depends(get_db),  # noqa: B008
-    authorization: str | None = None,
+    authorization: str | None = Header(default=None),
 ) -> dict:
     payload = get_current_usuario(authorization)
     if not payload or payload.get("role") not in ("estudiante", "docente"):

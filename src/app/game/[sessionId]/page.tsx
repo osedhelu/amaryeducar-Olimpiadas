@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { api } from "@/lib/api";
+import { api, imagenPreguntaUrl } from "@/lib/api";
 import { getDatosSesionEstudiante } from "@/lib/session";
 import type { SesionJuego, Pregunta, Respuesta, EventoWS } from "@/types/game";
 
@@ -236,6 +236,17 @@ export default function GamePage() {
               {preguntaActual.enunciado}
             </p>
           </div>
+
+          {imagenPreguntaUrl(preguntaActual) && (
+            <div className="bg-white rounded-2xl p-2 shadow-lg animate-fade-in">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imagenPreguntaUrl(preguntaActual)!}
+                alt="Imagen de la pregunta"
+                className="w-full max-h-[42vh] object-contain rounded-xl"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-3">
             {opciones.map((opcion, idx) => (

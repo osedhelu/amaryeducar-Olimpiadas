@@ -184,10 +184,14 @@ class ControlRondaUseCases:
         self.db = db
         self.realtime = realtime
 
-    async def listar_preguntas(self, grado_id: str) -> list[dict]:
+    async def listar_preguntas(
+        self, grado_id: str, incluir_inactivas: bool = False
+    ) -> list[dict]:
         return [
             entity_to_dict(p)
-            for p in await PreguntaRepo(self.db).listar_por_grado(uuid.UUID(grado_id))
+            for p in await PreguntaRepo(self.db).listar_por_grado(
+                uuid.UUID(grado_id), solo_activas=not incluir_inactivas
+            )
         ]
 
     async def obtener_pregunta(self, pregunta_id: str) -> dict | None:

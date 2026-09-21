@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { api } from "@/lib/api";
+import { api, imagenPreguntaUrl } from "@/lib/api";
 import type {
   SesionJuego,
   Pregunta,
@@ -543,6 +543,17 @@ export default function PresentacionPage() {
               {pregunta.enunciado}
             </p>
           </div>
+
+          {imagenPreguntaUrl(pregunta) && (
+            <div className="bg-white rounded-2xl p-3 shadow-2xl animate-fade-in flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imagenPreguntaUrl(pregunta)!}
+                alt="Imagen de la pregunta"
+                className="max-h-[38vh] max-w-full object-contain rounded-xl"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {opciones.map((opcion, idx) => (

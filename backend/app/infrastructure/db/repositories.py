@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Sequence
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities import (
@@ -24,6 +24,7 @@ from app.infrastructure.db.models import (
     ColegioORM,
     GradoORM,
     JugadorORM,
+    PreguntaImagenORM,
     PreguntaORM,
     PuntajeRetoORM,
     RespuestaORM,
@@ -387,23 +388,127 @@ class PreguntaRepo:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def listar_por_grado(self, grado_id: uuid.UUID) -> list[Pregunta]:
-        rows = (
-            (
-                await self.db.execute(
-                    select(PreguntaORM)
-                    .where(PreguntaORM.grado_id == grado_id)
-                    .order_by(PreguntaORM.sesion, PreguntaORM.orden)
-                )
-            )
-            .scalars()
-            .all()
-        )
+    async def listar_por_grado(
+        self, grado_id: uuid.UUID, solo_activas: bool = True
+    ) -> list[Pregunta]:
+        stmt = select(PreguntaORM).where(PreguntaORM.grado_id == grado_id)
+        if solo_activas:
+            stmt = stmt.where(PreguntaORM.activa.is_(True))
+        stmt = stmt.order_by(PreguntaORM.sesion, PreguntaORM.orden)
+        rows = (await self.db.execute(stmt)).scalars().all()
         return [_row_to_obj(r, Pregunta) for r in rows]
 
     async def por_id(self, pregunta_id: uuid.UUID) -> Pregunta | None:
         row = await self.db.get(PreguntaORM, pregunta_id)
         return _row_to_obj(row, Pregunta) if row else None
+
+    async def siguiente_orden(self, grado_id: uuid.UUID, sesion: str) -> int:
+        res = await self.db.execute(
+            select(func.coalesce(func.max(PreguntaORM.orden), 0) + 1).where(
+                PreguntaORM.grado_id == grado_id,
+                PreguntaORM.sesion == sesion,
+            )
+        )
+        return int(res.scalar_one())
+
+    async def crear(self, data: dict) -> Pregunta:
+        row = PreguntaORM(**data)
+        self.db.add(row)
+        await self.db.flush()
+        await self.db.refresh(row)
+        return _row_to_obj(row, Pregunta)
+
+    async def actualizar(self, pregunta_id: uuid.UUID, data: dict) -> Pregunta | None:
+        row = await self.db.get(PreguntaORM, pregunta_id)
+        if not row:
+            return None
+        for campo, valor in data.items():
+            setattr(row, campo, valor)
+        await self.db.flush()
+        await self.db.refresh(row)
+        return _row_to_obj(row, Pregunta)
+
+    async def mover(self, pregunta_id: uuid.UUID, delta: int) -> Pregunta | None:
+        actual = await self.db.get(PreguntaORM, pregunta_id)
+        if not actual:
+            return None
+        vecino = (
+            await self.db.execute(
+                select(PreguntaORM).where(
+                    PreguntaORM.grado_id == actual.grado_id,
+                    PreguntaORM.sesion == actual.sesion,
+                    PreguntaORM.orden == actual.orden + delta,
+                )
+            )
+        ).scalar_one_or_none()
+        if not vecino:
+            return _row_to_obj(actual, Pregunta)
+        # Swap pasando por un `orden` temporal para esquivar
+        # UNIQUE (grado_id, sesion, orden).
+        temp = await self.db.execute(
+            select(func.coalesce(func.max(PreguntaORM.orden), 0) + 1).where(
+                PreguntaORM.grado_id == actual.grado_id,
+                PreguntaORM.sesion == actual.sesion,
+            )
+        )
+        orden_actual, orden_vecino = actual.orden, vecino.orden
+        actual.orden = int(temp.scalar_one())
+        await self.db.flush()
+        vecino.orden = orden_actual
+        await self.db.flush()
+        actual.orden = orden_vecino
+        await self.db.flush()
+        return _row_to_obj(actual, Pregunta)
+
+    # ── Imagen ───────────────────────────────────────────────
+
+    async def guardar_imagen(
+        self,
+        pregunta_id: uuid.UUID,
+        mime: str,
+        data: bytes,
+        ancho: int | None,
+        alto: int | None,
+    ) -> None:
+        ahora = datetime.now(timezone.utc)
+        row = await self.db.get(PreguntaImagenORM, pregunta_id)
+        if row:
+            row.mime = mime
+            row.bytes = data
+            row.ancho = ancho
+            row.alto = alto
+            row.actualizado_en = ahora
+        else:
+            self.db.add(
+                PreguntaImagenORM(
+                    pregunta_id=pregunta_id,
+                    mime=mime,
+                    bytes=data,
+                    ancho=ancho,
+                    alto=alto,
+                )
+            )
+        pregunta = await self.db.get(PreguntaORM, pregunta_id)
+        if pregunta:
+            pregunta.imagen_actualizado_en = ahora
+        await self.db.flush()
+
+    async def obtener_imagen(self, pregunta_id: uuid.UUID) -> tuple[bytes, str] | None:
+        row = await self.db.get(PreguntaImagenORM, pregunta_id)
+        if not row:
+            return None
+        return bytes(row.bytes), row.mime
+
+    async def eliminar_imagen(self, pregunta_id: uuid.UUID) -> None:
+        await self.db.execute(
+            delete(PreguntaImagenORM).where(
+                PreguntaImagenORM.pregunta_id == pregunta_id
+            )
+        )
+        pregunta = await self.db.get(PreguntaORM, pregunta_id)
+        if pregunta:
+            pregunta.imagen_actualizado_en = None
+        await self.db.flush()
 
 
 class RespuestaRepo:

@@ -100,9 +100,13 @@ async def finalizar_sesion(
 
 @router.get("/preguntas")
 async def listar_preguntas(
-    grado_id: str, db: AsyncSession = Depends(get_db)
-) -> list[dict]:  # noqa: B008
-    return await ControlRondaUseCases(db, get_manager()).listar_preguntas(grado_id)
+    grado_id: str,
+    incluir_inactivas: bool = False,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> list[dict]:
+    return await ControlRondaUseCases(db, get_manager()).listar_preguntas(
+        grado_id, incluir_inactivas
+    )
 
 
 @router.get("/preguntas/{pregunta_id}")

@@ -302,11 +302,74 @@ class FakePreguntaRepo(_Singleton):
     def __init__(self, db=None):
         self.preguntas: dict[uuid.UUID, Pregunta] = {}
 
-    async def listar_por_grado(self, grado_id):
-        return [p for p in self.preguntas.values() if p.grado_id == grado_id]
+    async def listar_por_grado(self, grado_id, solo_activas=True):
+        return [
+            p
+            for p in self.preguntas.values()
+            if p.grado_id == grado_id and (p.activa or not solo_activas)
+        ]
 
     async def por_id(self, pregunta_id):
         return self.preguntas.get(pregunta_id)
+
+    async def siguiente_orden(self, grado_id, sesion):
+        ordenes = [
+            p.orden
+            for p in self.preguntas.values()
+            if p.grado_id == grado_id and p.sesion == sesion
+        ]
+        return (max(ordenes) + 1) if ordenes else 1
+
+    async def crear(self, data):
+        pregunta = Pregunta(id=uuid.uuid4(), **data)
+        self.preguntas[pregunta.id] = pregunta
+        return pregunta
+
+    async def actualizar(self, pregunta_id, data):
+        pregunta = self.preguntas.get(pregunta_id)
+        if not pregunta:
+            return None
+        for campo, valor in data.items():
+            setattr(pregunta, campo, valor)
+        return pregunta
+
+    async def mover(self, pregunta_id, delta):
+        actual = self.preguntas.get(pregunta_id)
+        if not actual:
+            return None
+        vecino = next(
+            (
+                p
+                for p in self.preguntas.values()
+                if p.grado_id == actual.grado_id
+                and p.sesion == actual.sesion
+                and p.orden == actual.orden + delta
+            ),
+            None,
+        )
+        if not vecino:
+            return actual
+        actual.orden, vecino.orden = vecino.orden, actual.orden
+        return actual
+
+    async def guardar_imagen(self, pregunta_id, mime, data, ancho, alto):
+        pregunta = self.preguntas.get(pregunta_id)
+        if pregunta:
+            from datetime import datetime, timezone
+
+            pregunta.imagen_actualizado_en = datetime.now(timezone.utc)
+        self.imagenes = getattr(self, "imagenes", {})
+        self.imagenes[pregunta_id] = (data, mime)
+
+    async def obtener_imagen(self, pregunta_id):
+        return getattr(self, "imagenes", {}).get(pregunta_id)
+
+    async def eliminar_imagen(self, pregunta_id):
+        self.imagenes = getattr(self, "imagenes", {})
+        self.imagenes.pop(pregunta_id, None)
+        pregunta = self.preguntas.get(pregunta_id)
+        if pregunta:
+            pregunta.imagen_actualizado_en = None
 
 
 class FakeRespuestaRepo(_Singleton):
