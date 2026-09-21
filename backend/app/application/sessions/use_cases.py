@@ -240,13 +240,15 @@ class ControlRondaUseCases:
         )
         await self.db.commit()
         if updated:
-            # Al (re)lanzar, re-marcar como conectados a los jugadores cuyo
-            # WebSocket sigue abierto: permite continuar una sesión reabierta
-            # y que el auto-cierre siga funcionando.
+            # Al (re)lanzar, reiniciar el flag conectado: primero apagar todos
+            # y luego encender solo los que tienen WebSocket abierto AHORA.
+            # Así se eliminan "fantasmas" (conectado=true de conexiones ya
+            # caídas) que inflaban el conteo y rompían el auto-cierre.
+            await JugadorRepo(self.db).desconectar_todos(sesion.id)
             conectados = await self.realtime.jugadores_conectados(str(sesion.id))
             if conectados:
                 await JugadorRepo(self.db).marcar_conectados(sesion.id, conectados)
-                await self.db.commit()
+            await self.db.commit()
             data = entity_to_dict(updated)
             await self.realtime.publish("sesion_cambio", data, str(sesion.id))
         return entity_to_dict(updated) if updated else {}

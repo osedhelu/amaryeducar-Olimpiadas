@@ -135,7 +135,13 @@ class RespuestaUseCases:
         return r_dict
 
     async def _auto_cerrar_si_todos(self, sesion, pregunta_id: uuid.UUID) -> None:
-        """Replica del trigger auto_cerrar_cuando_todos_respondan."""
+        """Cierra la pregunta y publica el resultado cuando todos los
+        conectados respondieron.
+
+        Publica SIEMPRE los eventos al alcanzarse el umbral, incluso si la
+        sesión ya está en 'resultado' (p. ej. un trigger legacy de la BD la
+        cerró antes). Así el frontend nunca se queda sin el aviso de resultado.
+        """
         sesion_repo = SesionRepo(self.db)
         jugador_repo = JugadorRepo(self.db)
         respuesta_repo = RespuestaRepo(self.db)
@@ -150,32 +156,38 @@ class RespuestaUseCases:
         if total_respuestas < total_conectados:
             return
 
-        # Solo si la sesión sigue en pregunta (evita cerrar dos veces)
+        # Cerrar (idempotente): solo si sigue en 'pregunta'.
         sesion_actual = await sesion_repo.por_id(sesion.id)
         if sesion_actual and sesion_actual.estado == EstadoSesion.PREGUNTA.value:
             updated = await sesion_repo.actualizar(
                 sesion.id, estado=EstadoSesion.RESULTADO.value
             )
             await self.db.commit()
-            if updated:
-                await self.realtime.publish(
-                    "sesion_cambio", entity_to_dict(updated), str(sesion.id)
-                )
-                respuestas = await respuesta_repo.listar_por_sesion(
-                    sesion.id, updated.pregunta_activa_id
-                )
-                await self.realtime.publish(
-                    "resultado_pregunta",
-                    {
-                        "pregunta_id": (
-                            str(updated.pregunta_activa_id)
-                            if updated.pregunta_activa_id
-                            else None
-                        ),
-                        "respuestas": [entity_to_dict(r) for r in respuestas],
-                    },
-                    str(sesion.id),
-                )
+        else:
+            updated = sesion_actual
+
+        if not updated:
+            return
+
+        await self.realtime.publish(
+            "sesion_cambio", entity_to_dict(updated), str(sesion.id)
+        )
+
+        respuestas = await respuesta_repo.listar_por_sesion(
+            sesion.id, updated.pregunta_activa_id
+        )
+        await self.realtime.publish(
+            "resultado_pregunta",
+            {
+                "pregunta_id": (
+                    str(updated.pregunta_activa_id)
+                    if updated.pregunta_activa_id
+                    else None
+                ),
+                "respuestas": [entity_to_dict(r) for r in respuestas],
+            },
+            str(sesion.id),
+        )
 
     async def existe_respuesta(self, pregunta_id: str, jugador_id: str) -> dict | None:
         respuesta_repo = RespuestaRepo(self.db)

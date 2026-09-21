@@ -131,6 +131,7 @@ class TestCronometroVisual:
 
         monkeypatch.setattr(uc, "SesionRepo", _factory(repos.sesion))
         monkeypatch.setattr(uc, "PreguntaRepo", _factory(repos.pregunta))
+        monkeypatch.setattr(uc, "JugadorRepo", _factory(repos.jugador))
         monkeypatch.setattr(uc, "RespuestaRepo", _factory(repos.respuesta))
         repos.pregunta.preguntas[pregunta_opciones.id] = pregunta_opciones
 
@@ -165,6 +166,35 @@ class TestCronometroVisual:
         await caso.lanzar_pregunta(str(sesion_lobby.id), str(pregunta_opciones.id))
         assert j.conectado is True
 
+    async def test_relanzar_apaga_fantasmas_sin_ws(
+        self, monkeypatch, repos, realtime, sesion_lobby, pregunta_opciones
+    ):
+        """Al re-lanzar, los jugadores con conectado=true pero SIN WebSocket
+        abierto (fantasmas) se apagan, para no inflar el conteo del auto-cierre."""
+        import app.application.sessions.use_cases as uc
+        from app.application.sessions.use_cases import ControlRondaUseCases
+        from tests.fakes import FakeDb
+
+        def _factory(fake):
+            return lambda db=None: fake
+
+        monkeypatch.setattr(uc, "SesionRepo", _factory(repos.sesion))
+        monkeypatch.setattr(uc, "PreguntaRepo", _factory(repos.pregunta))
+        monkeypatch.setattr(uc, "JugadorRepo", _factory(repos.jugador))
+        monkeypatch.setattr(uc, "RespuestaRepo", _factory(repos.respuesta))
+        repos.pregunta.preguntas[pregunta_opciones.id] = pregunta_opciones
+
+        vivo = await repos.jugador.crear(sesion_lobby.id, "Vivo")
+        fantasma = await repos.jugador.crear(sesion_lobby.id, "Fantasma")
+        fantasma.conectado = True  # quedó marcado conectado de antes
+        realtime.conectados = [str(vivo.id)]  # solo "Vivo" tiene WS abierto
+
+        caso = ControlRondaUseCases(FakeDb(), realtime)
+        await caso.lanzar_pregunta(str(sesion_lobby.id), str(pregunta_opciones.id))
+
+        assert vivo.conectado is True
+        assert fantasma.conectado is False
+
     async def test_relanzar_borra_respuestas_previas(
         self, monkeypatch, repos, realtime, sesion_lobby, pregunta_opciones, jugador
     ):
@@ -181,6 +211,7 @@ class TestCronometroVisual:
 
         monkeypatch.setattr(uc, "SesionRepo", _factory(repos.sesion))
         monkeypatch.setattr(uc, "PreguntaRepo", _factory(repos.pregunta))
+        monkeypatch.setattr(uc, "JugadorRepo", _factory(repos.jugador))
         monkeypatch.setattr(uc, "RespuestaRepo", _factory(repos.respuesta))
         repos.pregunta.preguntas[pregunta_opciones.id] = pregunta_opciones
 

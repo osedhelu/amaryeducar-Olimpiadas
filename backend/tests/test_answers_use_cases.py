@@ -312,3 +312,88 @@ class TestAutoCierre:
             )
         )
         assert sesion_lobby.estado == EstadoSesion.PREGUNTA.value
+
+    async def test_el_ultimo_conectado_cierra_y_publica_todos_los_eventos(
+        self, uc_respuestas, realtime, repos, sesion_lobby, pregunta_opciones
+    ):
+        """Precisión: N-1 respuestas NO cierran; la enésima cierra y publica
+        sesion_cambio + resultado_pregunta con TODAS las respuestas."""
+        _sesion_en_pregunta(sesion_lobby, pregunta_opciones)
+        repos.pregunta.preguntas[pregunta_opciones.id] = pregunta_opciones
+        j1 = await repos.jugador.crear(sesion_lobby.id, "J1")
+        j2 = await repos.jugador.crear(sesion_lobby.id, "J2")
+
+        await uc_respuestas.enviar(
+            EnviarRespuestaRequest(
+                pregunta_id=pregunta_opciones.id,
+                jugador_id=j1.id,
+                opcion_seleccionada="4",
+            )
+        )
+        # falta el último: sigue en pregunta, sin evento de resultado
+        assert sesion_lobby.estado == EstadoSesion.PREGUNTA.value
+        assert "resultado_pregunta" not in [e[0] for e in realtime.eventos]
+
+        await uc_respuestas.enviar(
+            EnviarRespuestaRequest(
+                pregunta_id=pregunta_opciones.id,
+                jugador_id=j2.id,
+                opcion_seleccionada="4",
+            )
+        )
+        assert sesion_lobby.estado == EstadoSesion.RESULTADO.value
+        tipos = [e[0] for e in realtime.eventos]
+        assert "sesion_cambio" in tipos
+        assert "resultado_pregunta" in tipos
+        # resultado_pregunta lleva las DOS respuestas
+        ev = next(e for e in realtime.eventos if e[0] == "resultado_pregunta")
+        assert len(ev[1]["respuestas"]) == 2
+
+    async def test_no_cuenta_jugador_desconectado_en_el_umbral(
+        self, uc_respuestas, realtime, repos, sesion_lobby, pregunta_opciones
+    ):
+        """Precisión: un jugador conectado=false NO cuenta para el cierre."""
+        _sesion_en_pregunta(sesion_lobby, pregunta_opciones)
+        repos.pregunta.preguntas[pregunta_opciones.id] = pregunta_opciones
+        j1 = await repos.jugador.crear(sesion_lobby.id, "J1")  # conectado
+        j2 = await repos.jugador.crear(sesion_lobby.id, "J2")
+        await repos.jugador.actualizar(j2.id, conectado=False)
+
+        await uc_respuestas.enviar(
+            EnviarRespuestaRequest(
+                pregunta_id=pregunta_opciones.id,
+                jugador_id=j1.id,
+                opcion_seleccionada="4",
+            )
+        )
+        # 1 conectado respondió de 1 conectado → cierra (j2 no cuenta)
+        assert sesion_lobby.estado == EstadoSesion.RESULTADO.value
+
+    async def test_publica_resultado_aunque_la_sesion_ya_este_en_resultado(
+        self, uc_respuestas, realtime, repos, sesion_lobby, pregunta_opciones
+    ):
+        """Regresión: un trigger legacy de la BD puede dejar la sesión en
+        'resultado' antes de que el backend publique. El auto-cierre debe emitir
+        los eventos de todos modos para que el frontend siempre avise."""
+        _sesion_en_pregunta(sesion_lobby, pregunta_opciones)
+        repos.pregunta.preguntas[pregunta_opciones.id] = pregunta_opciones
+        j1 = await repos.jugador.crear(sesion_lobby.id, "J1")
+        # respuesta ya guardada del único conectado
+        await repos.respuesta.crear(
+            pregunta_id=pregunta_opciones.id,
+            jugador_id=j1.id,
+            opcion="4",
+            texto=None,
+            correcta=True,
+            enviado_en=datetime.now(timezone.utc),
+            numero_orden=1,
+            puntos=20,
+        )
+        # simula que la BD (trigger) ya cerró la sesión
+        sesion_lobby.estado = EstadoSesion.RESULTADO.value
+
+        await uc_respuestas._auto_cerrar_si_todos(sesion_lobby, pregunta_opciones.id)
+
+        tipos = [e[0] for e in realtime.eventos]
+        assert "sesion_cambio" in tipos
+        assert "resultado_pregunta" in tipos
