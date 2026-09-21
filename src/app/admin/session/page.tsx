@@ -196,6 +196,7 @@ export default function AdminSessionPage() {
     setRespuestasPregunta([]);
     const updated = await api.lanzarPregunta(sesionActiva.id, p.id);
     setSesionActiva(updated);
+    cargarJugadores(sesionActiva.id);
   }
 
   async function cerrarPregunta() {
@@ -716,7 +717,11 @@ export default function AdminSessionPage() {
                     🏁 ¡Grado finalizado!
                   </p>
                   <p className="text-sm text-texto-light">
-                    Los puntos están sumados. Muestra el podium para premiar.
+                    Los puntos están sumados. Muestra el podium para premiar, o{" "}
+                    <span className="font-bold">
+                      re-lanza cualquier pregunta
+                    </span>{" "}
+                    desde la lista de abajo para continuar.
                   </p>
                 </div>
                 <button
@@ -805,18 +810,15 @@ export default function AdminSessionPage() {
             </div>
             <div className="space-y-2">
               {preguntas.map((p, idx) => {
-                const esActiva = p.id === sesionActiva.pregunta_activa_id;
-                const esAnterior =
-                  preguntas.findIndex(
-                    (q) => q.id === sesionActiva.pregunta_activa_id,
-                  ) > idx;
-                const esSiguiente =
-                  preguntas.findIndex(
-                    (q) => q.id === sesionActiva.pregunta_activa_id,
-                  ) ===
-                    idx - 1 &&
-                  (sesionActiva.estado === "resultado" ||
-                    sesionActiva.estado === "final");
+                const indiceActiva = preguntas.findIndex(
+                  (q) => q.id === sesionActiva.pregunta_activa_id,
+                );
+                // Solo está ACTIVA si la sesión está realmente en pregunta
+                // (no basta con que pregunta_activa_id apunte a ella).
+                const esActiva =
+                  p.id === sesionActiva.pregunta_activa_id &&
+                  sesionActiva.estado === "pregunta";
+                const esAnterior = indiceActiva > idx;
 
                 return (
                   <div
@@ -840,25 +842,20 @@ export default function AdminSessionPage() {
                         {p.enunciado}
                       </p>
                     </div>
-                    {esActiva && (
+                    {esActiva ? (
                       <span className="ml-3 text-dorado font-bold text-sm">
                         ACTIVA
                       </span>
-                    )}
-                    {esSiguiente && (
+                    ) : (
                       <button
                         onClick={() => lanzarPregunta(p)}
-                        className="ml-3 px-3 py-1 bg-verde text-white rounded-lg text-sm font-bold hover:bg-verde/80"
+                        className={`ml-3 px-3 py-1 rounded-lg text-sm font-bold ${
+                          esAnterior
+                            ? "bg-azul/10 text-azul hover:bg-azul/20"
+                            : "bg-verde text-white hover:bg-verde/80"
+                        }`}
                       >
-                        Lanzar →
-                      </button>
-                    )}
-                    {!esActiva && !esSiguiente && !esAnterior && (
-                      <button
-                        onClick={() => lanzarPregunta(p)}
-                        className="ml-3 px-3 py-1 bg-gray-200 text-texto rounded-lg text-sm font-bold hover:bg-gray-300"
-                      >
-                        Lanzar
+                        {esAnterior ? "Re-lanzar" : "Lanzar →"}
                       </button>
                     )}
                   </div>

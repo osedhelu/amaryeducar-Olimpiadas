@@ -172,6 +172,16 @@ class ConnectionManager(RealtimePublisher):
             segundos,
         )
 
+    async def jugadores_conectados(self, sesion_id: str) -> list[str]:
+        """IDs de jugadores con WebSocket abierto en la sesión."""
+        return [
+            meta["jugador_id"]
+            for meta in self._clients.values()
+            if meta.get("role") == "student"
+            and meta.get("session_id") == sesion_id
+            and meta.get("jugador_id")
+        ]
+
     # ── Heartbeat ───────────────────────────────────────────────────────
 
     async def _heartbeat_loop(self, intervalo: int) -> None:

@@ -137,6 +137,31 @@ class TestCronometroVisual:
         assert realtime.cierres_programados == []
         assert sesion_lobby.estado == EstadoSesion.PREGUNTA.value
 
+    async def test_relanzar_marca_conectados_a_los_del_ws(
+        self, monkeypatch, repos, realtime, sesion_lobby, pregunta_opciones
+    ):
+        """Al re-lanzar (p. ej. sesión reabierta), los jugadores con WS abierto
+        se vuelven a marcar conectados para que el auto-cierre funcione."""
+        import app.application.sessions.use_cases as uc
+        from app.application.sessions.use_cases import ControlRondaUseCases
+        from tests.fakes import FakeDb
+
+        def _factory(fake):
+            return lambda db=None: fake
+
+        monkeypatch.setattr(uc, "SesionRepo", _factory(repos.sesion))
+        monkeypatch.setattr(uc, "PreguntaRepo", _factory(repos.pregunta))
+        monkeypatch.setattr(uc, "JugadorRepo", _factory(repos.jugador))
+        repos.pregunta.preguntas[pregunta_opciones.id] = pregunta_opciones
+
+        j = await repos.jugador.crear(sesion_lobby.id, "Ana")
+        j.conectado = False  # p. ej. la sesión se finalizó y los desconectó
+        realtime.conectados = [str(j.id)]
+
+        caso = ControlRondaUseCases(FakeDb(), realtime)
+        await caso.lanzar_pregunta(str(sesion_lobby.id), str(pregunta_opciones.id))
+        assert j.conectado is True
+
 
 class TestAuthUseCases:
     async def test_login_docente_con_clave_correcta(self):

@@ -52,6 +52,7 @@ class FakeRealtime(RealtimePublisher):
     def __init__(self) -> None:
         self.eventos: list[tuple[str, dict, str | None]] = []
         self.cierres_programados: list[tuple[str, datetime, int]] = []
+        self.conectados: list[str] = []
 
     async def publish(self, tipo, data, sesion_id=None):
         self.eventos.append((tipo, data, sesion_id))
@@ -61,6 +62,9 @@ class FakeRealtime(RealtimePublisher):
 
     async def programar_cierre(self, sesion_id, cronometro_inicio, segundos):
         self.cierres_programados.append((sesion_id, cronometro_inicio, segundos))
+
+    async def jugadores_conectados(self, sesion_id):
+        return list(self.conectados)
 
 
 class _Singleton:
@@ -277,6 +281,14 @@ class FakeJugadorRepo(_Singleton):
         for j in self.jugadores.values():
             if j.sesion_id == sesion_id:
                 j.conectado = False
+
+    async def marcar_conectados(self, sesion_id, jugador_ids):
+        ids = {
+            j if isinstance(j, uuid.UUID) else uuid.UUID(str(j)) for j in jugador_ids
+        }
+        for j in self.jugadores.values():
+            if j.sesion_id == sesion_id and j.id in ids:
+                j.conectado = True
 
     async def contar_conectados(self, sesion_id):
         return sum(

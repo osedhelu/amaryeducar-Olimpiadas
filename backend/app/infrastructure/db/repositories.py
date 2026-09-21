@@ -360,6 +360,20 @@ class JugadorRepo:
             .values(conectado=False)
         )
 
+    async def marcar_conectados(
+        self, sesion_id: uuid.UUID, jugador_ids: Sequence[str | uuid.UUID]
+    ) -> None:
+        """Marca como conectados los jugadores indicados (con WS abierto)."""
+        if not jugador_ids:
+            return
+        ids = [j if isinstance(j, uuid.UUID) else uuid.UUID(j) for j in jugador_ids]
+        await self.db.execute(
+            update(JugadorORM)
+            .where(JugadorORM.sesion_id == sesion_id, JugadorORM.id.in_(ids))
+            .values(conectado=True)
+        )
+        await self.db.flush()
+
     async def contar_conectados(self, sesion_id: uuid.UUID) -> int:
         result = await self.db.execute(
             select(JugadorORM.id).where(

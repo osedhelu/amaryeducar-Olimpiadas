@@ -31,3 +31,12 @@ class RealtimePublisher(ABC):
         (auto-cierre) o cuando el docente la cierra manualmente.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    async def jugadores_conectados(self, sesion_id: str) -> list[str]:
+        """IDs de jugadores de la sesión con el WebSocket abierto ahora mismo.
+
+        Se usa para re-marcar `conectado` al (re)lanzar una pregunta, de modo
+        que el auto-cierre siga funcionando si se reabre una sesión finalizada.
+        """
+        raise NotImplementedError
