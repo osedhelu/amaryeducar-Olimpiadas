@@ -578,6 +578,7 @@ class PuntajeRetoRepo:
     async def upsert(
         self,
         reto_id: uuid.UUID,
+        sesion_id: uuid.UUID | None,
         jugador_id: uuid.UUID | None,
         colegio_id: uuid.UUID | None,
         puesto: int,
@@ -595,6 +596,7 @@ class PuntajeRetoRepo:
         )
         row = PuntajeRetoORM(
             reto_id=reto_id,
+            sesion_id=sesion_id,
             jugador_id=jugador_id,
             colegio_id=colegio_id,
             puesto=puesto,
@@ -603,15 +605,14 @@ class PuntajeRetoRepo:
         self.db.add(row)
         await self.db.flush()
 
-    async def listar_por_reto(self, reto_id: uuid.UUID) -> list[PuntajeReto]:
+    async def listar_por_reto(
+        self, reto_id: uuid.UUID, sesion_id: uuid.UUID | None = None
+    ) -> list[PuntajeReto]:
+        query = select(PuntajeRetoORM).where(PuntajeRetoORM.reto_id == reto_id)
+        if sesion_id is not None:
+            query = query.where(PuntajeRetoORM.sesion_id == sesion_id)
         rows = (
-            (
-                await self.db.execute(
-                    select(PuntajeRetoORM)
-                    .where(PuntajeRetoORM.reto_id == reto_id)
-                    .order_by(PuntajeRetoORM.puesto)
-                )
-            )
+            (await self.db.execute(query.order_by(PuntajeRetoORM.puesto)))
             .scalars()
             .all()
         )
@@ -620,10 +621,15 @@ class PuntajeRetoRepo:
     async def eliminar_por_participante(
         self,
         reto_id: uuid.UUID,
+        sesion_id: uuid.UUID | None,
         jugador_id: uuid.UUID | None,
         colegio_id: uuid.UUID | None,
     ) -> None:
-        conds = [PuntajeRetoORM.reto_id == reto_id]
+        conds = [
+            PuntajeRetoORM.reto_id == reto_id,
+        ]
+        if sesion_id is not None:
+            conds.append(PuntajeRetoORM.sesion_id == sesion_id)
         if jugador_id is not None:
             conds.append(PuntajeRetoORM.jugador_id == jugador_id)
         elif colegio_id is not None:
@@ -666,9 +672,10 @@ async def obtener_podium_rows(
             )
             .join(PuntajeRetoORM, PuntajeRetoORM.colegio_id == ColegioORM.id)
             .where(
+                PuntajeRetoORM.sesion_id == sesion_id,
                 PuntajeRetoORM.reto_id.in_(
                     select(RetoORM.id).where(RetoORM.grado_id == sesion_row.grado_id)
-                )
+                ),
             )
         )
         union = resp_col.union_all(reto_col).subquery()
@@ -717,9 +724,10 @@ async def obtener_podium_rows(
             )
             .outerjoin(PuntajeRetoORM, PuntajeRetoORM.jugador_id == JugadorORM.id)
             .where(
+                PuntajeRetoORM.sesion_id == sesion_id,
                 PuntajeRetoORM.reto_id.in_(
                     select(RetoORM.id).where(RetoORM.grado_id == sesion_row.grado_id)
-                )
+                ),
             )
         )
         union = resp_col.union_all(reto_col).subquery()
@@ -802,9 +810,10 @@ async def obtener_tabla_colegios(db: AsyncSession, grado_id: uuid.UUID) -> list[
         )
         .join(PuntajeRetoORM, PuntajeRetoORM.colegio_id == ColegioORM.id)
         .where(
+            PuntajeRetoORM.sesion_id.in_(sesiones_oficiales),
             PuntajeRetoORM.reto_id.in_(
                 select(RetoORM.id).where(RetoORM.grado_id == grado_id)
-            )
+            ),
         )
     )
     union = resp_col.union_all(reto_col).subquery()

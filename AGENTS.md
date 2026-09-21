@@ -64,6 +64,7 @@ Eventos que maneja el frontend: `jugador_unido`, `jugador_cambio`, `sesion_cambi
 - `JoinRequest` usa `alumno_id` (no `nombre`). El join crea/reutiliza el `jugador` vinculado al alumno registrado.
 - **Enfrentamiento todos contra todos**: `GET /tabla/{grado_id}` suma puntos (respuestas + retos) por colegio SOLO de sesiones `tipo='oficial'`, con ceros incluidos.
 - **Duelo/prueba 1v1**: `POST /duelos` con `{grado_id, alumno_a_id, alumno_b_id}` (mismo grado; colegio igual o distinto). Crea sesión `tipo='prueba'` con PIN; la lista de alumnos para ese PIN muestra solo los 2 duelistas. Los puntos NO entran a `/tabla`. Varias preguntas del grado; gana el que más sume.
+- **Retos lúdicos**: `POST /retos/{id}/puestos` con `{sesion_id, jugador_id|colegio_id, puesto}`. Los puntos quedan atados a la **sesión** (`puntajes_retos.sesion_id`): el podium y `/tabla` solo suman retos de la sesión actual (oficial en la tabla). El jurado toca al participante que termina 1º, 2º, etc. `GET /retos/{id}/puntajes?sesion_id=` y `DELETE /retos/{id}/puestos` para ver/deshacer. Individual→jugador, Grupal→colegio.
 - Resultados finales: el dashboard y la pantalla grande muestran **puntos por estudiante** (podium) y **total por colegio** (tabla).
 
 ## Sesión/identidad en el cliente (bugs sufridos)

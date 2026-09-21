@@ -407,10 +407,18 @@ class FakePuntajeRetoRepo(_Singleton):
         self.puntajes: dict[uuid.UUID, PuntajeReto] = {}
 
     async def upsert(
-        self, reto_id, jugador_id=None, colegio_id=None, puesto=0, puntos=0
+        self,
+        reto_id,
+        sesion_id=None,
+        jugador_id=None,
+        colegio_id=None,
+        puesto=0,
+        puntos=0,
     ):
         for p in list(self.puntajes.values()):
             if p.reto_id != reto_id:
+                continue
+            if sesion_id is not None and p.sesion_id != sesion_id:
                 continue
             if jugador_id is not None and p.jugador_id == jugador_id:
                 self.puntajes.pop(p.id, None)
@@ -419,6 +427,7 @@ class FakePuntajeRetoRepo(_Singleton):
         row = PuntajeReto(
             id=uuid.uuid4(),
             reto_id=reto_id,
+            sesion_id=sesion_id,
             jugador_id=jugador_id,
             colegio_id=colegio_id,
             puesto=puesto,
@@ -427,17 +436,19 @@ class FakePuntajeRetoRepo(_Singleton):
         )
         self.puntajes[row.id] = row
 
-    async def listar_por_reto(self, reto_id):
-        return sorted(
-            [p for p in self.puntajes.values() if p.reto_id == reto_id],
-            key=lambda p: p.puesto,
-        )
+    async def listar_por_reto(self, reto_id, sesion_id=None):
+        out = [p for p in self.puntajes.values() if p.reto_id == reto_id]
+        if sesion_id is not None:
+            out = [p for p in out if p.sesion_id == sesion_id]
+        return sorted(out, key=lambda p: p.puesto)
 
     async def eliminar_por_participante(
-        self, reto_id, jugador_id=None, colegio_id=None
+        self, reto_id, sesion_id=None, jugador_id=None, colegio_id=None
     ):
         for p in list(self.puntajes.values()):
             if p.reto_id != reto_id:
+                continue
+            if sesion_id is not None and p.sesion_id != sesion_id:
                 continue
             if jugador_id is not None and p.jugador_id == jugador_id:
                 self.puntajes.pop(p.id, None)

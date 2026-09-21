@@ -276,6 +276,11 @@ class PuntajeRetoORM(Base):
     reto_id: Mapped[uuid.UUID] = mapped_column(
         PgUUID(as_uuid=True), ForeignKey("retos.id", ondelete="CASCADE"), nullable=False
     )
+    sesion_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("sesiones_juego.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     jugador_id: Mapped[uuid.UUID | None] = mapped_column(
         PgUUID(as_uuid=True),
         ForeignKey("jugadores.id", ondelete="CASCADE"),

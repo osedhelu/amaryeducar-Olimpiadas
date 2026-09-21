@@ -113,6 +113,7 @@ class Reto:
 class PuntajeReto:
     id: UUID
     reto_id: UUID
+    sesion_id: Optional[UUID] = None
     jugador_id: Optional[UUID] = None
     colegio_id: Optional[UUID] = None
     puesto: int = 0

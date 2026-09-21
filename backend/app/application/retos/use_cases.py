@@ -23,17 +23,19 @@ class RetoUseCases:
     async def asignar_puesto(
         self,
         reto_id: str,
+        sesion_id: str,
         jugador_id: str | None,
         colegio_id: str | None,
         puesto: int,
     ) -> dict:
-        """El jurado asigna un puesto del reto a un participante.
+        """El jurado asigna un puesto del reto a un participante, en la sesión.
 
         - Retos individuales → `jugador_id`.
         - Retos grupales → `colegio_id`.
-        - Un puesto solo puede tener un participante: al asignarlo se limpia
-          cualquier puntaje previo del mismo reto en ese puesto.
-        - Un participante solo puede tener un puesto por reto (se reemplaza).
+        - Los puntos quedan atados a la sesión (no se mezclan entre sesiones).
+        - Un puesto solo puede tener un participante en la sesión: al asignarlo
+          se limpia cualquier puntaje previo del mismo reto+sesión en ese puesto.
+        - Un participante solo puede tener un puesto por reto en la sesión.
         """
         reto = await RetoRepo(self.db).por_id(uuid.UUID(reto_id))
         if not reto:
@@ -45,54 +47,58 @@ class RetoUseCases:
 
         pid = uuid.UUID(jugador_id) if jugador_id else None
         cid = uuid.UUID(colegio_id) if colegio_id else None
+        sid = uuid.UUID(sesion_id)
         if not pid and not cid:
             raise DatosInvalidos("Indica un jugador o un colegio")
 
         repo = PuntajeRetoRepo(self.db)
-        existentes = await repo.listar_por_reto(reto.id)
+        existentes = await repo.listar_por_reto(reto.id, sid)
 
-        # 1. Quitar el puesto a quien lo tuviera (posiciones únicas).
+        # 1. Quitar el puesto a quien lo tuviera (posiciones únicas por sesión).
         for p in existentes:
             if p.puesto == int(puesto):
                 await repo.eliminar_por_participante(
-                    reto.id, p.jugador_id, p.colegio_id
+                    reto.id, sid, p.jugador_id, p.colegio_id
                 )
 
-        # 2. Quitar el puntaje previo del participante (lo reemplaza).
-        await repo.eliminar_por_participante(reto.id, pid, cid)
+        # 2. Quitar el puntaje previo del participante en esta sesión.
+        await repo.eliminar_por_participante(reto.id, sid, pid, cid)
 
         # 3. Guardar el nuevo puntaje.
-        await repo.upsert(reto.id, pid, cid, puesto=int(puesto), puntos=puntos)
+        await repo.upsert(reto.id, sid, pid, cid, puesto=int(puesto), puntos=puntos)
         await self.db.commit()
 
         await self.realtime.publish(
             "reto",
             {
                 "reto_id": str(reto.id),
+                "sesion_id": sesion_id,
                 "nombre": reto.nombre,
                 "puesto": int(puesto),
                 "puntos": puntos,
                 "jugador_id": jugador_id,
                 "colegio_id": colegio_id,
             },
-            None,
+            sesion_id,
         )
 
-        asignados = await repo.listar_por_reto(reto.id)
+        asignados = await repo.listar_por_reto(reto.id, sid)
         return {
             "reto_id": str(reto.id),
+            "sesion_id": sesion_id,
             "puesto": int(puesto),
             "puntos": puntos,
             "puntajes": [entity_to_dict(p) for p in asignados],
         }
 
-    async def listar_puntajes(self, reto_id: str) -> list[dict]:
-        """Puntajes ya asignados de un reto, con nombre del jugador/colegio."""
+    async def listar_puntajes(self, reto_id: str, sesion_id: str) -> list[dict]:
+        """Puntajes ya asignados de un reto en una sesión, con nombre del participante."""
         reto = await RetoRepo(self.db).por_id(uuid.UUID(reto_id))
         if not reto:
             raise DatosInvalidos("Reto no encontrado")
 
-        puntajes = await PuntajeRetoRepo(self.db).listar_por_reto(reto.id)
+        sid = uuid.UUID(sesion_id)
+        puntajes = await PuntajeRetoRepo(self.db).listar_por_reto(reto.id, sid)
         out = []
         for p in puntajes:
             d = entity_to_dict(p)
@@ -103,26 +109,29 @@ class RetoUseCases:
     async def quitar_puesto(
         self,
         reto_id: str,
+        sesion_id: str,
         jugador_id: str | None,
         colegio_id: str | None,
     ) -> dict:
-        """El jurado deshace/corrige un puesto ya asignado."""
+        """El jurado deshace/corrige un puesto ya asignado en la sesión."""
         reto = await RetoRepo(self.db).por_id(uuid.UUID(reto_id))
         if not reto:
             raise DatosInvalidos("Reto no encontrado")
 
         pid = uuid.UUID(jugador_id) if jugador_id else None
         cid = uuid.UUID(colegio_id) if colegio_id else None
-        await PuntajeRetoRepo(self.db).eliminar_por_participante(reto.id, pid, cid)
+        sid = uuid.UUID(sesion_id)
+        repo = PuntajeRetoRepo(self.db)
+        await repo.eliminar_por_participante(reto.id, sid, pid, cid)
         await self.db.commit()
 
         return {
             "reto_id": str(reto.id),
+            "sesion_id": sesion_id,
             "jugador_id": jugador_id,
             "colegio_id": colegio_id,
             "puntajes": [
-                entity_to_dict(p)
-                for p in await PuntajeRetoRepo(self.db).listar_por_reto(reto.id)
+                entity_to_dict(p) for p in await repo.listar_por_reto(reto.id, sid)
             ],
         }
 

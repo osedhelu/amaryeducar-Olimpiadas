@@ -178,37 +178,42 @@ export const api = {
 
   asignarPuestoReto: (body: {
     retoId: string;
+    sesionId: string;
     jugadorId?: string;
     colegioId?: string;
     puesto: number;
   }) =>
     request<{
       reto_id: string;
+      sesion_id: string;
       puesto: number;
       puntos: number;
       puntajes: PuntajeReto[];
     }>(`/retos/${body.retoId}/puestos`, {
       method: "POST",
       body: JSON.stringify({
+        sesion_id: body.sesionId,
         jugador_id: body.jugadorId ?? null,
         colegio_id: body.colegioId ?? null,
         puesto: body.puesto,
       }),
     }),
 
-  puntajesReto: (retoId: string): Promise<PuntajeReto[]> =>
-    request<PuntajeReto[]>(`/retos/${retoId}/puntajes`),
+  puntajesReto: (retoId: string, sesionId: string): Promise<PuntajeReto[]> =>
+    request<PuntajeReto[]>(`/retos/${retoId}/puntajes?sesion_id=${sesionId}`),
 
   quitarPuestoReto: (body: {
     retoId: string;
+    sesionId: string;
     jugadorId?: string;
     colegioId?: string;
   }) =>
-    request<{ reto_id: string; puntajes: PuntajeReto[] }>(
+    request<{ reto_id: string; sesion_id: string; puntajes: PuntajeReto[] }>(
       `/retos/${body.retoId}/puestos`,
       {
         method: "DELETE",
         body: JSON.stringify({
+          sesion_id: body.sesionId,
           jugador_id: body.jugadorId ?? null,
           colegio_id: body.colegioId ?? null,
         }),

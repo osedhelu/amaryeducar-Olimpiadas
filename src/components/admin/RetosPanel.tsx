@@ -42,7 +42,7 @@ export default function RetosPanel({
 
   async function cargarPuntajes(retoId: string) {
     try {
-      setPuntajes(await api.puntajesReto(retoId));
+      setPuntajes(await api.puntajesReto(retoId, sesion.id));
     } catch {
       setPuntajes([]);
     }
@@ -90,6 +90,7 @@ export default function RetosPanel({
     try {
       const res = await api.asignarPuestoReto({
         retoId: retoActivo.id,
+        sesionId: sesion.id,
         jugadorId,
         colegioId,
         puesto,
@@ -106,6 +107,7 @@ export default function RetosPanel({
     try {
       const res = await api.quitarPuestoReto({
         retoId: retoActivo.id,
+        sesionId: sesion.id,
         jugadorId,
         colegioId,
       });
