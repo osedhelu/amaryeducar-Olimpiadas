@@ -4,26 +4,19 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:ws": "node server/ws-server.mjs",
-    "dev:all": "npm run dev:ws & npm run dev",
     "build": "next build",
-    "start": "node server/prod-server.mjs",
     "lint": "eslint"
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/ws": "^8.18.1",
     "jsonwebtoken": "^9.0.3",
     "next": "16.3.5",
-    "pg": "^8.23.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "ws": "^8.21.3"
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

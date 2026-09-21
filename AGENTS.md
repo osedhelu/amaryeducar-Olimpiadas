@@ -10,21 +10,48 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Amar y Educar — Olimpiadas Matemáticas 2026
 
-Plataforma tipo Kahoot para olimpiadas escolares: pantalla grande (proyector), panel docente y respuesta en vivo desde el navegador del estudiante. Todo el stack habla con **PostgREST** sobre Postgres (Railway). **No hay Supabase.**
+Plataforma tipo Kahoot para olimpiadas escolares: pantalla grande (proyector), panel docente y respuesta en vivo desde el navegador del estudiante. **Backend: FastAPI sobre Postgres (Railway).** **No hay Supabase.**
 
 ## Stack (sin sorpresas)
 
 - **Next.js 16** — App Router, Turbopack, TypeScript. Ruteo en `src/app/`.
 - **Tailwind v4** — configuración por CSS en `src/app/globals.css` (`@theme`: colores `azul`, `dorado`, `rojo`, `verde`, etc.). **No existe `tailwind.config.ts`.**
-- **Postgres + PostgREST en Railway** — la API del frontend es PostgREST (REST + JWT), no ORM.
-- **WebSocket**: servidor Node aparte en `server/ws-server.mjs` (puerto 3001). Next.js route handlers **no** manejan WebSocket upgrades (se intentó y se descartó).
+- **Postgres en Railway** — la BD subyacente.
+- **FastAPI backend** (`NEXT_PUBLIC_API_URL`, `backend/app/`) — para toda la lógica de juego (preguntas, respuestas, sesiones, retos, tabla, podium, imágenes de preguntas).
+- **WebSocket**: conecta directamente al **FastAPI backend en Railway** (`/ws`). El frontend (`useWebSocket.ts`) se conecta a `NEXT_PUBLIC_WS_URL` → `wss://olimpiadas-api-production.up.railway.app/ws`. No hay servidor WebSocket local; en dev local se conecta al mismo Railway WebSocket.
+
+## Arquitectura (crítica)
+
+### Backend FastAPI
+
+| URL env               | Uso                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL` | Toda la lógica de juego: sesiones, lanzar/cerrar preguntas, respuestas, retos, tabla, podium, imágenes de preguntas, auth, grados, colegios |
+
+### Flujo de autenticación JWT
+
+- JWTs se firman **en el cliente** con `POSTGREST_JWT_SECRET` (`src/lib/jwt.ts`): `signAnonJWT()`, `signEstudianteJWT(jugadorId, sesionId)`, `signDocenteJWT()`.
+- Los tokens se envían como `Authorization: Bearer <token>` al backend FastAPI que valida con el mismo secreto.
+- **Docente**: token en `localStorage` key `jwt_token` (persiste entre pestañas). Rol `docente`.
+- **Estudiante**: token en `sessionStorage` key `jwt_estudiante` (por pestaña). Rol `estudiante`. Imprescindible para que varios estudiantes en el mismo navegador (pestañas) no se pisen.
+- **Anon**: token anónimo para lectura pública.
+
+### Frontend → Backend API
+
+- **`src/lib/api.ts`** — cliente FastAPI: `api.*` contra `NEXT_PUBLIC_API_URL`. Token resuelto con `obtenerTokenValido()` de `src/lib/session.ts`.
+
+### WebSocket (tiempo real)
+
+1. **Triggers en Postgres** hacen `pg_notify('canal_juego', jsonb)` en INSERT/UPDATE de `jugadores`, `respuestas`, `sesiones_juego`, `puntajes_retos`.
+2. **FastAPI** (`backend/app/interfaces/websocket/ws.py`) maneja las conexiones WebSocket con `ConnectionManager`. Escucha en `/ws`, filtra por `sessionId`, marca `jugadores.conectado` true/false.
+3. **Frontend**: hook `useWebSocket(sessionId, role)` en `src/hooks/useWebSocket.ts` conecta a `NEXT_PUBLIC_WS_URL` (Railway) con `?role=student|admin|presentacion&sessionId=&jugadorId=`.
+
+Eventos que maneja el frontend: `jugador_unido`, `jugador_cambio`, `sesion_cambio`, `respuesta_recibida`, `reto` (tipados en `src/types/game.ts`).
 
 ## Comandos
 
 ```bash
-npm run dev:all    # WebSocket (3001) + Next.js (3000) juntos  ← lo normal
-npm run dev:ws     # solo el servidor WebSocket (Node, no HMR: reiniciar a mano tras editar)
-npm run dev        # solo Next.js
+npm run dev        # Next.js (puerto 3000) — el WS conecta directo a Railway
 npx tsc --noEmit   # typecheck (no hay script npm para esto)
 npm run build      # build
 ```
@@ -32,22 +59,13 @@ npm run build      # build
 - Verificación rápida tras cambios: `npx tsc --noEmit` y `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ruta`.
 - Sin framework de tests.
 - `pnpm` también funciona; `pnpm-workspace.yaml` declara `onlyBuiltDependencies` (si pnpm falla con `ERR_PNPM_IGNORED_BUILDS`, es eso).
+- No hay servidor WebSocket local. El frontend se conecta directamente al WebSocket de Railway en dev y producción.
 
-## Arquitectura del tiempo real (crítica)
+## Base de datos (Railway)
 
-1. **Triggers en Postgres** hacen `pg_notify('canal_juego', jsonb)` en INSERT/UPDATE de `jugadores`, `respuestas`, `sesiones_juego`.
-2. **`server/ws-server.mjs`** hace `LISTEN canal_juego`, parsea el payload (`tipo`, `tabla`, `data`, `ts`) y hace broadcast a los navegadores conectados, filtrando por `sessionId` (config en query string). También agenda el cierre automático de preguntas por cronómetro y marca `jugadores.conectado` true/false al conectar/cerrar la conexión WS.
-3. **Frontend**: hook `useWebSocket(sessionId, role)` en `src/hooks/useWebSocket.ts` conecta a `NEXT_PUBLIC_WS_URL` con `?role=student|admin|presentacion&sessionId=&jugadorId=`.
-
-Eventos que maneja el frontend: `jugador_unido`, `jugador_cambio`, `sesion_cambio`, `respuesta_recibida` (tipados en `src/types/game.ts`).
-
-## Base de datos (Railway, schema en `sql/*.sql`)
-
-- Fuente de verdad: `sql/01-schema.sql` … `05-roles-permissions.sql`. Se aplican **a mano** con psql contra la BD de Railway (TCP proxy `iriguchi.proxy.rlwy.net:49776`, credenciales en `.env.local` `DATABASE_URL`), no hay migraciones automáticas.
+- Fuente de verdad: `sql/01-schema.sql` … `09-preguntas-imagenes.sql`. Se aplican **a mano** con psql contra la BD de Railway (TCP proxy `iriguchi.proxy.rlwy.net:49776`, credenciales en `.env.local` `DATABASE_URL`), no hay migraciones automáticas.
 - Los archivos SQL son re-ejecutables (usar `DROP TRIGGER IF EXISTS` / `CREATE OR REPLACE`; ya están así).
-- **Tras crear/editar una función PostgREST, recargar el schema cache**: `NOTIFY pgrst, 'reload schema';` desde psql. Si no, PostgREST responde `PGRST202` (función no encontrada).
-- Roles PostgREST: `anon` (lectura), `estudiante` (insert/update en `respuestas`, `jugadores`), `docente` (todo — el frontend admin usa token docente). Funciones llamadas por PostgREST deben tener `GRANT EXECUTE` al rol apropiado.
-- **`calcular_puntos_respuesta` es `SECURITY DEFINER`-free, pero `auto_cerrar_cuando_todos_respondan` debe ser `SECURITY DEFINER`** — hace UPDATE a `sesiones_juego` en un insert de estudiante; sin SECURITY DEFINER da 403 `permission denied for table sesiones_juego`. Si un trigger nuevo toca una tabla que el rol de escritura no puede modificar, usar este patrón.
+- **Imágenes de preguntas**: `preguntas_imagenes` table (BYTEA) + `preguntas.imagen_actualizado_en` (cache-buster). Se sirven vía `GET /preguntas/{id}/imagen` del **FastAPI** backend.
 
 ### Lógica de juego (en SQL, no en JS)
 
@@ -71,20 +89,35 @@ Eventos que maneja el frontend: `jugador_unido`, `jugador_cambio`, `sesion_cambi
 
 - **Estudiante**: identidad en `sessionStorage` (por pestaña) — `jugador_id`, `jugador_nombre`, `jwt_estudiante`. Imprescindible para que varios estudiantes en el mismo navegador (pestañas) no se pisen.
 - **Docente**: token en `localStorage` key `jwt_token` (persiste entre pestañas). El panel admin valida rol `docente` antes de cargar.
-- JWT los firma el **servidor** (`src/lib/jwt.ts` + rutas `/api/auth/anon`, `/api/auth/login`, `/api/auth/student`, `/api/session/join`). **Nunca firmar JWT en el cliente** — `POSTGREST_JWT_SECRET` no es `NEXT_PUBLIC_`, no existe en el navegador.
-- El cliente PostgREST (`src/lib/postgrest.ts`) resuelve token: estudiante de la pestaña → docente → anónimo; renueva token de estudiante expirado vía `/api/auth/student`.
+- JWT los firma **el cliente** (`src/lib/jwt.ts`). **Nunca firmar JWT en el cliente** — `POSTGREST_JWT_SECRET` no es `NEXT_PUBLIC_`, no existe en el navegador como variable de build.
+- El cliente FastAPI (`src/lib/api.ts`) resuelve token con `obtenerTokenValido()` de `src/lib/session.ts` (mismo flujo).
 
 ## Endpoints clave del frontend
 
-| Ruta                        | Rol                                                      | Qué es                                                          |
-| --------------------------- | -------------------------------------------------------- | --------------------------------------------------------------- |
-| `/join`                     | estudiante                                               | Pide PIN + nombre (+ colegio en 4-5)                            |
-| `/game/[sessionId]`         | estudiante                                               | Espera, responde A-D, ve resultado                              |
-| `/admin` → `/admin/session` | docente (clave `ADMadm1234`, configurable `CLAVE_ADMIN`) | Sesiones, control de ronda, pódium, finalizar                   |
-| `/presentacion/[sessionId]` | proyector                                                | Bienvenida, pregunta, resultado, pódium; control con 🔑 + clave |
-| `/api/session/join`         | POST server-side                                         | Valida PIN, crea/actualiza jugador, firma token estudiante      |
+| Ruta                        | Qué es                                                          |
+| --------------------------- | --------------------------------------------------------------- |
+| `/join`                     | Pide PIN + toca nombre del alumno de la lista (solo alumno)     |
+| `/game/[sessionId]`         | Espera, responde A-D, ve resultado                              |
+| `/admin` → `/admin/session` | Sesiones, control de ronda, pódium, finalizar                   |
+| `/presentacion/[sessionId]` | Bienvenida, pregunta, resultado, pódium; control con 🔑 + clave |
 
-Páginas típicas a editar para el evento: persistencia de puntos en `respuestas`/`preguntas`. No hay ORM: las páginas hacen `api.get/post/patch/rpc` contra PostgREST (`src/lib/postgrest.ts`).
+**FastAPI endpoints** (vía `src/lib/api.ts`):
+
+| Prefijo                                | Qué cubre                                                                                                                                                                                                |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/auth`                                | `POST /auth/login`, `POST /auth/student`, `GET /auth/anon`, `GET /grados`, `GET /colegios`                                                                                                               |
+| `/sessions`                            | `POST/GET /sessions`, `GET /sessions/by-pin/{pin}`, `GET /sessions/by-pin/{pin}/alumnos`, `GET /sessions/{id}`, `GET /sessions/{id}/jugadores`, `PATCH /sessions/{id}`, `PATCH /sessions/{id}/finalizar` |
+| `/preguntas`                           | `POST/PATCH/DELETE /preguntas`, `POST /preguntas/{id}/mover`, `POST/GET/DELETE /preguntas/{id}/imagen`, `GET /preguntas?grado_id=`, `GET /preguntas/{id}`                                                |
+| `/answers`                             | `POST /answers`, `GET /answers/check`, `PATCH /answers/{id}/aprobar`                                                                                                                                     |
+| `/retos`                               | `POST /retos/{id}/puestos`, `GET /retos/{id}/puntajes`, `DELETE /retos/{id}/puestos`                                                                                                                     |
+| `/sessions/{id}/preguntas/{id}/lanzar` | Lanzar pregunta                                                                                                                                                                                          |
+| `/sessions/{id}/cerrar-pregunta`       | Cerrar pregunta                                                                                                                                                                                          |
+| `/tabla/{grado_id}`                    | Tabla de colegios                                                                                                                                                                                        |
+| `/duelos`                              | `POST /duelos`, `GET /duelos`                                                                                                                                                                            |
+| `/colegios`, `/alumnos`                | CRUD completo                                                                                                                                                                                            |
+| `/podium/{sesionId}`                   | Pódium                                                                                                                                                                                                   |
+
+Páginas típicas a editar para el evento: persistencia de puntos en `respuestas`/`preguntas`. Las páginas hacen `api.get/post/patch` contra `src/lib/api.ts` (FastAPI).
 
 ## Operaciones comunes contra la BD (solo lectura → verificar antes de mutar)
 
@@ -93,3 +126,57 @@ source .env.local 2>/dev/null; psql "$DATABASE_URL"
 ```
 
 Después de tocar `sql/*.sql` y aplicarlo a la nube, **sincronizar el archivo local** (es la fuente de verdad para el repo).
+
+## Estructura del backend FastAPI
+
+```
+backend/app/
+├── main.py                          # FastAPI app, incluye todos los routers
+├── core/
+│   ├── config.py                    # Settings (CORS, etc.)
+│   ├── exceptions.py                # DomainError handler
+│   └── security.py                  # Seguridad compartida
+├── domain/
+│   ├── entities.py                  # Entidades del dominio
+│   ├── enums.py                     # Enums (roles, tipos)
+│   └── rules.py                     # Reglas de negocio
+├── application/
+│   ├── dto.py                       # DTOs compartidos
+│   ├── ports.py                     # Puertos (interfaces de repositorio)
+│   ├── answers/use_cases.py
+│   ├── podium/
+│   ├── preguntas/use_cases.py
+│   ├── registro/use_cases.py
+│   ├── retos/use_cases.py
+│   └── sessions/use_cases.py
+├── infrastructure/
+│   ├── auth/                        # Auth dependencies
+│   ├── db/
+│   │   ├── models.py                # Modelos SQLAlchemy
+│   │   ├── repositories.py          # Repositorios
+│   │   └── session.py               # Sesión de BD
+│   └── realtime/
+│       └── manager.py               # ConnectionManager WebSocket
+└── interfaces/
+    ├── api/
+    │   ├── deps.py                  # Dependencias FastAPI (require_docente, require_estudiante)
+    │   └── routers/
+    │       ├── auth.py              # Auth, grados, colegios
+    │       ├── sessions.py          # Sesiones, preguntas, lanzar/cerrar
+    │       ├── answers.py           # Respuestas, retos (puestos)
+    │       ├── registro.py          # Colegios, alumnos, tabla, duelos
+    │       ├── preguntas.py         # CRUD preguntas + imágenes
+    │       └── ws.py                # WebSocket router
+    └── websocket/
+        └── ws.py                    # WebSocket handler
+```
+
+## Variables de entorno clave (`.env.local`)
+
+```
+NEXT_PUBLIC_API_URL=https://olimpiadas-api-production.up.railway.app        # FastAPI
+NEXT_PUBLIC_WS_URL=wss://olimpiadas-api-production.up.railway.app/ws        # WebSocket
+POSTGREST_JWT_SECRET=506e2e1ec01557279e5a203939359c812b9af9a40e535ff3b89992ade34e5616  # Firma JWT
+DATABASE_URL=postgresql://...@iriguchi.proxy.rlwy.net:49776/railway          # Postgres directo
+CLAVE_ADMIN=ADMadm1234                                                        # Clave admin docente
+```

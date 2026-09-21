@@ -6,12 +6,8 @@ import type { EventoWS } from "@/types/game";
 const WS_URL_CONFIG = process.env.NEXT_PUBLIC_WS_URL ?? "";
 
 /**
- * Deriva la URL base del WebSocket según dónde se esté ejecutando:
- * - Producción: NEXT_PUBLIC_WS_URL configurada (wss://dominio)
- * - Móvil/dispositivo en la red local: usa el MISMO host de la página
- *   (ej. http://192.168.1.10:3000 → ws://192.168.1.10:3001 en dev)
- * - localhost: ws://localhost:3001 (dev)
- * Esto evita el bug clásico de "localhost" del dispositivo móvil.
+ * Siempre conecta al WebSocket de Railway (FastAPI).
+ * No necesita ws-server.mjs local.
  */
 function getWsBase(): string {
   if (typeof window === "undefined") {
@@ -22,22 +18,7 @@ function getWsBase(): string {
     return WS_URL_CONFIG;
   }
 
-  const host = window.location.hostname;
-  const port = window.location.port;
-  const proto = window.location.protocol === "https:" ? "wss" : "ws";
-  const esLocal = host === "localhost" || host === "127.0.0.1";
-
-  if (esLocal) {
-    return port === "3001" || WS_URL_CONFIG
-      ? WS_URL_CONFIG
-      : "ws://localhost:3001";
-  }
-
-  // Dispositivo en red: mismo host, puerto 3001 en dev / mismo puerto con wss en prod
-  if (proto === "ws" && port === "3000") {
-    return `${proto}://${host}:3001`;
-  }
-  return `${proto}://${host}`;
+  return "ws://localhost:3001";
 }
 
 export function useWebSocket(
