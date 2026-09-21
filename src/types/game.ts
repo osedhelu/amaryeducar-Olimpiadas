@@ -2,7 +2,14 @@ export type GradoNombre =
   "Primero" | "Segundo" | "Tercero" | "Cuarto" | "Quinto";
 
 export type EstadoSesion =
-  "borrador" | "lobby" | "pregunta" | "resultado" | "reto" | "podium" | "final";
+  | "borrador"
+  | "lobby"
+  | "pregunta"
+  | "resultado"
+  | "reto"
+  | "reto_podium"
+  | "podium"
+  | "final";
 
 export type TipoPregunta = "opcion-multiple" | "abierta";
 export type SesionNumero = "1" | "2";

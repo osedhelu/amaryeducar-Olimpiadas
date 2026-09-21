@@ -9,6 +9,7 @@ import type {
   Pregunta,
   Jugador,
   PodiumEntry,
+  PuntajeReto,
   Respuesta,
   EventoWS,
   TablaColegio,
@@ -21,8 +22,41 @@ type Vista =
   | "pregunta"
   | "resultado"
   | "reto"
+  | "reto_podium"
   | "podium"
   | "final";
+
+const LETRAS = ["A", "B", "C", "D"];
+const COLORES_OPCION = [
+  "bg-rojo",
+  "bg-azul-light",
+  "bg-dorado text-azul-dark",
+  "bg-verde",
+];
+const COLORES_BARRA = ["bg-rojo", "bg-azul-light", "bg-dorado", "bg-verde"];
+
+interface ConteoOpcion {
+  letra: string;
+  texto: string;
+  count: number;
+}
+
+/** Cuenta cuántas respuestas eligieron cada opción (sin exponer nombres). */
+function contarPorOpcion(
+  respuestas: Respuesta[],
+  opciones: string[] | null,
+): ConteoOpcion[] {
+  const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
+  for (const r of respuestas) {
+    const k = (r.opcion_seleccionada ?? "").trim().toUpperCase();
+    if (k in counts) counts[k] += 1;
+  }
+  return LETRAS.map((letra, i) => ({
+    letra,
+    texto: (opciones?.[i] ?? "").replace(/^[A-D]\)\s*/, ""),
+    count: counts[letra],
+  }));
+}
 
 export default function PresentacionPage() {
   const params = useParams();
@@ -33,16 +67,11 @@ export default function PresentacionPage() {
   const [retoActivo, setRetoActivo] = useState<Reto | null>(null);
   const [jugadores, setJugadores] = useState<Jugador[]>([]);
   const [respuestas, setRespuestas] = useState<Respuesta[]>([]);
+  const [puntajesReto, setPuntajesReto] = useState<PuntajeReto[]>([]);
   const [podium, setPodium] = useState<PodiumEntry[]>([]);
   const [tabla, setTabla] = useState<TablaColegio[]>([]);
   const [vista, setVista] = useState<Vista>("bienvenida");
   const [tiempoRestante, setTiempoRestante] = useState(0);
-  const [preguntasLista, setPreguntasLista] = useState<Pregunta[]>([]);
-  const [controlUnlocked, setControlUnlocked] = useState(false);
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [claveInput, setClaveInput] = useState("");
-  const [claveError, setClaveError] = useState("");
-  const [controlesLoading, setControlesLoading] = useState(false);
 
   const { lastEvent, connected } = useWebSocket(sessionId, "presentacion");
 
@@ -54,15 +83,19 @@ export default function PresentacionPage() {
     const j = await api.jugadores(s.id);
     setJugadores(j);
 
-    const preguntas = await api.preguntas(s.grado_id);
-    setPreguntasLista(preguntas);
-
-    if (s.estado === "reto" && s.reto_activo_id) {
+    if (
+      (s.estado === "reto" || s.estado === "reto_podium") &&
+      s.reto_activo_id
+    ) {
       const retos = await api.retos(s.grado_id);
-      const activo = retos.find((r) => r.id === s.reto_activo_id) ?? null;
-      setRetoActivo(activo);
+      setRetoActivo(retos.find((r) => r.id === s.reto_activo_id) ?? null);
+      if (s.estado === "reto_podium") {
+        const pr = await api.puntajesReto(s.reto_activo_id, s.id);
+        setPuntajesReto([...pr].sort((a, b) => a.puesto - b.puesto));
+      }
     } else {
       setRetoActivo(null);
+      setPuntajesReto([]);
     }
 
     if (s.pregunta_activa_id) {
@@ -110,14 +143,28 @@ export default function PresentacionPage() {
             .then(setTabla)
             .catch(() => {});
         }
-        if (ev.data.estado === "reto" && ev.data.reto_activo_id) {
+        if (
+          (ev.data.estado === "reto" || ev.data.estado === "reto_podium") &&
+          ev.data.reto_activo_id
+        ) {
           api.retos(ev.data.grado_id).then((retos) => {
             setRetoActivo(
               retos.find((r) => r.id === ev.data.reto_activo_id) ?? null,
             );
           });
-        } else if (ev.data.estado !== "reto") {
+          if (ev.data.estado === "reto_podium") {
+            api
+              .puntajesReto(ev.data.reto_activo_id, ev.data.id)
+              .then((pr) =>
+                setPuntajesReto([...pr].sort((a, b) => a.puesto - b.puesto)),
+              );
+          }
+        } else if (
+          ev.data.estado !== "reto" &&
+          ev.data.estado !== "reto_podium"
+        ) {
           setRetoActivo(null);
+          setPuntajesReto([]);
         }
         break;
       case "respuesta_recibida":
@@ -134,8 +181,8 @@ export default function PresentacionPage() {
   }, [lastEvent, pregunta?.id]);
 
   // Contador exacto: reconcilia con la BD en cada evento y al cambiar de
-  // pregunta, para que "X respuestas recibidas" siempre sea correcto aunque
-  // se pierda un evento WebSocket.
+  // pregunta, para que la distribución siempre sea correcta aunque se pierda
+  // un evento WebSocket.
   const recargarRespuestas = useCallback(async () => {
     if (!sesion?.pregunta_activa_id) {
       setRespuestas([]);
@@ -176,6 +223,7 @@ export default function PresentacionPage() {
     else if (sesion.estado === "pregunta") setVista("pregunta");
     else if (sesion.estado === "resultado") setVista("resultado");
     else if (sesion.estado === "reto") setVista("reto");
+    else if (sesion.estado === "reto_podium") setVista("reto_podium");
     else if (sesion.estado === "podium") setVista("podium");
     else if (sesion.estado === "final") setVista("final");
   }, [sesion?.estado]);
@@ -209,231 +257,6 @@ export default function PresentacionPage() {
       setRespuestas([]);
     }
   }, [sesion?.pregunta_activa_id, pregunta, recargarRespuestas]);
-
-  // ─── Control de ronda desde la pantalla grande ───
-
-  async function desbloquearControl() {
-    setControlesLoading(true);
-    setClaveError("");
-    try {
-      const { token } = await api.loginDocente(claveInput);
-      localStorage.setItem("jwt_token", token);
-      setControlUnlocked(true);
-      setShowKeyModal(false);
-      setClaveInput("");
-    } catch {
-      setClaveError("Clave incorrecta");
-    } finally {
-      setControlesLoading(false);
-    }
-  }
-
-  async function iniciarPrimeraPregunta() {
-    if (!sesion || preguntasLista.length === 0 || controlesLoading) return;
-    setControlesLoading(true);
-    try {
-      const primera = preguntasLista[0];
-      const updated = await api.lanzarPregunta(sesion.id, primera.id);
-      setSesion(updated);
-    } finally {
-      setControlesLoading(false);
-    }
-  }
-
-  async function cerrarPreguntaActual() {
-    if (!sesion || controlesLoading) return;
-    setControlesLoading(true);
-    try {
-      const updated = await api.cerrarPregunta(sesion.id);
-      setSesion(updated);
-    } finally {
-      setControlesLoading(false);
-    }
-  }
-
-  async function siguientePregunta() {
-    if (!sesion || controlesLoading) return;
-    setControlesLoading(true);
-    try {
-      const updated = await api.siguientePregunta(sesion.id);
-      setSesion(updated);
-    } finally {
-      setControlesLoading(false);
-    }
-  }
-
-  async function verPodium() {
-    if (!sesion || controlesLoading) return;
-    setControlesLoading(true);
-    try {
-      await api.actualizarSesion(sesion.id, { estado: "podium" });
-      const p = await api.podium(sesion.id);
-      setPodium(p);
-      const updated = await api.sesion(sesion.id);
-      setSesion(updated);
-    } finally {
-      setControlesLoading(false);
-    }
-  }
-
-  async function finalizarSesionDesdePresentacion() {
-    if (!sesion || controlesLoading) return;
-    setControlesLoading(true);
-    try {
-      const updated = await api.finalizarSesion(sesion.id);
-      setSesion(updated);
-    } finally {
-      setControlesLoading(false);
-    }
-  }
-
-  const vistaLobby = vista === "bienvenida" || vista === "lobby";
-
-  const barraControles = (
-    <>
-      {controlUnlocked && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex gap-2 items-center bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-2xl border-2 border-dorado animate-slide-up">
-          <span className="text-[11px] font-heading font-bold text-texto-light mr-1 uppercase">
-            Control
-          </span>
-          {(vistaLobby || vista === "resultado") && (
-            <button
-              onClick={siguientePregunta}
-              disabled={controlesLoading}
-              className="px-5 py-2 bg-verde text-white rounded-xl font-heading font-bold text-sm hover:bg-verde/80 disabled:opacity-50"
-            >
-              {sesion?.pregunta_activa_id
-                ? "Siguiente pregunta →"
-                : "Iniciar preguntas ▶"}
-            </button>
-          )}
-          {vista === "pregunta" && (
-            <button
-              onClick={cerrarPreguntaActual}
-              disabled={controlesLoading}
-              className="px-5 py-2 bg-rojo text-white rounded-xl font-heading font-bold text-sm hover:bg-rojo/80 disabled:opacity-50"
-            >
-              Cerrar pregunta ⏹
-            </button>
-          )}
-          {vista === "reto" && (
-            <button
-              onClick={async () => {
-                if (!sesion || controlesLoading) return;
-                setControlesLoading(true);
-                try {
-                  const updated = await api.actualizarSesion(sesion.id, {
-                    estado: "lobby",
-                  });
-                  setSesion(updated);
-                  setRetoActivo(null);
-                } finally {
-                  setControlesLoading(false);
-                }
-              }}
-              disabled={controlesLoading}
-              className="px-5 py-2 bg-verde text-white rounded-xl font-heading font-bold text-sm hover:bg-verde/80 disabled:opacity-50"
-            >
-              Volver a preguntas →
-            </button>
-          )}
-          {(vista === "resultado" ||
-            vista === "final" ||
-            vista === "podium") && (
-            <button
-              onClick={verPodium}
-              disabled={controlesLoading}
-              className="px-5 py-2 bg-dorado text-azul-dark rounded-xl font-heading font-bold text-sm hover:bg-dorado-light disabled:opacity-50"
-            >
-              Podium 🏆
-            </button>
-          )}
-          {vista === "podium" && (
-            <button
-              onClick={iniciarPrimeraPregunta}
-              disabled={controlesLoading}
-              className="px-5 py-2 bg-azul text-white rounded-xl font-heading font-bold text-sm hover:bg-azul-light disabled:opacity-50"
-            >
-              Reiniciar ▶
-            </button>
-          )}
-          {vista === "podium" && (
-            <button
-              onClick={finalizarSesionDesdePresentacion}
-              disabled={controlesLoading}
-              className="px-5 py-2 bg-verde text-white rounded-xl font-heading font-bold text-sm hover:bg-verde/80 disabled:opacity-50"
-            >
-              ✅ Finalizar
-            </button>
-          )}
-          <button
-            onClick={() => setControlUnlocked(false)}
-            className="px-3 py-2 text-texto-light rounded-xl hover:bg-gray-200 font-bold text-sm"
-            title="Bloquear control"
-          >
-            🔒
-          </button>
-        </div>
-      )}
-
-      {!controlUnlocked && (
-        <button
-          onClick={() => setShowKeyModal(true)}
-          className="fixed bottom-4 right-4 z-50 w-12 h-12 bg-white/80 backdrop-blur-sm rounded-full shadow-xl border-2 border-gray-200 hover:border-dorado flex items-center justify-center text-xl transition-colors"
-          title="Desbloquear control del docente"
-        >
-          🔑
-        </button>
-      )}
-
-      {showKeyModal && (
-        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-bounce-in">
-            <h3 className="text-xl font-heading font-bold text-azul mb-3 text-center">
-              Control del docente
-            </h3>
-            <p className="text-sm text-texto-light mb-4 text-center">
-              Ingresa la clave maestra para controlar las preguntas desde esta
-              pantalla.
-            </p>
-            <input
-              type="password"
-              value={claveInput}
-              onChange={(e) => setClaveInput(e.target.value)}
-              placeholder="Clave maestra"
-              autoFocus
-              onKeyDown={(e) => e.key === "Enter" && desbloquearControl()}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-azul focus:outline-none transition-colors mb-3"
-            />
-            {claveError && (
-              <p className="text-rojo-error text-sm text-center mb-3 font-medium">
-                {claveError}
-              </p>
-            )}
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowKeyModal(false);
-                  setClaveError("");
-                  setClaveInput("");
-                }}
-                className="flex-1 py-2.5 bg-gray-200 text-texto rounded-xl font-heading font-bold hover:bg-gray-300"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={desbloquearControl}
-                disabled={controlesLoading}
-                className="flex-1 py-2.5 bg-dorado text-azul-dark rounded-xl font-heading font-bold hover:bg-dorado-light disabled:opacity-50"
-              >
-                {controlesLoading ? "Verificando..." : "Desbloquear"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
 
   if (!sesion) {
     return (
@@ -488,20 +311,11 @@ export default function PresentacionPage() {
             {connected ? "En vivo" : "Reconectando..."}
           </div>
         </div>
-        {barraControles}
       </div>
     );
   }
 
   if (vista === "pregunta" && pregunta) {
-    const opciones = pregunta.opciones ?? [];
-    const letras = ["A", "B", "C", "D"];
-    const colores = [
-      "bg-rojo",
-      "bg-azul-light",
-      "bg-dorado text-azul-dark",
-      "bg-verde",
-    ];
     const porcentaje =
       sesion.cronometro_segundos > 0
         ? (tiempoRestante / sesion.cronometro_segundos) * 100
@@ -513,6 +327,10 @@ export default function PresentacionPage() {
     const totalRespondidos = conectados.filter((j) =>
       respondidos.has(j.id),
     ).length;
+    const esMultiple = pregunta.tipo === "opcion-multiple";
+    const conteos = contarPorOpcion(respuestas, pregunta.opciones);
+    const maxCount = Math.max(1, ...conteos.map((c) => c.count));
+    const opciones = pregunta.opciones ?? [];
 
     return (
       <div className="flex-1 flex flex-col p-6 md:p-10 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
@@ -555,170 +373,164 @@ export default function PresentacionPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {opciones.map((opcion, idx) => (
-              <div
-                key={letras[idx]}
-                className={`${colores[idx]} p-6 rounded-2xl shadow-lg flex items-center text-white text-xl md:text-2xl font-heading font-bold animate-slide-up`}
-                style={{ animationDelay: `${idx * 100}ms` }}
-              >
-                <span className="text-3xl mr-4 opacity-80">{letras[idx]}</span>
-                {opcion.replace(/^[A-D]\)\s*/, "")}
-              </div>
-            ))}
-          </div>
-
-          {totalConectados > 0 && (
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-40 h-2.5 bg-white/20 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-verde rounded-full transition-all duration-300"
-                      style={{
-                        width: `${(totalRespondidos / totalConectados) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="text-white font-heading font-bold text-sm">
-                    {totalRespondidos}/{totalConectados} respondieron
+          {esMultiple && opciones.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {opciones.map((opcion, idx) => (
+                <div
+                  key={LETRAS[idx]}
+                  className={`${COLORES_OPCION[idx]} p-6 rounded-2xl shadow-lg flex items-center text-white text-xl md:text-2xl font-heading font-bold animate-slide-up`}
+                  style={{ animationDelay: `${idx * 100}ms` }}
+                >
+                  <span className="text-3xl mr-4 opacity-80">
+                    {LETRAS[idx]}
                   </span>
+                  {opcion.replace(/^[A-D]\)\s*/, "")}
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {conectados.map((j) => {
-                  const respondio = respondidos.has(j.id);
-                  return (
-                    <span
-                      key={j.id}
-                      className={`px-3 py-1 rounded-full text-sm font-heading font-bold transition-all duration-200 ${
-                        respondio
-                          ? "bg-verde text-white"
-                          : "bg-white/20 text-white/60"
-                      }`}
-                    >
-                      {respondio && "✓"} {j.nombre}
-                    </span>
-                  );
-                })}
-              </div>
+              ))}
             </div>
           )}
+
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-40 h-2.5 bg-white/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-verde rounded-full transition-all duration-300"
+                  style={{
+                    width: `${totalConectados > 0 ? (totalRespondidos / totalConectados) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+              <span className="text-white font-heading font-bold text-sm">
+                {totalRespondidos}/{totalConectados} respondieron
+              </span>
+            </div>
+            {esMultiple ? (
+              <div className="space-y-2">
+                {conteos.map((c, i) => (
+                  <div key={c.letra} className="flex items-center gap-3">
+                    <span className="w-6 text-white font-heading font-extrabold">
+                      {c.letra}
+                    </span>
+                    <div className="flex-1 h-7 bg-white/10 rounded-lg overflow-hidden">
+                      <div
+                        className={`h-full ${COLORES_BARRA[i]} transition-all duration-500`}
+                        style={{ width: `${(c.count / maxCount) * 100}%` }}
+                      />
+                    </div>
+                    <span className="w-8 text-right text-white font-heading font-bold">
+                      {c.count}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-white/50 text-sm text-center">
+                Las respuestas abiertas se revelan al cierre de la pregunta.
+              </p>
+            )}
+          </div>
         </div>
-        {barraControles}
       </div>
     );
   }
 
   if (vista === "resultado" && pregunta) {
-    const ordenadas = [...respuestas].sort(
-      (a, b) => (a.numero_orden ?? 999) - (b.numero_orden ?? 999),
-    );
-    const correctas = ordenadas.filter((r) => r.correcta === true);
-    const incorrectas = ordenadas.filter((r) => r.correcta !== true);
-    const colores = [
-      "text-dorado",
-      "text-white",
-      "text-white/80",
-      "text-white/60",
-    ];
-    const medallas = ["🥇", "🥈", "🥉", "4°"];
-    const nombreDe = (r: Respuesta) =>
-      (r as Respuesta & { jugador_nombre?: string }).jugador_nombre ??
-      jugadores.find((j) => j.id === r.jugador_id)?.nombre ??
-      "";
-    const items = [
-      ...correctas.map((r, idx) => ({
-        r,
-        medalla: medallas[idx] ?? `${idx + 1}°`,
-        color: colores[idx] ?? "text-white/50",
-        esCorrecta: true,
-      })),
-      ...incorrectas.map((r) => ({
-        r,
-        medalla: "✘",
-        color: "text-rojo-error",
-        esCorrecta: false,
-      })),
-    ];
+    const esMultiple = pregunta.tipo === "opcion-multiple";
+    const correcta = (pregunta.respuesta_correcta ?? "").trim().toUpperCase();
+    const conteos = contarPorOpcion(respuestas, pregunta.opciones);
+    const maxCount = Math.max(1, ...conteos.map((c) => c.count));
 
-    // Jugadores conectados que NO respondieron esta pregunta
+    const conectados = jugadores.filter((j) => j.conectado);
     const respondieron = new Set(respuestas.map((r) => r.jugador_id));
-    const noRespondieron = jugadores.filter(
-      (j) => j.conectado && !respondieron.has(j.id),
-    );
+    const totalRespondidos = respuestas.length;
+    const sinResponder = conectados.filter(
+      (j) => !respondieron.has(j.id),
+    ).length;
+    const acertaron = respuestas.filter((r) => r.correcta === true).length;
+    const fallaron = totalRespondidos - acertaron;
 
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
-        <div className="max-w-2xl w-full text-center space-y-6">
-          <div className="bg-white rounded-2xl p-6 shadow-2xl animate-fade-in">
-            <p className="text-sm text-texto-light mb-1">Respuesta correcta</p>
-            <p className="text-4xl font-heading font-extrabold text-verde">
-              {pregunta.respuesta_correcta}
-            </p>
-          </div>
+        <div className="max-w-3xl w-full text-center space-y-6">
+          <div className="text-5xl animate-bounce-in">🎉</div>
+          <h1 className="text-4xl font-heading font-extrabold text-dorado">
+            ¡Ronda completada!
+          </h1>
 
-          <div className="space-y-3">
-            {items.length === 0 && (
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 animate-bounce-in">
-                <p className="text-3xl">😅</p>
-                <p className="text-white/80 font-heading font-bold text-xl mt-2">
-                  Nadie acertó esta pregunta
-                </p>
-                <p className="text-white/50 text-sm mt-1">
-                  Sin puntos para esta ronda
-                </p>
-              </div>
-            )}
-            {items.map(({ r, medalla, color, esCorrecta }, idx) => (
-              <div
-                key={r.id}
-                className={`flex items-center justify-between rounded-xl p-4 animate-slide-up ${
-                  esCorrecta
-                    ? "bg-white/10 backdrop-blur-sm"
-                    : "bg-rojo/10 border border-rojo/30"
-                }`}
-                style={{ animationDelay: `${idx * 200}ms` }}
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-3xl">{medalla}</span>
-                  <span
-                    className={`font-heading font-bold text-xl ${color} ${
-                      esCorrecta ? "" : "text-white/70"
-                    }`}
-                  >
-                    {nombreDe(r)}
-                  </span>
-                </div>
-                <span
-                  className={`font-heading font-extrabold text-2xl ${
-                    esCorrecta ? "text-dorado" : "text-rojo-error"
-                  }`}
-                >
-                  {esCorrecta ? `+${r.puntos} pts` : "✘ Incorrecta"}
-                </span>
-              </div>
-            ))}
-            {noRespondieron.length > 0 && (
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 animate-fade-in">
-                <p className="text-white/50 text-sm font-heading font-bold mb-2">
-                  Sin responder
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {noRespondieron.map((j) => (
-                    <span
-                      key={j.id}
-                      className="px-3 py-1 bg-white/10 text-white/60 rounded-full text-sm font-heading font-bold"
+          {esMultiple ? (
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10 text-left">
+              <p className="text-white/60 text-sm font-heading font-bold uppercase mb-4 text-center">
+                Distribución de respuestas
+              </p>
+              <div className="space-y-3">
+                {conteos.map((c, i) => {
+                  const esCorrecta = c.letra === correcta;
+                  const atenuar = correcta && !esCorrecta;
+                  return (
+                    <div
+                      key={c.letra}
+                      className={`flex items-center gap-3 animate-slide-up ${atenuar ? "opacity-50" : ""}`}
+                      style={{ animationDelay: `${i * 150}ms` }}
                     >
-                      {j.nombre}
-                    </span>
-                  ))}
-                </div>
+                      <span
+                        className={`w-7 text-2xl font-heading font-extrabold text-center ${
+                          esCorrecta ? "text-verde" : "text-white/80"
+                        }`}
+                      >
+                        {esCorrecta ? "✓" : c.letra}
+                      </span>
+                      <div className="flex-1">
+                        <div className="h-10 bg-white/10 rounded-lg overflow-hidden">
+                          <div
+                            className={`h-full ${COLORES_BARRA[i]} transition-all duration-700`}
+                            style={{ width: `${(c.count / maxCount) * 100}%` }}
+                          />
+                        </div>
+                        {c.texto && (
+                          <p className="text-white/60 text-xs mt-1">
+                            {c.texto}
+                          </p>
+                        )}
+                      </div>
+                      <span className="w-10 text-right text-white font-heading font-bold text-xl">
+                        {c.count}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          ) : (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+              <p className="text-white/80 font-heading text-xl">
+                {totalRespondidos === 0
+                  ? "Nadie respondió esta pregunta"
+                  : "Respuestas recibidas"}
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-verde/20 rounded-2xl p-4 animate-bounce-in">
+              <p className="text-4xl font-heading font-extrabold text-verde">
+                {acertaron}
+              </p>
+              <p className="text-white/70 text-sm">acertaron</p>
+            </div>
+            <div className="bg-rojo/20 rounded-2xl p-4 animate-bounce-in">
+              <p className="text-4xl font-heading font-extrabold text-rojo-error">
+                {fallaron}
+              </p>
+              <p className="text-white/70 text-sm">fallaron</p>
+            </div>
+            <div className="bg-white/10 rounded-2xl p-4 animate-bounce-in">
+              <p className="text-4xl font-heading font-extrabold text-white/70">
+                {sinResponder}
+              </p>
+              <p className="text-white/70 text-sm">sin responder</p>
+            </div>
           </div>
         </div>
-        {barraControles}
       </div>
     );
   }
@@ -749,7 +561,67 @@ export default function PresentacionPage() {
             </p>
           )}
         </div>
-        {barraControles}
+      </div>
+    );
+  }
+
+  if (vista === "reto_podium") {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+        <div className="max-w-3xl w-full text-center space-y-8">
+          <div className="text-7xl animate-bounce-in">🎯🏆</div>
+          <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-dorado">
+            Resultado del reto
+          </h1>
+          {retoActivo && (
+            <h2 className="text-2xl md:text-3xl font-heading font-bold text-white">
+              {retoActivo.nombre}
+            </h2>
+          )}
+
+          {puntajesReto.length === 0 ? (
+            <p className="text-white/70 text-xl font-heading">
+              Aún no hay puestos asignados en este reto.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {puntajesReto.map((p, idx) => (
+                <div
+                  key={p.id}
+                  className={`flex items-center justify-between p-6 rounded-2xl shadow-xl animate-slide-up ${
+                    p.puesto === 1
+                      ? "bg-dorado text-azul-dark scale-105"
+                      : p.puesto === 2
+                        ? "bg-white/90 text-azul-dark"
+                        : p.puesto === 3
+                          ? "bg-white/70 text-azul-dark"
+                          : "bg-white/30 text-white"
+                  }`}
+                  style={{ animationDelay: `${idx * 300}ms` }}
+                >
+                  <div className="flex items-center gap-5">
+                    <span className="text-5xl">
+                      {p.puesto === 1
+                        ? "🥇"
+                        : p.puesto === 2
+                          ? "🥈"
+                          : p.puesto === 3
+                            ? "🥉"
+                            : `${p.puesto}°`}
+                    </span>
+                    <span className="font-heading font-extrabold text-2xl md:text-3xl">
+                      {p.nombre ?? "—"}
+                    </span>
+                  </div>
+                  <span className="font-heading font-extrabold text-3xl md:text-4xl">
+                    {p.puntos}
+                    <span className="text-lg ml-1 opacity-70">pts</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -800,7 +672,6 @@ export default function PresentacionPage() {
             ))}
           </div>
         </div>
-        {barraControles}
       </div>
     );
   }
@@ -894,16 +765,7 @@ export default function PresentacionPage() {
               </div>
             </div>
           </div>
-
-          <button
-            onClick={verPodium}
-            disabled={controlesLoading}
-            className="px-6 py-3 bg-dorado text-azul-dark rounded-xl font-heading font-bold text-lg hover:bg-dorado-light disabled:opacity-50"
-          >
-            Ver Podium 🏆
-          </button>
         </div>
-        {barraControles}
       </div>
     );
   }
@@ -913,7 +775,6 @@ export default function PresentacionPage() {
       <div className="text-white text-xl font-heading">
         Estado: {sesion.estado}
       </div>
-      {barraControles}
     </div>
   );
 }

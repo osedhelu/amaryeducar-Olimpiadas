@@ -7,6 +7,7 @@ class EstadoSesion(str, Enum):
     PREGUNTA = "pregunta"
     RESULTADO = "resultado"
     RETO = "reto"
+    RETO_PODIUM = "reto_podium"
     PODIUM = "podium"
     FINAL = "final"
 

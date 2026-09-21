@@ -16,6 +16,7 @@ import type {
   Pregunta,
   Jugador,
   PodiumEntry,
+  PuntajeReto,
   Respuesta,
   Reto,
   EventoWS,
@@ -45,6 +46,7 @@ export default function AdminSessionPage() {
   const [jugadores, setJugadores] = useState<Jugador[]>([]);
   const [respuestasPregunta, setRespuestasPregunta] = useState<Respuesta[]>([]);
   const [podium, setPodium] = useState<PodiumEntry[]>([]);
+  const [podiumReto, setPodiumReto] = useState<PuntajeReto[] | null>(null);
   const [tablaColegios, setTablaColegios] = useState<TablaColegio[]>([]);
   const [colegios, setColegios] = useState<Colegio[]>([]);
   const [nuevoPin, setNuevoPin] = useState("");
@@ -277,6 +279,34 @@ export default function AdminSessionPage() {
       .catch(() => {});
     setVista("podium");
     await api.actualizarSesion(sesionActiva.id, { estado: "podium" });
+  }
+
+  /** Podio SOLO del reto lúdico activo (no el acumulado de la sesión).
+   *  Además envía el estado a la pantalla grande para que muestre el resultado
+   *  de este reto. No sale del flujo: el jurado puede seguir calificando. */
+  async function mostrarPodioReto() {
+    if (!sesionActiva?.reto_activo_id) return;
+    try {
+      const p = await api.puntajesReto(
+        sesionActiva.reto_activo_id,
+        sesionActiva.id,
+      );
+      setPodiumReto([...p].sort((a, b) => a.puesto - b.puesto));
+      const updated = await api.actualizarSesion(sesionActiva.id, {
+        estado: "reto_podium",
+      });
+      if (updated) setSesionActiva(updated);
+    } catch {
+      setPodiumReto([]);
+    }
+  }
+
+  async function volverAlReto() {
+    if (!sesionActiva) return;
+    const updated = await api.actualizarSesion(sesionActiva.id, {
+      estado: "reto",
+    });
+    if (updated) setSesionActiva(updated);
   }
 
   async function aprobarRespuesta(respuestaId: string, correcta: boolean) {
@@ -757,10 +787,32 @@ export default function AdminSessionPage() {
                   </p>
                 </div>
                 <button
-                  onClick={mostrarPodium}
+                  onClick={mostrarPodioReto}
                   className="px-4 py-2 bg-azul text-white rounded-lg font-heading font-bold text-sm hover:bg-azul-light"
                 >
-                  Ver Podium
+                  Ver Podium del reto
+                </button>
+              </div>
+            </div>
+          )}
+
+          {sesionActiva.estado === "reto_podium" && (
+            <div className="bg-dorado/10 border-2 border-dorado rounded-xl p-4 mb-6 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-heading font-bold text-azul-dark">
+                    🏆 Podio del reto en pantalla grande
+                  </p>
+                  <p className="text-sm text-texto-light">
+                    La pantalla grande muestra los ganadores de este reto. El
+                    jurado puede seguir corrigiendo puestos.
+                  </p>
+                </div>
+                <button
+                  onClick={volverAlReto}
+                  className="px-4 py-2 bg-azul text-white rounded-lg font-heading font-bold text-sm hover:bg-azul-light"
+                >
+                  ← Volver al reto
                 </button>
               </div>
             </div>
@@ -883,6 +935,66 @@ export default function AdminSessionPage() {
             </div>
           </div>
         </div>
+        {podiumReto && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setPodiumReto(null)}
+          >
+            <div
+              className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-bounce-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-heading font-extrabold text-azul text-center mb-1">
+                🏆 Podio del reto
+              </h3>
+              <p className="text-sm text-texto-light text-center mb-4">
+                Puntos de esta prueba lúdica
+              </p>
+              {podiumReto.length === 0 ? (
+                <p className="text-center text-texto-light py-6">
+                  Aún no hay puestos asignados en este reto.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {podiumReto.map((p) => (
+                    <div
+                      key={p.id}
+                      className={`flex items-center justify-between p-3 rounded-xl ${
+                        p.puesto === 1
+                          ? "bg-dorado text-azul-dark"
+                          : "bg-gray-50 text-texto"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">
+                          {p.puesto === 1
+                            ? "🥇"
+                            : p.puesto === 2
+                              ? "🥈"
+                              : p.puesto === 3
+                                ? "🥉"
+                                : `${p.puesto}°`}
+                        </span>
+                        <span className="font-heading font-bold">
+                          {p.nombre ?? "—"}
+                        </span>
+                      </div>
+                      <span className="font-heading font-extrabold">
+                        +{p.puntos} pts
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => setPodiumReto(null)}
+                className="mt-5 w-full py-2.5 bg-azul text-white rounded-xl font-heading font-bold hover:bg-azul-light"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     );
   }
