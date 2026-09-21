@@ -27,12 +27,6 @@ type Vista =
   | "final";
 
 const LETRAS = ["A", "B", "C", "D"];
-const COLORES_OPCION = [
-  "bg-rojo",
-  "bg-azul-light",
-  "bg-dorado text-azul-dark",
-  "bg-verde",
-];
 const COLORES_BARRA = ["bg-rojo", "bg-azul-light", "bg-dorado", "bg-verde"];
 
 interface ConteoOpcion {
@@ -330,7 +324,6 @@ export default function PresentacionPage() {
     const esMultiple = pregunta.tipo === "opcion-multiple";
     const conteos = contarPorOpcion(respuestas, pregunta.opciones);
     const maxCount = Math.max(1, ...conteos.map((c) => c.count));
-    const opciones = pregunta.opciones ?? [];
 
     return (
       <div className="flex-1 flex flex-col p-6 md:p-10 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
@@ -370,23 +363,6 @@ export default function PresentacionPage() {
                 alt="Imagen de la pregunta"
                 className="max-h-[38vh] max-w-full object-contain rounded-xl"
               />
-            </div>
-          )}
-
-          {esMultiple && opciones.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {opciones.map((opcion, idx) => (
-                <div
-                  key={LETRAS[idx]}
-                  className={`${COLORES_OPCION[idx]} p-6 rounded-2xl shadow-lg flex items-center text-white text-xl md:text-2xl font-heading font-bold animate-slide-up`}
-                  style={{ animationDelay: `${idx * 100}ms` }}
-                >
-                  <span className="text-3xl mr-4 opacity-80">
-                    {LETRAS[idx]}
-                  </span>
-                  {opcion.replace(/^[A-D]\)\s*/, "")}
-                </div>
-              ))}
             </div>
           )}
 
@@ -436,7 +412,6 @@ export default function PresentacionPage() {
 
   if (vista === "resultado" && pregunta) {
     const esMultiple = pregunta.tipo === "opcion-multiple";
-    const correcta = (pregunta.respuesta_correcta ?? "").trim().toUpperCase();
     const conteos = contarPorOpcion(respuestas, pregunta.opciones);
     const maxCount = Math.max(1, ...conteos.map((c) => c.count));
 
@@ -458,46 +433,31 @@ export default function PresentacionPage() {
           </h1>
 
           {esMultiple ? (
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10 text-left">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
               <p className="text-white/60 text-sm font-heading font-bold uppercase mb-4 text-center">
-                Distribución de respuestas
+                Participación
               </p>
               <div className="space-y-3">
-                {conteos.map((c, i) => {
-                  const esCorrecta = c.letra === correcta;
-                  const atenuar = correcta && !esCorrecta;
-                  return (
-                    <div
-                      key={c.letra}
-                      className={`flex items-center gap-3 animate-slide-up ${atenuar ? "opacity-50" : ""}`}
-                      style={{ animationDelay: `${i * 150}ms` }}
-                    >
-                      <span
-                        className={`w-7 text-2xl font-heading font-extrabold text-center ${
-                          esCorrecta ? "text-verde" : "text-white/80"
-                        }`}
-                      >
-                        {esCorrecta ? "✓" : c.letra}
-                      </span>
-                      <div className="flex-1">
-                        <div className="h-10 bg-white/10 rounded-lg overflow-hidden">
-                          <div
-                            className={`h-full ${COLORES_BARRA[i]} transition-all duration-700`}
-                            style={{ width: `${(c.count / maxCount) * 100}%` }}
-                          />
-                        </div>
-                        {c.texto && (
-                          <p className="text-white/60 text-xs mt-1">
-                            {c.texto}
-                          </p>
-                        )}
-                      </div>
-                      <span className="w-10 text-right text-white font-heading font-bold text-xl">
-                        {c.count}
-                      </span>
+                {conteos.map((c, i) => (
+                  <div
+                    key={c.letra}
+                    className="flex items-center gap-3 animate-slide-up"
+                    style={{ animationDelay: `${i * 150}ms` }}
+                  >
+                    <span className="w-7 text-2xl font-heading font-extrabold text-center text-white/80">
+                      {c.letra}
+                    </span>
+                    <div className="flex-1 h-10 bg-white/10 rounded-lg overflow-hidden">
+                      <div
+                        className={`h-full ${COLORES_BARRA[i]} transition-all duration-700`}
+                        style={{ width: `${(c.count / maxCount) * 100}%` }}
+                      />
                     </div>
-                  );
-                })}
+                    <span className="w-10 text-right text-white font-heading font-bold text-xl">
+                      {c.count}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
