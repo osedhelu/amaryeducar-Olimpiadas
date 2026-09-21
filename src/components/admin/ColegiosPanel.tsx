@@ -64,7 +64,7 @@ export default function ColegiosPanel() {
   }
 
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+    <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10">
       <h2 className="font-heading font-bold text-azul mb-4">
         Colegios participantes
       </h2>
@@ -74,14 +74,14 @@ export default function ColegiosPanel() {
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           placeholder="Nombre del colegio"
-          className="flex-1 min-w-40 px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-azul outline-none"
+          className="flex-1 min-w-40 px-3 py-2 border-2 border-azul/20 rounded-lg focus:border-azul outline-none bg-white"
         />
         <input
           value={codigo}
           onChange={(e) => setCodigo(e.target.value)}
           placeholder="Código (opcional)"
           maxLength={20}
-          className="w-32 px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-azul outline-none"
+          className="w-32 px-3 py-2 border-2 border-azul/20 rounded-lg focus:border-azul outline-none bg-white"
         />
         <button
           type="submit"
@@ -103,7 +103,7 @@ export default function ColegiosPanel() {
           {colegios.map((c) => (
             <div
               key={c.id}
-              className="flex items-center justify-between p-3 rounded-lg border border-gray-100"
+              className="flex items-center justify-between p-3 rounded-lg border border-azul/10"
             >
               {editandoId === c.id ? (
                 <input
@@ -135,7 +135,7 @@ export default function ColegiosPanel() {
                     </button>
                     <button
                       onClick={() => setEditandoId(null)}
-                      className="px-3 py-1 bg-gray-200 text-texto rounded-lg text-sm font-bold"
+                      className="px-3 py-1 bg-azul/10 text-azul rounded-lg text-sm font-bold hover:bg-azul/20"
                     >
                       Cancelar
                     </button>

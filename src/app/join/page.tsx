@@ -108,7 +108,7 @@ export default function JoinPage() {
             placeholder="Ej: 1234"
             maxLength={4}
             autoComplete="off"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-azul focus:outline-none transition-colors text-center text-2xl tracking-widest font-heading"
+            className="w-full px-4 py-3 border-2 border-azul/20 rounded-xl focus:border-azul focus:outline-none bg-white transition-colors text-center text-2xl tracking-widest font-heading"
             required
           />
           {consultando && (

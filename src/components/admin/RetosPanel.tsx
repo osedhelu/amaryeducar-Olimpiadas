@@ -143,13 +143,13 @@ export default function RetosPanel({
     : jugadores;
 
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+    <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10">
       <div className="flex justify-between items-center mb-4">
         <h2 className="font-heading font-bold text-azul">🎯 Retos lúdicos</h2>
         {retoActivo && (
           <button
             onClick={cerrarReto}
-            className="px-3 py-1 bg-gray-200 text-texto rounded-lg text-sm font-bold hover:bg-gray-300"
+            className="px-3 py-1 bg-azul/10 text-azul rounded-lg text-sm font-bold hover:bg-azul/20"
           >
             Cerrar reto
           </button>
@@ -166,7 +166,7 @@ export default function RetosPanel({
             {retos.map((r) => (
               <div
                 key={r.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-gray-100"
+                className="flex items-center justify-between p-3 rounded-lg border border-azul/10"
               >
                 <div>
                   <span className="font-heading font-bold text-texto">
@@ -228,7 +228,7 @@ export default function RetosPanel({
                 {puntajes.map((p) => (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between bg-white border border-gray-100 rounded-lg px-3 py-2"
+                    className="flex items-center justify-between bg-white border border-azul/10 rounded-lg px-3 py-2"
                   >
                     <span className="text-sm font-heading font-bold text-texto">
                       {MEDALLAS[p.puesto - 1] ?? `${p.puesto}º`}{" "}

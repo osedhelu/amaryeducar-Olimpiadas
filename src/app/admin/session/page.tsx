@@ -406,7 +406,7 @@ export default function AdminSessionPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
             <button
               onClick={() => router.push("/admin/preguntas")}
-              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
+              className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
             >
               <div className="text-3xl mb-1">📚</div>
               <p className="font-heading font-bold text-azul">Preguntas</p>
@@ -416,7 +416,7 @@ export default function AdminSessionPage() {
             </button>
             <button
               onClick={() => setVista("colegios")}
-              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
+              className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
             >
               <div className="text-3xl mb-1">🏫</div>
               <p className="font-heading font-bold text-azul">Colegios</p>
@@ -426,7 +426,7 @@ export default function AdminSessionPage() {
             </button>
             <button
               onClick={() => setVista("alumnos")}
-              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
+              className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
             >
               <div className="text-3xl mb-1">🎓</div>
               <p className="font-heading font-bold text-azul">Alumnos</p>
@@ -436,7 +436,7 @@ export default function AdminSessionPage() {
             </button>
             <button
               onClick={() => setVista("enfrentamiento")}
-              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
+              className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
             >
               <div className="text-3xl mb-1">⚔️</div>
               <p className="font-heading font-bold text-azul">Enfrentamiento</p>
@@ -446,7 +446,7 @@ export default function AdminSessionPage() {
             </button>
             <button
               onClick={() => setVista("duelos")}
-              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
+              className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
             >
               <div className="text-3xl mb-1">🥊</div>
               <p className="font-heading font-bold text-azul">Prueba 1v1</p>
@@ -460,7 +460,7 @@ export default function AdminSessionPage() {
             {grados.map((g) => (
               <div
                 key={g.id}
-                className="bg-white rounded-xl p-5 shadow-sm border border-gray-100"
+                className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10"
               >
                 <h3 className="text-xl font-heading font-bold text-azul mb-2">
                   Grado {g.nombre}
@@ -500,7 +500,7 @@ export default function AdminSessionPage() {
                   <button
                     key={s.id}
                     onClick={() => seleccionarSesion(s)}
-                    className="w-full flex items-center justify-between bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-azul/30 transition-colors text-left"
+                    className="w-full flex items-center justify-between bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
                   >
                     <div>
                       <span className="font-heading font-bold text-azul">
@@ -518,7 +518,7 @@ export default function AdminSessionPage() {
                             ? "bg-dorado/20 text-dorado"
                             : s.estado === "final"
                               ? "bg-verde/20 text-verde"
-                              : "bg-gray-100 text-texto-light"
+                              : "bg-azul/10 text-azul"
                       }`}
                     >
                       {s.estado}
@@ -818,7 +818,7 @@ export default function AdminSessionPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-6">
+          <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10 mb-6">
             <h2 className="font-heading font-bold text-azul mb-3">
               Jugadores conectados
             </h2>
@@ -848,7 +848,7 @@ export default function AdminSessionPage() {
             />
           </div>
 
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10">
             <div className="flex justify-between items-center mb-3">
               <h2 className="font-heading font-bold text-azul">Preguntas</h2>
               <div className="flex gap-2">
@@ -890,7 +890,7 @@ export default function AdminSessionPage() {
                         ? "border-dorado bg-dorado/10"
                         : esAnterior
                           ? "border-verde/40 bg-verde/5"
-                          : "border-gray-100"
+                          : "border-azul/10"
                     }`}
                   >
                     <div className="flex-1">
@@ -962,7 +962,7 @@ export default function AdminSessionPage() {
                       className={`flex items-center justify-between p-3 rounded-xl ${
                         p.puesto === 1
                           ? "bg-dorado text-azul-dark"
-                          : "bg-gray-50 text-texto"
+                          : "bg-bg text-texto"
                       }`}
                     >
                       <div className="flex items-center gap-3">

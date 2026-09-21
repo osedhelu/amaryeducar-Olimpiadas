@@ -66,7 +66,7 @@ export default function AlumnosPanel() {
   }
 
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+    <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10">
       <h2 className="font-heading font-bold text-azul mb-4">
         Alumnos registrados
       </h2>
@@ -75,7 +75,7 @@ export default function AlumnosPanel() {
         <select
           value={colegioId}
           onChange={(e) => setColegioId(e.target.value)}
-          className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-azul outline-none"
+          className="px-3 py-2 border-2 border-azul/20 rounded-lg focus:border-azul outline-none bg-white"
         >
           <option value="">Todos los colegios</option>
           {colegios.map((c) => (
@@ -87,7 +87,7 @@ export default function AlumnosPanel() {
         <select
           value={gradoId}
           onChange={(e) => setGradoId(e.target.value)}
-          className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-azul outline-none"
+          className="px-3 py-2 border-2 border-azul/20 rounded-lg focus:border-azul outline-none bg-white"
         >
           <option value="">Selecciona un grado</option>
           {grados.map((g) => (
@@ -104,7 +104,7 @@ export default function AlumnosPanel() {
             value={nuevoNombre}
             onChange={(e) => setNuevoNombre(e.target.value)}
             placeholder="Nombre del alumno"
-            className="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-azul outline-none"
+            className="flex-1 px-3 py-2 border-2 border-azul/20 rounded-lg focus:border-azul outline-none bg-white"
           />
           <button
             type="submit"

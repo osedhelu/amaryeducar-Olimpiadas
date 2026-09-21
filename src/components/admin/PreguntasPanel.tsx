@@ -323,7 +323,7 @@ export default function PreguntasPanel() {
           </button>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-5 flex gap-4 flex-wrap items-end">
+        <div className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 mb-5 flex gap-4 flex-wrap items-end">
           <label className="flex flex-col gap-1">
             <span className="text-xs font-bold text-texto-light uppercase">
               Grado
@@ -331,7 +331,7 @@ export default function PreguntasPanel() {
             <select
               value={gradoId}
               onChange={(e) => setGradoId(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              className="border border-azul/20 rounded-lg px-3 py-2 text-sm bg-white"
             >
               {grados.map((g) => (
                 <option key={g.id} value={g.id}>
@@ -347,7 +347,7 @@ export default function PreguntasPanel() {
             <select
               value={sesion}
               onChange={(e) => setSesion(e.target.value as SesionNumero)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              className="border border-azul/20 rounded-lg px-3 py-2 text-sm bg-white"
             >
               <option value="1">Sesión 1</option>
               <option value="2">Sesión 2</option>
@@ -367,7 +367,7 @@ export default function PreguntasPanel() {
         {cargando ? (
           <p className="text-texto-light">Cargando…</p>
         ) : preguntas.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center border border-dashed border-gray-200">
+          <div className="bg-bg-card rounded-xl p-8 text-center border border-dashed border-azul/30">
             <p className="text-texto-light">
               No hay preguntas para este grado y sesión.
             </p>
@@ -379,8 +379,8 @@ export default function PreguntasPanel() {
               return (
                 <li
                   key={p.id}
-                  className={`bg-white rounded-xl p-3 shadow-sm border flex gap-3 items-center ${
-                    p.activa ? "border-gray-100" : "border-rojo/30 opacity-70"
+                  className={`bg-bg-card rounded-xl p-3 shadow-sm border flex gap-3 items-center ${
+                    p.activa ? "border-azul/10" : "border-rojo/30 opacity-70"
                   }`}
                 >
                   <div className="flex flex-col items-center gap-1 text-texto-light">
@@ -403,7 +403,7 @@ export default function PreguntasPanel() {
                     </button>
                   </div>
 
-                  <div className="w-20 h-20 rounded-lg bg-bg flex items-center justify-center overflow-hidden shrink-0 border border-gray-100">
+                  <div className="w-20 h-20 rounded-lg bg-white flex items-center justify-center overflow-hidden shrink-0 border border-azul/10">
                     {url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -495,7 +495,7 @@ export default function PreguntasPanel() {
                   onChange={(e) =>
                     setForm({ ...form, sesion: e.target.value as SesionNumero })
                   }
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  className="border border-azul/20 rounded-lg px-3 py-2 text-sm bg-white"
                 >
                   <option value="1">Sesión 1</option>
                   <option value="2">Sesión 2</option>
@@ -510,7 +510,7 @@ export default function PreguntasPanel() {
                   onChange={(e) =>
                     setForm({ ...form, tipo: e.target.value as TipoPregunta })
                   }
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  className="border border-azul/20 rounded-lg px-3 py-2 text-sm bg-white"
                 >
                   <option value="opcion-multiple">Opción múltiple</option>
                   <option value="abierta">Abierta</option>
@@ -528,7 +528,7 @@ export default function PreguntasPanel() {
                   setForm({ ...form, enunciado: e.target.value })
                 }
                 rows={3}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm resize-y"
+                className="border border-azul/20 rounded-lg px-3 py-2 text-sm bg-white resize-y"
                 placeholder="Escribe la pregunta…"
               />
             </label>
@@ -561,7 +561,7 @@ export default function PreguntasPanel() {
                           setForm({ ...form, opciones });
                         }}
                         placeholder={`Texto de la opción ${LETRAS[i]}`}
-                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                        className="flex-1 border border-azul/20 rounded-lg px-3 py-2 text-sm bg-white"
                       />
                     </div>
                   ))}
@@ -585,7 +585,7 @@ export default function PreguntasPanel() {
                       tiempo_limite: Number(e.target.value) || 30,
                     })
                   }
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  className="border border-azul/20 rounded-lg px-3 py-2 text-sm bg-white"
                 />
               </label>
               {[1, 2, 3].map((puesto) => (
@@ -603,7 +603,7 @@ export default function PreguntasPanel() {
                       setForm({ ...form, puntos });
                     }}
                     placeholder="—"
-                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                    className="border border-azul/20 rounded-lg px-3 py-2 text-sm bg-white"
                   />
                 </label>
               ))}
@@ -614,7 +614,7 @@ export default function PreguntasPanel() {
                 Imagen de la pregunta
               </span>
               <div className="flex gap-4 items-start mt-2">
-                <div className="w-40 h-32 rounded-lg bg-bg border border-dashed border-gray-300 flex items-center justify-center overflow-hidden shrink-0">
+                <div className="w-40 h-32 rounded-lg bg-white border border-dashed border-azul/30 flex items-center justify-center overflow-hidden shrink-0">
                   {urlPreview ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -677,7 +677,7 @@ export default function PreguntasPanel() {
             <div className="flex justify-end gap-2">
               <button
                 onClick={cerrarModal}
-                className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-bg"
+                className="px-4 py-2 text-sm rounded-lg border border-azul/20 hover:bg-bg"
               >
                 Cancelar
               </button>

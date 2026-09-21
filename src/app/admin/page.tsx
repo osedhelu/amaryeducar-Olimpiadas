@@ -55,7 +55,7 @@ export default function AdminLogin() {
             value={clave}
             onChange={(e) => setClave(e.target.value)}
             placeholder="Ingresa la clave"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-azul focus:outline-none transition-colors"
+            className="w-full px-4 py-3 border-2 border-azul/20 rounded-xl focus:border-azul focus:outline-none bg-white transition-colors"
             required
           />
         </div>

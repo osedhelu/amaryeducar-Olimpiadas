@@ -35,7 +35,7 @@ export default function EnfrentamientoPanel() {
   const nombreGrado = grados.find((g) => g.id === gradoId)?.nombre ?? "";
 
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+    <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10">
       <h2 className="font-heading font-bold text-azul mb-4">
         Enfrentamiento colegio vs colegio
       </h2>
@@ -43,7 +43,7 @@ export default function EnfrentamientoPanel() {
       <select
         value={gradoId}
         onChange={(e) => setGradoId(e.target.value)}
-        className="w-full md:w-72 px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-azul outline-none mb-4"
+        className="w-full md:w-72 px-3 py-2 border-2 border-azul/20 rounded-lg focus:border-azul outline-none bg-white mb-4"
       >
         <option value="">Selecciona un grado</option>
         {grados.map((g) => (
@@ -74,7 +74,7 @@ export default function EnfrentamientoPanel() {
               className={`flex items-center justify-between p-4 rounded-xl ${
                 entry.puesto === 1
                   ? "bg-dorado/15 border-2 border-dorado"
-                  : "border border-gray-100"
+                  : "border border-azul/10"
               }`}
             >
               <div className="flex items-center gap-4">
