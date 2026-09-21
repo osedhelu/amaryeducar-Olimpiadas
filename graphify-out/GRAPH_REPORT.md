@@ -1,9 +1,7 @@
 # Graph Report - amaryeducar-olimpiadas2026  (2026-09-21)
 
 ## Corpus Check
-- 86 files · ~38,205 words
-- Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .ico 1, .css 1)
+- cluster-only mode — file stats not available
 
 ## Summary
 - 1064 nodes · 2566 edges · 75 communities (43 shown, 32 thin omitted)
@@ -85,7 +83,7 @@
 7. `JugadorRepo` - 32 edges
 8. `ControlRondaUseCases` - 30 edges
 9. `_row_to_obj()` - 30 edges
-10. `RegistroUseCases` - 29 edges
+10. `RespuestaRepo` - 29 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `next.svg — logotipo de Next.js (texto + marca)` --conceptually_related_to--> `Next.js 16 (App Router, Turbopack, TypeScript)`  [INFERRED]
@@ -282,24 +280,24 @@ Cohesion: 0.67
 Nodes (3): domain_error_handler(), exception_handler, Request
 
 ## Knowledge Gaps
-- **74 isolated node(s):** `TokenInfo`, `amaryeducar-api`, `eslintConfig`, `nextConfig`, `name` (+69 more)
+- **74 isolated node(s):** `RefreshData`, `JWTPayload`, `RolJWT`, `Vista`, `EstadoSesion` (+69 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 317 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **32 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `RealtimePublisher` connect `RealtimePublisher` to `DatosInvalidos`, `DomainError`, `ConnectionManager`, `test_answers_use_cases.py`, `main.py`, `fakes.py`, `FakeRealtime`?**
-  _High betweenness centrality (0.072) - this node is a cross-community bridge._
-- **Why does `ConnectionManager` connect `ConnectionManager` to `sessions.py`, `RealtimePublisher`, `deps.py`, `main.py`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
 - **Why does `DatosInvalidos` connect `DatosInvalidos` to `TestImagen`, `DomainError`, `test_answers_use_cases.py`, `test_sessions_use_cases.py`, `test_preguntas_use_cases.py`, `test_retos_use_cases.py`, `AlumnoRepo`, `ColegioRepo`, `TestAsignarPuesto`?**
-  _High betweenness centrality (0.047) - this node is a cross-community bridge._
+  _High betweenness centrality (0.056) - this node is a cross-community bridge._
+- **Why does `RealtimePublisher` connect `RealtimePublisher` to `DatosInvalidos`, `DomainError`, `ConnectionManager`, `test_answers_use_cases.py`, `main.py`, `fakes.py`, `FakeRealtime`?**
+  _High betweenness centrality (0.055) - this node is a cross-community bridge._
+- **Why does `FakeDb` connect `FakeDb` to `uc_sesion`, `uc_preguntas`, `DomainError`, `test_answers_use_cases.py`, `_row_to_obj`, `fakes.py`, `test_sessions_use_cases.py`, `test_preguntas_use_cases.py`, `test_retos_use_cases.py`, `uc_duelo`?**
+  _High betweenness centrality (0.046) - this node is a cross-community bridge._
 - **Are the 34 inferred relationships involving `DomainError` (e.g. with `error_handler()` and `aprobar_respuesta()`) actually correct?**
   _`DomainError` has 34 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 15 inferred relationships involving `DatosInvalidos` (e.g. with `RespuestaUseCases` and `PreguntasUseCases`) actually correct?**
   _`DatosInvalidos` has 15 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 23 inferred relationships involving `SesionUseCases` (e.g. with `ActualizarSesionRequest` and `CrearSesionRequest`) actually correct?**
   _`SesionUseCases` has 23 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `TokenInfo`, `amaryeducar-api`, `eslintConfig` to the rest of the system?**
+- **What connects `RefreshData`, `JWTPayload`, `RolJWT` to the rest of the system?**
   _74 weakly-connected nodes found - possible documentation gaps or missing edges._
