@@ -718,16 +718,14 @@ class PuntajeRetoRepo:
         puesto: int,
         puntos: int,
     ) -> None:
-        await self.db.execute(
-            delete(PuntajeRetoORM).where(
-                PuntajeRetoORM.reto_id == reto_id,
-                (
-                    PuntajeRetoORM.jugador_id.is_(jugador_id)
-                    if jugador_id is None
-                    else PuntajeRetoORM.jugador_id == jugador_id
-                ),
-            )
-        )
+        conds = [PuntajeRetoORM.reto_id == reto_id]
+        if sesion_id is not None:
+            conds.append(PuntajeRetoORM.sesion_id == sesion_id)
+        if jugador_id is not None:
+            conds.append(PuntajeRetoORM.jugador_id == jugador_id)
+        elif colegio_id is not None:
+            conds.append(PuntajeRetoORM.colegio_id == colegio_id)
+        await self.db.execute(delete(PuntajeRetoORM).where(*conds))
         row = PuntajeRetoORM(
             reto_id=reto_id,
             sesion_id=sesion_id,

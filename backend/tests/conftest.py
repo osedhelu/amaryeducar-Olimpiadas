@@ -80,6 +80,13 @@ def colegio_2():
 
 
 @pytest.fixture
+def colegio_3():
+    from app.domain.entities import Colegio
+
+    return Colegio(id=uuid.uuid4(), nombre="Colegio 3", codigo="C3")
+
+
+@pytest.fixture
 def alumno(repos, grado_individual, colegio_1):
     a = Alumno(
         id=uuid.uuid4(),

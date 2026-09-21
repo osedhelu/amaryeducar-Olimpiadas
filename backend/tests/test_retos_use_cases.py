@@ -147,6 +147,76 @@ class TestAsignarPuesto:
         assert res["puntos"] == 50
 
 
+class TestRetoGrupalMultiplesColegios:
+    async def test_dos_colegios_conserva_ambos(
+        self, uc_retos, repos, reto_grupal, colegio_1, colegio_2, sesion_lobby
+    ):
+        """Regresión: asignar puesto a 2 colegios en el mismo reto/sesión conserva ambos."""
+        repos.reto.retos[reto_grupal.id] = reto_grupal
+        await uc_retos.asignar_puesto(
+            str(reto_grupal.id), str(sesion_lobby.id), None, str(colegio_1.id), 1
+        )
+        await uc_retos.asignar_puesto(
+            str(reto_grupal.id), str(sesion_lobby.id), None, str(colegio_2.id), 2
+        )
+        puntajes = await repos.puntaje_reto.listar_por_reto(reto_grupal.id)
+        assert len(puntajes) == 2
+        colegios_ids = {p.colegio_id for p in puntajes}
+        assert colegio_1.id in colegios_ids
+        assert colegio_2.id in colegios_ids
+
+    async def test_dos_colegios_listar_por_reto_y_sesion(
+        self, uc_retos, repos, reto_grupal, colegio_1, colegio_2, sesion_lobby
+    ):
+        """listar_por_reto con sesion_id retorna ambos colegios."""
+        repos.reto.retos[reto_grupal.id] = reto_grupal
+        await uc_retos.asignar_puesto(
+            str(reto_grupal.id), str(sesion_lobby.id), None, str(colegio_1.id), 1
+        )
+        await uc_retos.asignar_puesto(
+            str(reto_grupal.id), str(sesion_lobby.id), None, str(colegio_2.id), 2
+        )
+        lista = await repos.puntaje_reto.listar_por_reto(
+            reto_grupal.id, sesion_lobby.id
+        )
+        assert len(lista) == 2
+        assert {p.puesto for p in lista} == {1, 2}
+
+    async def test_reemplazar_puesto_colegio_no_borra_otro(
+        self,
+        uc_retos,
+        repos,
+        reto_grupal,
+        colegio_1,
+        colegio_2,
+        colegio_3,
+        sesion_lobby,
+    ):
+        """Regresión: reasignar puesto 1 de Colegio A a Colegio B preserva al Colegio C."""
+        repos.reto.retos[reto_grupal.id] = reto_grupal
+        repos.colegio.colegios[colegio_1.id] = colegio_1
+        repos.colegio.colegios[colegio_2.id] = colegio_2
+        repos.colegio.colegios[colegio_3.id] = colegio_3
+        await uc_retos.asignar_puesto(
+            str(reto_grupal.id), str(sesion_lobby.id), None, str(colegio_1.id), 1
+        )
+        await uc_retos.asignar_puesto(
+            str(reto_grupal.id), str(sesion_lobby.id), None, str(colegio_2.id), 2
+        )
+        await uc_retos.asignar_puesto(
+            str(reto_grupal.id), str(sesion_lobby.id), None, str(colegio_3.id), 3
+        )
+        # Reasignar puesto 1 a Colegio B (desplaza a Colegio A, que sale del reto)
+        await uc_retos.asignar_puesto(
+            str(reto_grupal.id), str(sesion_lobby.id), None, str(colegio_2.id), 1
+        )
+        puntajes = await repos.puntaje_reto.listar_por_reto(reto_grupal.id)
+        assert len(puntajes) == 2
+        by_id = {p.colegio_id: p for p in puntajes}
+        assert by_id[colegio_2.id].puesto == 1
+        assert by_id[colegio_3.id].puesto == 3
+
+
 class TestListarPuntajes:
     async def test_lista_con_nombre(
         self, uc_retos, repos, reto_individual, sesion_lobby
