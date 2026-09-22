@@ -19,6 +19,7 @@ from app.domain.entities import (
     Reto,
     SesionJuego,
 )
+from app.domain.scoring import agregar_podium, agregar_tabla_colegios
 from app.infrastructure.db.models import (
     AlumnoORM,
     ColegioORM,
@@ -773,9 +774,11 @@ class PuntajeRetoRepo:
 async def obtener_podium_rows(
     db: AsyncSession, sesion_id: uuid.UUID
 ) -> list[PodiumEntry]:
-    """Replica sql/03-functions.sql obtener_podium en Python."""
-    from sqlalchemy import func, case, text
+    """Podium de la sesión: respuestas + retos (grupal e individuales).
 
+    Carga las filas crudas y delega la agregación en
+    ``domain.scoring.agregar_podium`` (lógica pura y testeada).
+    """
     sesion_row = await db.get(SesionJuegoORM, sesion_id)
     if not sesion_row:
         return []
@@ -784,110 +787,66 @@ async def obtener_podium_rows(
         return []
     es_grupal = grado_row.orden >= 4
 
-    if es_grupal:
-        # Sumar por colegio: respuestas correctas + puntajes de retos grupales
-        resp_col = (
-            select(
-                ColegioORM.id.label("entity_id"),
-                ColegioORM.nombre.label("nombre"),
-                func.coalesce(RespuestaORM.puntos, 0).label("puntos"),
-            )
-            .join(JugadorORM, JugadorORM.colegio_id == ColegioORM.id)
-            .outerjoin(RespuestaORM, RespuestaORM.jugador_id == JugadorORM.id)
-            .where(JugadorORM.sesion_id == sesion_id, RespuestaORM.correcta.is_(True))
-        )
-        reto_col = (
-            select(
-                ColegioORM.id.label("entity_id"),
-                ColegioORM.nombre.label("nombre"),
-                func.coalesce(PuntajeRetoORM.puntos, 0).label("puntos"),
-            )
-            .join(PuntajeRetoORM, PuntajeRetoORM.colegio_id == ColegioORM.id)
-            .where(
-                PuntajeRetoORM.sesion_id == sesion_id,
-                PuntajeRetoORM.reto_id.in_(
-                    select(RetoORM.id).where(RetoORM.grado_id == sesion_row.grado_id)
-                ),
-            )
-        )
-        union = resp_col.union_all(reto_col).subquery()
-        query = (
-            select(
-                union.c.entity_id,
-                union.c.nombre,
-                func.coalesce(func.sum(union.c.puntos), 0).label("total"),
-            )
-            .where(
-                union.c.entity_id.in_(
-                    select(ColegioORM.id)
-                    .join(JugadorORM, JugadorORM.colegio_id == ColegioORM.id)
-                    .where(JugadorORM.sesion_id == sesion_id)
+    jugadores = [
+        _row_to_obj(r, Jugador)
+        for r in (
+            (
+                await db.execute(
+                    select(JugadorORM).where(JugadorORM.sesion_id == sesion_id)
                 )
             )
-            .group_by(union.c.entity_id, union.c.nombre)
-            .order_by(text("total DESC"), union.c.nombre)
+            .scalars()
+            .all()
         )
-        rows = (await db.execute(query)).all()
-        return [
-            PodiumEntry(
-                puesto=i + 1,
-                nombre=r.nombre,
-                puntos_total=r.total,
-                es_colegio=True,
-                entity_id=r.entity_id,
-            )
-            for i, r in enumerate(rows)
-        ]
-    else:
-        resp_col = (
-            select(
-                JugadorORM.id.label("entity_id"),
-                JugadorORM.nombre.label("nombre"),
-                func.coalesce(RespuestaORM.puntos, 0).label("puntos"),
-            )
-            .outerjoin(RespuestaORM, RespuestaORM.jugador_id == JugadorORM.id)
-            .where(JugadorORM.sesion_id == sesion_id, RespuestaORM.correcta.is_(True))
-        )
-        reto_col = (
-            select(
-                JugadorORM.id.label("entity_id"),
-                JugadorORM.nombre.label("nombre"),
-                func.coalesce(PuntajeRetoORM.puntos, 0).label("puntos"),
-            )
-            .outerjoin(PuntajeRetoORM, PuntajeRetoORM.jugador_id == JugadorORM.id)
-            .where(
-                PuntajeRetoORM.sesion_id == sesion_id,
-                PuntajeRetoORM.reto_id.in_(
-                    select(RetoORM.id).where(RetoORM.grado_id == sesion_row.grado_id)
-                ),
-            )
-        )
-        union = resp_col.union_all(reto_col).subquery()
-        query = (
-            select(
-                union.c.entity_id,
-                union.c.nombre,
-                func.coalesce(func.sum(union.c.puntos), 0).label("total"),
-            )
-            .where(
-                union.c.entity_id.in_(
-                    select(JugadorORM.id).where(JugadorORM.sesion_id == sesion_id)
+    ]
+    respuestas = [
+        _row_to_obj(r, Respuesta)
+        for r in (
+            (
+                await db.execute(
+                    select(RespuestaORM)
+                    .join(JugadorORM, JugadorORM.id == RespuestaORM.jugador_id)
+                    .where(
+                        JugadorORM.sesion_id == sesion_id,
+                        RespuestaORM.correcta.is_(True),
+                    )
                 )
             )
-            .group_by(union.c.entity_id, union.c.nombre)
-            .order_by(text("total DESC"), union.c.nombre)
+            .scalars()
+            .all()
         )
-        rows = (await db.execute(query)).all()
-        return [
-            PodiumEntry(
-                puesto=i + 1,
-                nombre=r.nombre,
-                puntos_total=r.total,
-                es_colegio=False,
-                entity_id=r.entity_id,
+    ]
+    puntajes_retos = [
+        _row_to_obj(r, PuntajeReto)
+        for r in (
+            (
+                await db.execute(
+                    select(PuntajeRetoORM).where(
+                        PuntajeRetoORM.sesion_id == sesion_id,
+                        PuntajeRetoORM.reto_id.in_(
+                            select(RetoORM.id).where(
+                                RetoORM.grado_id == sesion_row.grado_id
+                            )
+                        ),
+                    )
+                )
             )
-            for i, r in enumerate(rows)
-        ]
+            .scalars()
+            .all()
+        )
+    ]
+    colegios = [
+        _row_to_obj(r, Colegio)
+        for r in (await db.execute(select(ColegioORM))).scalars().all()
+    ]
+
+    return agregar_podium(
+        respuestas,
+        puntajes_retos,
+        jugadores,
+        colegios,
+        es_grupal=es_grupal,
+    )
 
 
 async def generar_pin_unico(db: AsyncSession) -> str:
@@ -907,78 +866,77 @@ async def obtener_tabla_colegios(db: AsyncSession, grado_id: uuid.UUID) -> list[
     """Tabla todos contra todos: puntos por colegio sumando respuestas y retos
     de todas las sesiones OFICIALES del grado. Incluye colegios con 0 puntos
     (los que tienen alumnos registrados en ese grado)."""
-    from sqlalchemy import func, text
-
     # Colegios participantes = los que tienen alumnos en este grado
-    participantes = (
-        select(ColegioORM.id)
-        .join(AlumnoORM, AlumnoORM.colegio_id == ColegioORM.id)
-        .where(AlumnoORM.grado_id == grado_id)
-    )
+    colegios_participantes = [
+        _row_to_obj(r, Colegio)
+        for r in (
+            (
+                await db.execute(
+                    select(ColegioORM)
+                    .join(AlumnoORM, AlumnoORM.colegio_id == ColegioORM.id)
+                    .where(AlumnoORM.grado_id == grado_id)
+                    .distinct()
+                )
+            )
+            .scalars()
+            .all()
+        )
+    ]
 
     # Sesiones oficiales del grado
     sesiones_oficiales = select(SesionJuegoORM.id).where(
         SesionJuegoORM.grado_id == grado_id, SesionJuegoORM.tipo == "oficial"
     )
 
-    resp_col = (
-        select(
-            ColegioORM.id.label("entity_id"),
-            ColegioORM.nombre.label("nombre"),
-            func.coalesce(RespuestaORM.puntos, 0).label("puntos"),
+    jugadores = [
+        _row_to_obj(r, Jugador)
+        for r in (
+            (
+                await db.execute(
+                    select(JugadorORM).where(
+                        JugadorORM.sesion_id.in_(sesiones_oficiales)
+                    )
+                )
+            )
+            .scalars()
+            .all()
         )
-        .join(JugadorORM, JugadorORM.colegio_id == ColegioORM.id)
-        .outerjoin(RespuestaORM, RespuestaORM.jugador_id == JugadorORM.id)
-        .where(
-            JugadorORM.sesion_id.in_(sesiones_oficiales),
-            RespuestaORM.correcta.is_(True),
-        )
-    )
-    reto_col = (
-        select(
-            ColegioORM.id.label("entity_id"),
-            ColegioORM.nombre.label("nombre"),
-            func.coalesce(PuntajeRetoORM.puntos, 0).label("puntos"),
-        )
-        .join(PuntajeRetoORM, PuntajeRetoORM.colegio_id == ColegioORM.id)
-        .where(
-            PuntajeRetoORM.sesion_id.in_(sesiones_oficiales),
-            PuntajeRetoORM.reto_id.in_(
-                select(RetoORM.id).where(RetoORM.grado_id == grado_id)
-            ),
-        )
-    )
-    union = resp_col.union_all(reto_col).subquery()
-    query = (
-        select(
-            union.c.entity_id,
-            union.c.nombre,
-            func.coalesce(func.sum(union.c.puntos), 0).label("total"),
-        )
-        .where(union.c.entity_id.in_(participantes))
-        .group_by(union.c.entity_id, union.c.nombre)
-        .order_by(text("total DESC"), union.c.nombre)
-    )
-    rows = (await db.execute(query)).all()
-
-    # Asegurar que los colegios participantes sin puntos también aparezcan
-    colegios_participantes = (
-        (await db.execute(select(ColegioORM).where(ColegioORM.id.in_(participantes))))
-        .scalars()
-        .all()
-    )
-    todos = {(c.id, c.nombre): 0 for c in colegios_participantes}
-    for r in rows:
-        todos[(r.entity_id, r.nombre)] = r.total
-
-    ordenados = sorted(todos.items(), key=lambda kv: (-kv[1], kv[0][1]))
-    return [
-        {
-            "puesto": i + 1,
-            "colegio_id": str(cid),
-            "nombre": nombre,
-            "puntos_total": puntos,
-            "es_colegio": True,
-        }
-        for i, ((cid, nombre), puntos) in enumerate(ordenados)
     ]
+    respuestas = [
+        _row_to_obj(r, Respuesta)
+        for r in (
+            (
+                await db.execute(
+                    select(RespuestaORM)
+                    .join(JugadorORM, JugadorORM.id == RespuestaORM.jugador_id)
+                    .where(
+                        JugadorORM.sesion_id.in_(sesiones_oficiales),
+                        RespuestaORM.correcta.is_(True),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+    ]
+    puntajes_retos = [
+        _row_to_obj(r, PuntajeReto)
+        for r in (
+            (
+                await db.execute(
+                    select(PuntajeRetoORM).where(
+                        PuntajeRetoORM.sesion_id.in_(sesiones_oficiales),
+                        PuntajeRetoORM.reto_id.in_(
+                            select(RetoORM.id).where(RetoORM.grado_id == grado_id)
+                        ),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+    ]
+
+    return agregar_tabla_colegios(
+        respuestas, puntajes_retos, jugadores, colegios_participantes
+    )
