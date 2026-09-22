@@ -26,32 +26,6 @@ type Vista =
   | "podium"
   | "final";
 
-const LETRAS = ["A", "B", "C", "D"];
-const COLORES_BARRA = ["bg-rojo", "bg-azul-light", "bg-dorado", "bg-verde"];
-
-interface ConteoOpcion {
-  letra: string;
-  texto: string;
-  count: number;
-}
-
-/** Cuenta cuántas respuestas eligieron cada opción (sin exponer nombres). */
-function contarPorOpcion(
-  respuestas: Respuesta[],
-  opciones: string[] | null,
-): ConteoOpcion[] {
-  const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
-  for (const r of respuestas) {
-    const k = (r.opcion_seleccionada ?? "").trim().toUpperCase();
-    if (k in counts) counts[k] += 1;
-  }
-  return LETRAS.map((letra, i) => ({
-    letra,
-    texto: (opciones?.[i] ?? "").replace(/^[A-D]\)\s*/, ""),
-    count: counts[letra],
-  }));
-}
-
 export default function PresentacionPage() {
   const params = useParams();
   const sessionId = params.sessionId as string;
@@ -321,9 +295,6 @@ export default function PresentacionPage() {
     const totalRespondidos = conectados.filter((j) =>
       respondidos.has(j.id),
     ).length;
-    const esMultiple = pregunta.tipo === "opcion-multiple";
-    const conteos = contarPorOpcion(respuestas, pregunta.opciones);
-    const maxCount = Math.max(1, ...conteos.map((c) => c.count));
 
     return (
       <div className="flex-1 flex flex-col p-6 md:p-10 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
@@ -380,30 +351,6 @@ export default function PresentacionPage() {
                 {totalRespondidos}/{totalConectados} respondieron
               </span>
             </div>
-            {esMultiple ? (
-              <div className="space-y-2">
-                {conteos.map((c, i) => (
-                  <div key={c.letra} className="flex items-center gap-3">
-                    <span className="w-6 text-white font-heading font-extrabold">
-                      {c.letra}
-                    </span>
-                    <div className="flex-1 h-7 bg-white/10 rounded-lg overflow-hidden">
-                      <div
-                        className={`h-full ${COLORES_BARRA[i]} transition-all duration-500`}
-                        style={{ width: `${(c.count / maxCount) * 100}%` }}
-                      />
-                    </div>
-                    <span className="w-8 text-right text-white font-heading font-bold">
-                      {c.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-white/50 text-sm text-center">
-                Las respuestas abiertas se revelan al cierre de la pregunta.
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -411,10 +358,6 @@ export default function PresentacionPage() {
   }
 
   if (vista === "resultado" && pregunta) {
-    const esMultiple = pregunta.tipo === "opcion-multiple";
-    const conteos = contarPorOpcion(respuestas, pregunta.opciones);
-    const maxCount = Math.max(1, ...conteos.map((c) => c.count));
-
     const conectados = jugadores.filter((j) => j.conectado);
     const respondieron = new Set(respuestas.map((r) => r.jugador_id));
     const totalRespondidos = respuestas.length;
@@ -431,44 +374,6 @@ export default function PresentacionPage() {
           <h1 className="text-4xl font-heading font-extrabold text-dorado">
             ¡Ronda completada!
           </h1>
-
-          {esMultiple ? (
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
-              <p className="text-white/60 text-sm font-heading font-bold uppercase mb-4 text-center">
-                Participación
-              </p>
-              <div className="space-y-3">
-                {conteos.map((c, i) => (
-                  <div
-                    key={c.letra}
-                    className="flex items-center gap-3 animate-slide-up"
-                    style={{ animationDelay: `${i * 150}ms` }}
-                  >
-                    <span className="w-7 text-2xl font-heading font-extrabold text-center text-white/80">
-                      {c.letra}
-                    </span>
-                    <div className="flex-1 h-10 bg-white/10 rounded-lg overflow-hidden">
-                      <div
-                        className={`h-full ${COLORES_BARRA[i]} transition-all duration-700`}
-                        style={{ width: `${(c.count / maxCount) * 100}%` }}
-                      />
-                    </div>
-                    <span className="w-10 text-right text-white font-heading font-bold text-xl">
-                      {c.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-              <p className="text-white/80 font-heading text-xl">
-                {totalRespondidos === 0
-                  ? "Nadie respondió esta pregunta"
-                  : "Respuestas recibidas"}
-              </p>
-            </div>
-          )}
 
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-verde/20 rounded-2xl p-4 animate-bounce-in">
