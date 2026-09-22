@@ -18,6 +18,38 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 let cachedAnonToken: string | null = null;
 
+const MAX_REINTENTOS_RED = 2;
+
+function esErrorDeRed(err: unknown): boolean {
+  return err instanceof TypeError;
+}
+
+function esperar(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchConReintento(
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  for (let intento = 0; intento <= MAX_REINTENTOS_RED; intento++) {
+    try {
+      return await fetch(url, init);
+    } catch (err) {
+      if (!esErrorDeRed(err)) throw err;
+      if (intento === MAX_REINTENTOS_RED) {
+        throw new Error(
+          "Sin conexión con el servidor. Verifica tu red e intenta de nuevo.",
+        );
+      }
+      await esperar(300 * (intento + 1));
+    }
+  }
+  throw new Error(
+    "Sin conexión con el servidor. Verifica tu red e intenta de nuevo.",
+  );
+}
+
 async function resolveToken(): Promise<string | null> {
   if (typeof window === "undefined") return null;
   const { obtenerTokenValido } = await import("./session");
@@ -32,7 +64,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+  const res = await fetchConReintento(`${BASE_URL}${path}`, {
+    ...init,
+    headers,
+  });
   if (!res.ok) {
     let message = `API ${res.status}`;
     try {
@@ -59,7 +94,7 @@ async function subirImagen<T>(
   if (ancho != null) form.append("ancho", String(ancho));
   if (alto != null) form.append("alto", String(alto));
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetchConReintento(`${BASE_URL}${path}`, {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
