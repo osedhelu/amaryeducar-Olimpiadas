@@ -103,10 +103,12 @@ CREATE TABLE puntajes_retos (
     colegio_id UUID REFERENCES colegios(id),
     puesto INT NOT NULL,
     puntos INT NOT NULL,
-    creado_en TIMESTAMPTZ DEFAULT now(),
-    UNIQUE (reto_id, jugador_id),
-    UNIQUE (reto_id, colegio_id)
+    creado_en TIMESTAMPTZ DEFAULT now()
 );
+
+-- La unicidad es por sesión (un participante = un puesto por reto por sesión).
+-- Ver sql/13-unique-puntajes-por-sesion.sql: las constraints originales
+-- UNIQUE (reto_id, jugador_id/colegio_id) rompían sesiones previas.
 
 CREATE TABLE parametros (
     clave TEXT PRIMARY KEY,
@@ -129,6 +131,10 @@ CREATE INDEX idx_respuestas_pregunta_jugador ON respuestas(pregunta_id, jugador_
 CREATE INDEX idx_respuestas_envio ON respuestas(pregunta_id, enviado_en);
 CREATE INDEX idx_respuestas_envio_sec ON respuestas(pregunta_id, enviado_en, secuencia);
 CREATE INDEX idx_puntajes_retos_reto ON puntajes_retos(reto_id);
+CREATE UNIQUE INDEX puntajes_retos_reto_sesion_jugador_key
+    ON puntajes_retos (reto_id, sesion_id, jugador_id);
+CREATE UNIQUE INDEX puntajes_retos_reto_sesion_colegio_key
+    ON puntajes_retos (reto_id, sesion_id, colegio_id);
 CREATE INDEX idx_sesiones_grado ON sesiones_juego(grado_id);
 CREATE INDEX idx_sesiones_pin ON sesiones_juego(pin);
 
