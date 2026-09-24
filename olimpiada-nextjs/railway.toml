@@ -1,0 +1,9 @@
+# Servicio Railway: olimpiadas-web (raíz del servicio = olimpiada-nextjs/)
+[build]
+builder = "RAILPACK"
+buildCommand = "npm run build"
+
+[deploy]
+startCommand = "npm run start"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

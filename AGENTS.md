@@ -12,10 +12,21 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Plataforma tipo Kahoot para olimpiadas escolares: pantalla grande (proyector), panel docente y respuesta en vivo desde el navegador del estudiante. **Backend: FastAPI sobre Postgres (Railway).** **No hay Supabase.**
 
-## Stack (sin sorpresas)
+## Estructura del repo (monorepo)
 
-- **Next.js 16** — App Router, Turbopack, TypeScript. Ruteo en `src/app/`.
-- **Tailwind v4** — configuración por CSS en `src/app/globals.css` (`@theme`: colores `azul`, `dorado`, `rojo`, `verde`, etc.). **No existe `tailwind.config.ts`.**
+| Carpeta                   | Qué es                                                             | Servicio Railway          | Root dir del servicio    |
+| ------------------------- | ------------------------------------------------------------------ | ------------------------- | ------------------------ |
+| `olimpiada-nextjs/`       | App Next.js 16 (frontend: admin, pantalla, join, game)             | `olimpiadas-web`          | `olimpiada-nextjs`       |
+| `backend/`                | API FastAPI + WebSocket                                            | `olimpiadas-api`          | `backend`                |
+| `amaryeducarDiapositiva/` | SPA Vite/React (presentación "Click, Learn, Speak"), independiente | `amaryeducar-diapositiva` | `amaryeducarDiapositiva` |
+| `sql/`                    | Esquema, seeds y migraciones (se aplican a mano con psql)          | —                         | —                        |
+
+Cada subproyecto tiene su propio `railway.toml` y su propio gestor de paquetes: la app Next usa **npm**, la diapositiva usa **pnpm**.
+
+## Stack del frontend Next (`olimpiada-nextjs/`)
+
+- **Next.js 16** — App Router, Turbopack, TypeScript. Ruteo en `olimpiada-nextjs/src/app/`.
+- **Tailwind v4** — configuración por CSS en `olimpiada-nextjs/src/app/globals.css` (`@theme`: colores `azul`, `dorado`, `rojo`, `verde`, etc.). **No existe `tailwind.config.ts`.**
 - **Postgres en Railway** — la BD subyacente.
 - **FastAPI backend** (`NEXT_PUBLIC_API_URL`, `backend/app/`) — para toda la lógica de juego (preguntas, respuestas, sesiones, retos, tabla, podium, imágenes de preguntas).
 - **WebSocket**: conecta directamente al **FastAPI backend en Railway** (`/ws`). El frontend (`useWebSocket.ts`) se conecta a `NEXT_PUBLIC_WS_URL` → `wss://olimpiadas-api-production.up.railway.app/ws`. No hay servidor WebSocket local; en dev local se conecta al mismo Railway WebSocket.
@@ -30,7 +41,7 @@ Plataforma tipo Kahoot para olimpiadas escolares: pantalla grande (proyector), p
 
 ### Flujo de autenticación JWT
 
-- JWTs se firman **en el cliente** con `POSTGREST_JWT_SECRET` (`src/lib/jwt.ts`): `signAnonJWT()`, `signEstudianteJWT(jugadorId, sesionId)`, `signDocenteJWT()`.
+- JWTs se firman **en el cliente** con `POSTGREST_JWT_SECRET` (`olimpiada-nextjs/src/lib/jwt.ts`): `signAnonJWT()`, `signEstudianteJWT(jugadorId, sesionId)`, `signDocenteJWT()`.
 - Los tokens se envían como `Authorization: Bearer <token>` al backend FastAPI que valida con el mismo secreto.
 - **Docente**: token en `localStorage` key `jwt_token` (persiste entre pestañas). Rol `docente`.
 - **Estudiante**: token en `sessionStorage` key `jwt_estudiante` (por pestaña). Rol `estudiante`. Imprescindible para que varios estudiantes en el mismo navegador (pestañas) no se pisen.
@@ -38,32 +49,37 @@ Plataforma tipo Kahoot para olimpiadas escolares: pantalla grande (proyector), p
 
 ### Frontend → Backend API
 
-- **`src/lib/api.ts`** — cliente FastAPI: `api.*` contra `NEXT_PUBLIC_API_URL`. Token resuelto con `obtenerTokenValido()` de `src/lib/session.ts`.
+- **`olimpiada-nextjs/src/lib/api.ts`** — cliente FastAPI: `api.*` contra `NEXT_PUBLIC_API_URL`. Token resuelto con `obtenerTokenValido()` de `olimpiada-nextjs/src/lib/session.ts`.
 
 ### WebSocket (tiempo real)
 
 1. **Triggers en Postgres** hacen `pg_notify('canal_juego', jsonb)` en INSERT/UPDATE de `jugadores`, `respuestas`, `sesiones_juego`, `puntajes_retos`.
 2. **FastAPI** (`backend/app/interfaces/websocket/ws.py`) maneja las conexiones WebSocket con `ConnectionManager`. Escucha en `/ws`, filtra por `sessionId`, marca `jugadores.conectado` true/false.
-3. **Frontend**: hook `useWebSocket(sessionId, role)` en `src/hooks/useWebSocket.ts` conecta a `NEXT_PUBLIC_WS_URL` (Railway) con `?role=student|admin|presentacion&sessionId=&jugadorId=`.
+3. **Frontend**: hook `useWebSocket(sessionId, role)` en `olimpiada-nextjs/src/hooks/useWebSocket.ts` conecta a `NEXT_PUBLIC_WS_URL` (Railway) con `?role=student|admin|presentacion&sessionId=&jugadorId=`.
 
-Eventos que maneja el frontend: `jugador_unido`, `jugador_cambio`, `sesion_cambio`, `respuesta_recibida`, `reto` (tipados en `src/types/game.ts`).
+Eventos que maneja el frontend: `jugador_unido`, `jugador_cambio`, `sesion_cambio`, `respuesta_recibida`, `reto` (tipados en `olimpiada-nextjs/src/types/game.ts`).
 
 ## Comandos
 
+Todos los comandos del frontend se ejecutan **dentro de `olimpiada-nextjs/`**:
+
 ```bash
+cd olimpiada-nextjs
 npm run dev        # Next.js (puerto 3000) — el WS conecta directo a Railway
-npx tsc --noEmit   # typecheck (no hay script npm para esto)
+npx tsc --noEmit   # typecheck
 npm run build      # build
+npm run start      # servir el build (lo que usa Railway)
 ```
 
+- El backend FastAPI se ejecuta dentro de `backend/` (ver `backend/railway.toml`).
+- La diapositiva se ejecuta dentro de `amaryeducarDiapositiva/` con **pnpm** (`pnpm dev`, `pnpm build`).
 - Verificación rápida tras cambios: `npx tsc --noEmit` y `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ruta`.
-- Sin framework de tests.
-- `pnpm` también funciona; `pnpm-workspace.yaml` declara `onlyBuiltDependencies` (si pnpm falla con `ERR_PNPM_IGNORED_BUILDS`, es eso).
+- Sin framework de tests en el frontend.
 - No hay servidor WebSocket local. El frontend se conecta directamente al WebSocket de Railway en dev y producción.
 
 ## Base de datos (Railway)
 
-- Fuente de verdad: `sql/01-schema.sql` … `09-preguntas-imagenes.sql`. Se aplican **a mano** con psql contra la BD de Railway (TCP proxy `iriguchi.proxy.rlwy.net:49776`, credenciales en `.env.local` `DATABASE_URL`), no hay migraciones automáticas.
+- Fuente de verdad: `sql/01-schema.sql` … `09-preguntas-imagenes.sql`. Se aplican **a mano** con psql contra la BD de Railway (TCP proxy `iriguchi.proxy.rlwy.net:49776`, credenciales en `.env.local` de la raíz, `DATABASE_URL`), no hay migraciones automáticas.
 - Los archivos SQL son re-ejecutables (usar `DROP TRIGGER IF EXISTS` / `CREATE OR REPLACE`; ya están así).
 - **Imágenes de preguntas**: `preguntas_imagenes` table (BYTEA) + `preguntas.imagen_actualizado_en` (cache-buster). Se sirven vía `GET /preguntas/{id}/imagen` del **FastAPI** backend.
 
@@ -117,7 +133,7 @@ npm run build      # build
 | `/colegios`, `/alumnos`                | CRUD completo                                                                                                                                                                                            |
 | `/podium/{sesionId}`                   | Pódium                                                                                                                                                                                                   |
 
-Páginas típicas a editar para el evento: persistencia de puntos en `respuestas`/`preguntas`. Las páginas hacen `api.get/post/patch` contra `src/lib/api.ts` (FastAPI).
+Páginas típicas a editar para el evento: persistencia de puntos en `respuestas`/`preguntas`. Las páginas hacen `api.get/post/patch` contra `olimpiada-nextjs/src/lib/api.ts` (FastAPI).
 
 ## Operaciones comunes contra la BD (solo lectura → verificar antes de mutar)
 
@@ -171,7 +187,10 @@ backend/app/
         └── ws.py                    # WebSocket handler
 ```
 
-## Variables de entorno clave (`.env.local`)
+## Variables de entorno clave
+
+- **`olimpiada-nextjs/.env.local`** (frontend Next): `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, `POSTGREST_JWT_SECRET`.
+- **`.env.local` (raíz)** (backend/psql local): `DATABASE_URL`, `POSTGREST_JWT_SECRET`, `CLAVE_ADMIN`.
 
 ```
 NEXT_PUBLIC_API_URL=https://olimpiadas-api-production.up.railway.app        # FastAPI

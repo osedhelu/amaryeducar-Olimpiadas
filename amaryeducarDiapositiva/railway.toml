@@ -1,0 +1,8 @@
+# Servicio Railway: amaryeducar-diapositiva (raíz del servicio = amaryeducarDiapositiva/)
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
