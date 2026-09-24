@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Proyecto aparte (Vite + pnpm con su propio tsconfig/eslint)
+    "amaryeducarDiapositiva/**",
   ]),
 ]);
 
