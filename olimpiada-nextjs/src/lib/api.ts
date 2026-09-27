@@ -227,6 +227,8 @@ export const api = {
   sesion: (id: string) => request<SesionJuego>(`/sessions/${id}`),
   jugadores: (sesionId: string): Promise<Jugador[]> =>
     request<Jugador[]>(`/sessions/${sesionId}/jugadores`),
+  preguntasSesion: (sesionId: string): Promise<Pregunta[]> =>
+    request<Pregunta[]>(`/sessions/${sesionId}/preguntas`),
   respuestasSesion: (
     sesionId: string,
     preguntaId?: string | null,

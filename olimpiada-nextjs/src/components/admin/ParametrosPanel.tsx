@@ -74,6 +74,19 @@ const CAMPOS: Campo[] = [
     tipo: "checkbox",
   },
   {
+    clave: "modo_quiz",
+    etiqueta: "Modo quiz (competición individual)",
+    descripcion:
+      "Cada sala de 4º/5º recibe N preguntas al azar y el ranking es por alumno (además del total por colegio).",
+    tipo: "checkbox",
+  },
+  {
+    clave: "preguntas_por_sesion",
+    etiqueta: "Preguntas por sala",
+    descripcion:
+      "Cuántas preguntas al azar se fijan para cada sala en modo quiz.",
+  },
+  {
     clave: "clave_admin",
     etiqueta: "Clave del panel docente",
     descripcion: "Clave maestra para entrar a /admin.",

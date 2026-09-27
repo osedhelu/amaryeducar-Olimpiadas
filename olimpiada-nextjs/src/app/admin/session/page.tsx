@@ -143,7 +143,7 @@ export default function AdminSessionPage() {
             .then(setJugadores)
             .catch(() => {});
           api
-            .preguntas(s.grado_id)
+            .preguntasSesion(s.id)
             .then(setPreguntas)
             .catch(() => {});
           if (s.pregunta_activa_id) {
@@ -247,7 +247,7 @@ export default function AdminSessionPage() {
       setSesionActiva(nueva);
       cambiarVista("control", nueva.id);
       cargarJugadores(nueva.id);
-      cargarPreguntas(gradoId);
+      cargarPreguntas(nueva.id);
     } finally {
       setLoading(false);
     }
@@ -268,12 +268,12 @@ export default function AdminSessionPage() {
     setSesionActiva(s);
     cambiarVista("control", s.id);
     cargarJugadores(s.id);
-    cargarPreguntas(s.grado_id);
+    cargarPreguntas(s.id);
     if (s.pregunta_activa_id) cargarRespuestas(s.pregunta_activa_id);
   }
 
-  async function cargarPreguntas(gradoId: string) {
-    const p = await api.preguntas(gradoId);
+  async function cargarPreguntas(sesionId: string) {
+    const p = await api.preguntasSesion(sesionId);
     setPreguntas(p);
   }
 
@@ -1013,7 +1013,7 @@ export default function AdminSessionPage() {
                   >
                     <div className="flex-1">
                       <span className="text-xs font-bold text-texto-light">
-                        S{p.sesion} #{p.orden}
+                        S{p.sesion} #{idx + 1}
                         {esAnterior && !esActiva && (
                           <span className="ml-2 text-verde">✓</span>
                         )}

@@ -18,6 +18,8 @@ export const PARAMETROS_DEFAULT: ParametrosEvento = {
   texto_pin_label: "PIN de la sesión",
   texto_ronda_completada: "¡Ronda completada!",
   retos_habilitados: "false",
+  modo_quiz: "false",
+  preguntas_por_sesion: "10",
 };
 
 export function tieneRetos(p: ParametrosEvento): boolean {

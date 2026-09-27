@@ -32,6 +32,7 @@ from app.infrastructure.db.models import (
     RespuestaORM,
     RetoORM,
     SesionJuegoORM,
+    SesionPreguntaORM,
 )
 
 
@@ -786,7 +787,11 @@ async def obtener_podium_rows(
     grado_row = await db.get(GradoORM, sesion_row.grado_id)
     if not grado_row:
         return []
-    es_grupal = grado_row.orden >= 4
+    # Modo quiz (competición individual): los grados 4-5 rankean por ALUMNO.
+    modo_quiz = (
+        await ParametroRepo(db).obtener("modo_quiz", "false")
+    ).strip().lower() in ("true", "1", "si", "sí")
+    es_grupal = grado_row.orden >= 4 and not modo_quiz
 
     jugadores = [
         _row_to_obj(r, Jugador)
@@ -965,3 +970,70 @@ class ParametroRepo:
                 row.actualizado_en = datetime.now(timezone.utc)
         await self.db.commit()
         return await self.listar()
+
+
+class SesionPreguntaRepo:
+    """Preguntas fijadas por sesión (modo quiz: N aleatorias por sala)."""
+
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def contar(self, sesion_id: uuid.UUID) -> int:
+        return int(
+            (
+                await self.db.execute(
+                    select(func.count())
+                    .select_from(SesionPreguntaORM)
+                    .where(SesionPreguntaORM.sesion_id == sesion_id)
+                )
+            ).scalar_one()
+        )
+
+    async def asignar_aleatorias(
+        self, sesion_id: uuid.UUID, grado_id: uuid.UUID, n: int
+    ) -> int:
+        """Fija `n` preguntas activas al azar del grado para la sesión.
+
+        Reemplaza cualquier asignación previa de esa sesión (idempotente).
+        """
+        ids = (
+            (
+                await self.db.execute(
+                    select(PreguntaORM.id)
+                    .where(
+                        PreguntaORM.grado_id == grado_id,
+                        PreguntaORM.activa.is_(True),
+                    )
+                    .order_by(func.random())
+                    .limit(n)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        await self.db.execute(
+            delete(SesionPreguntaORM).where(SesionPreguntaORM.sesion_id == sesion_id)
+        )
+        for i, pregunta_id in enumerate(ids, start=1):
+            self.db.add(
+                SesionPreguntaORM(sesion_id=sesion_id, pregunta_id=pregunta_id, orden=i)
+            )
+        return len(ids)
+
+    async def listar_preguntas(self, sesion_id: uuid.UUID) -> list[Pregunta]:
+        rows = (
+            (
+                await self.db.execute(
+                    select(PreguntaORM)
+                    .join(
+                        SesionPreguntaORM,
+                        SesionPreguntaORM.pregunta_id == PreguntaORM.id,
+                    )
+                    .where(SesionPreguntaORM.sesion_id == sesion_id)
+                    .order_by(SesionPreguntaORM.orden)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        return [_row_to_obj(r, Pregunta) for r in rows]

@@ -76,6 +76,16 @@ async def listar_jugadores(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.get("/sessions/{sesion_id}/preguntas")
+async def preguntas_de_sesion(
+    sesion_id: str, db: AsyncSession = Depends(get_db)
+) -> list[dict]:  # noqa: B008
+    try:
+        return await SesionUseCases(db, get_manager()).preguntas_de_sesion(sesion_id)
+    except (ValueError, DomainError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.patch("/sessions/{sesion_id}")
 async def actualizar_sesion(
     sesion_id: str,

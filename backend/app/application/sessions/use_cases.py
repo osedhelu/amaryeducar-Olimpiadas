@@ -26,6 +26,7 @@ from app.infrastructure.db.repositories import (
     ParametroRepo,
     PreguntaRepo,
     RespuestaRepo,
+    SesionPreguntaRepo,
     SesionRepo,
     generar_pin_unico,
 )
@@ -42,6 +43,8 @@ PARAMETROS_DEFAULT: dict[str, str] = {
     "texto_pin_label": "PIN de la sesión",
     "texto_ronda_completada": "¡Ronda completada!",
     "retos_habilitados": "false",
+    "modo_quiz": "false",
+    "preguntas_por_sesion": "10",
     "clave_admin": "ADMadm1234",
 }
 
@@ -62,6 +65,28 @@ async def retos_habilitados(db: AsyncSession) -> bool:
         RETOS_HABILITADOS_CLAVE, PARAMETROS_DEFAULT[RETOS_HABILITADOS_CLAVE]
     )
     return _es_booleano_verdadero(valor)
+
+
+async def modo_quiz(db: AsyncSession) -> bool:
+    """Modo competencia individual: N preguntas al azar por sala y podium por alumno."""
+    if db is None:
+        return False
+    valor = await ParametroRepo(db).obtener(
+        "modo_quiz", PARAMETROS_DEFAULT.get("modo_quiz", "false")
+    )
+    return _es_booleano_verdadero(valor)
+
+
+async def preguntas_por_sesion(db: AsyncSession) -> int:
+    if db is None:
+        return int(PARAMETROS_DEFAULT.get("preguntas_por_sesion", "10"))
+    valor = await ParametroRepo(db).obtener(
+        "preguntas_por_sesion", PARAMETROS_DEFAULT.get("preguntas_por_sesion", "10")
+    )
+    try:
+        return max(1, int(str(valor).strip()))
+    except ValueError:
+        return 10
 
 
 class AuthUseCases:
@@ -129,7 +154,28 @@ class SesionUseCases:
             colegio_id=req.colegio_id,
         )
         await self.db.commit()
+
+        # Modo quiz (competición individual): fija N preguntas al azar para la sala.
+        if req.tipo == "oficial" and await modo_quiz(self.db):
+            grado = await GradoRepo(self.db).por_id(req.grado_id)
+            if grado and grado.orden >= 4:
+                n = await preguntas_por_sesion(self.db)
+                await SesionPreguntaRepo(self.db).asignar_aleatorias(
+                    sesion.id, req.grado_id, n
+                )
+                await self.db.commit()
+
         return entity_to_dict(sesion)
+
+    async def preguntas_de_sesion(self, sesion_id: str) -> list[dict]:
+        """Preguntas fijadas para la sesión; si no hay, todas las activas del grado."""
+        sesion = await SesionRepo(self.db).por_id(uuid.UUID(sesion_id))
+        if not sesion:
+            raise PinNoEncontrado()
+        preguntas = await SesionPreguntaRepo(self.db).listar_preguntas(sesion.id)
+        if not preguntas:
+            preguntas = await PreguntaRepo(self.db).listar_por_grado(sesion.grado_id)
+        return [entity_to_dict(p) for p in preguntas]
 
     async def unirse(self, req: JoinRequest) -> dict:
         sesion_repo = SesionRepo(self.db)

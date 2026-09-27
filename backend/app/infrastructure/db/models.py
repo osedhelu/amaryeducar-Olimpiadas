@@ -154,6 +154,23 @@ class SesionJuegoORM(Base):
     )
 
 
+class SesionPreguntaORM(Base):
+    __tablename__ = "sesion_preguntas"
+
+    sesion_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("sesiones_juego.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    pregunta_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("preguntas.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    orden: Mapped[int] = mapped_column(Integer, nullable=False)
+    creado_en: Mapped[datetime] = _ts()
+
+
 class JugadorORM(Base):
     __tablename__ = "jugadores"
 

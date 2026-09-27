@@ -13,6 +13,8 @@ export interface ParametrosEvento {
   texto_pin_label: string;
   texto_ronda_completada: string;
   retos_habilitados?: string;
+  modo_quiz?: string;
+  preguntas_por_sesion?: string;
   clave_admin?: string;
   [clave: string]: string | undefined;
 }

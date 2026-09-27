@@ -392,7 +392,7 @@ export default function PreguntasPanel() {
                     >
                       ▲
                     </button>
-                    <span className="text-xs font-bold">{p.orden}</span>
+                    <span className="text-xs font-bold">{i + 1}</span>
                     <button
                       onClick={() => mover(p, 1)}
                       disabled={i === preguntas.length - 1}
@@ -433,7 +433,7 @@ export default function PreguntasPanel() {
                         <span>Correcta: {p.respuesta_correcta}</span>
                       )}
                       <span>{p.tiempo_limite}s</span>
-                      <span>#{p.orden}</span>
+                      <span>#{i + 1}</span>
                       {!p.activa && (
                         <span className="px-2 py-0.5 bg-rojo/10 text-rojo rounded font-bold">
                           INACTIVA
