@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { api, imagenPreguntaUrl } from "@/lib/api";
+import { useParametros, tieneRetos } from "@/lib/parametros";
 import { getDatosSesionEstudiante } from "@/lib/session";
 import type { SesionJuego, Pregunta, Respuesta, EventoWS } from "@/types/game";
 
@@ -11,6 +12,9 @@ export default function GamePage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.sessionId as string;
+
+  const parametros = useParametros();
+  const retosActivos = tieneRetos(parametros);
 
   const [sesion, setSesion] = useState<SesionJuego | null>(null);
   const [preguntaActual, setPreguntaActual] = useState<Pregunta | null>(null);
@@ -307,7 +311,7 @@ export default function GamePage() {
     );
   }
 
-  if (sesion.estado === "reto") {
+  if (retosActivos && sesion.estado === "reto") {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
         <div className="text-center animate-bounce-in space-y-4">

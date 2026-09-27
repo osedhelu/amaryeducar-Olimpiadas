@@ -951,6 +951,10 @@ class ParametroRepo:
         rows = (await self.db.execute(select(ParametroORM))).scalars().all()
         return {r.clave: r.valor for r in rows}
 
+    async def obtener(self, clave: str, default: str = "") -> str:
+        row = await self.db.get(ParametroORM, clave)
+        return row.valor if row else default
+
     async def upsert_muchos(self, valores: dict[str, str]) -> dict[str, str]:
         for clave, valor in valores.items():
             row = await self.db.get(ParametroORM, clave)

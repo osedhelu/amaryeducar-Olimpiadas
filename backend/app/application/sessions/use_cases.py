@@ -41,10 +41,27 @@ PARAMETROS_DEFAULT: dict[str, str] = {
     "texto_unirme_estudiante": "Unirme como Estudiante",
     "texto_pin_label": "PIN de la sesión",
     "texto_ronda_completada": "¡Ronda completada!",
+    "retos_habilitados": "false",
     "clave_admin": "ADMadm1234",
 }
 
 PARAMETROS_SECRETOS = {"clave_admin"}
+
+RETOS_HABILITADOS_CLAVE = "retos_habilitados"
+
+
+def _es_booleano_verdadero(valor: str | None) -> bool:
+    return str(valor or "").strip().lower() in ("true", "1", "si", "sí")
+
+
+async def retos_habilitados(db: AsyncSession) -> bool:
+    """Indica si las pruebas lúdicas (retos) están habilitadas por parámetro."""
+    if db is None:
+        return False
+    valor = await ParametroRepo(db).obtener(
+        RETOS_HABILITADOS_CLAVE, PARAMETROS_DEFAULT[RETOS_HABILITADOS_CLAVE]
+    )
+    return _es_booleano_verdadero(valor)
 
 
 class AuthUseCases:
@@ -188,6 +205,13 @@ class SesionUseCases:
         if not sesion:
             raise PinNoEncontrado()
 
+        pide_reto = (
+            req.estado in (EstadoSesion.RETO.value, EstadoSesion.RETO_PODIUM.value)
+            or req.reto_activo_id is not None
+        )
+        if pide_reto and not await retos_habilitados(self.db):
+            raise DatosInvalidos("Las pruebas lúdicas están deshabilitadas")
+
         updated = await SesionRepo(self.db).actualizar(
             sesion.id,
             estado=req.estado,
@@ -243,6 +267,8 @@ class ControlRondaUseCases:
     async def listar_retos(self, grado_id: str) -> list[dict]:
         from app.infrastructure.db.repositories import RetoRepo
 
+        if not await retos_habilitados(self.db):
+            return []
         return [
             entity_to_dict(r)
             for r in await RetoRepo(self.db).listar_por_grado(uuid.UUID(grado_id))

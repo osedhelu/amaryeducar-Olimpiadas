@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { api, imagenPreguntaUrl } from "@/lib/api";
-import { useParametros } from "@/lib/parametros";
+import { useParametros, tieneRetos } from "@/lib/parametros";
 import type {
   SesionJuego,
   Pregunta,
@@ -31,6 +31,7 @@ export default function PresentacionPage() {
   const params = useParams();
   const sessionId = params.sessionId as string;
   const parametros = useParametros();
+  const retosActivos = tieneRetos(parametros);
 
   const [sesion, setSesion] = useState<SesionJuego | null>(null);
   const [pregunta, setPregunta] = useState<Pregunta | null>(null);
@@ -404,7 +405,7 @@ export default function PresentacionPage() {
     );
   }
 
-  if (vista === "reto") {
+  if (retosActivos && vista === "reto") {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
         <div className="max-w-4xl w-full text-center space-y-8">
@@ -434,7 +435,7 @@ export default function PresentacionPage() {
     );
   }
 
-  if (vista === "reto_podium") {
+  if (retosActivos && vista === "reto_podium") {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
         <div className="max-w-3xl w-full text-center space-y-8">

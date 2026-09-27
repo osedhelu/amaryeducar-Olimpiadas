@@ -5,6 +5,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.ports import RealtimePublisher
+from app.application.sessions.use_cases import retos_habilitados
 from app.core.exceptions import DatosInvalidos
 from app.domain.entities import entity_to_dict
 from app.infrastructure.db.repositories import (
@@ -19,6 +20,10 @@ class RetoUseCases:
     def __init__(self, db: AsyncSession, realtime: RealtimePublisher):
         self.db = db
         self.realtime = realtime
+
+    async def _verificar_habilitados(self) -> None:
+        if not await retos_habilitados(self.db):
+            raise DatosInvalidos("Las pruebas lúdicas están deshabilitadas")
 
     async def asignar_puesto(
         self,
@@ -37,6 +42,7 @@ class RetoUseCases:
           se limpia cualquier puntaje previo del mismo reto+sesión en ese puesto.
         - Un participante solo puede tener un puesto por reto en la sesión.
         """
+        await self._verificar_habilitados()
         reto = await RetoRepo(self.db).por_id(uuid.UUID(reto_id))
         if not reto:
             raise DatosInvalidos("Reto no encontrado")
@@ -93,6 +99,8 @@ class RetoUseCases:
 
     async def listar_puntajes(self, reto_id: str, sesion_id: str) -> list[dict]:
         """Puntajes ya asignados de un reto en una sesión, con nombre del participante."""
+        if not await retos_habilitados(self.db):
+            return []
         reto = await RetoRepo(self.db).por_id(uuid.UUID(reto_id))
         if not reto:
             raise DatosInvalidos("Reto no encontrado")
@@ -114,6 +122,7 @@ class RetoUseCases:
         colegio_id: str | None,
     ) -> dict:
         """El jurado deshace/corrige un puesto ya asignado en la sesión."""
+        await self._verificar_habilitados()
         reto = await RetoRepo(self.db).por_id(uuid.UUID(reto_id))
         if not reto:
             raise DatosInvalidos("Reto no encontrado")

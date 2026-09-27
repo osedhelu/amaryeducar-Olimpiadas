@@ -17,7 +17,13 @@ export const PARAMETROS_DEFAULT: ParametrosEvento = {
   texto_unirme_estudiante: "Unirme como Estudiante",
   texto_pin_label: "PIN de la sesión",
   texto_ronda_completada: "¡Ronda completada!",
+  retos_habilitados: "false",
 };
+
+export function tieneRetos(p: ParametrosEvento): boolean {
+  const valor = (p.retos_habilitados ?? "false").trim().toLowerCase();
+  return valor === "true" || valor === "1" || valor === "si" || valor === "sí";
+}
 
 let cache: ParametrosEvento | null = null;
 let promesa: Promise<ParametrosEvento> | null = null;

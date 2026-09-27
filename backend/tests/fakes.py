@@ -38,6 +38,9 @@ class FakeDb:
     async def rollback(self) -> None:
         pass
 
+    async def get(self, *args, **kwargs):
+        return None
+
     def add(self, obj) -> None:
         pass
 

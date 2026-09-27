@@ -9,7 +9,8 @@ INSERT INTO grados (nombre, orden, puntos_sesion1, puntos_sesion2) VALUES
 
 INSERT INTO parametros (clave, valor) VALUES
 ('clave_admin', 'ADMadm1234'),
-('nombre_evento', 'Olimpiadas de Inglés 2026');
+('nombre_evento', 'Olimpiadas de Inglés 2026'),
+('retos_habilitados', 'false');
 
 INSERT INTO colegios (nombre, codigo) VALUES
 ('Colegio 1', 'C1'),

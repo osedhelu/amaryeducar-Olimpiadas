@@ -12,6 +12,7 @@ export interface ParametrosEvento {
   texto_unirme_estudiante: string;
   texto_pin_label: string;
   texto_ronda_completada: string;
+  retos_habilitados?: string;
   clave_admin?: string;
   [clave: string]: string | undefined;
 }

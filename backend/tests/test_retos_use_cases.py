@@ -49,6 +49,11 @@ def uc_retos(monkeypatch, repos, realtime):
     monkeypatch.setattr(uc, "JugadorRepo", _factory(repos.jugador))
     monkeypatch.setattr(uc, "ColegioRepo", _factory(repos.colegio))
     monkeypatch.setattr(uc, "PuntajeRetoRepo", _factory(repos.puntaje_reto))
+
+    async def _habilitados(_db):
+        return True
+
+    monkeypatch.setattr(uc, "retos_habilitados", _habilitados)
     return RetoUseCases(FakeDb(), realtime)
 
 
@@ -283,3 +288,29 @@ class TestQuitarPuesto:
         )
         assert len(res["puntajes"]) == 1
         assert res["puntajes"][0]["jugador_id"] == str(j2.id)
+
+
+class TestRetosDeshabilitados:
+    async def test_asignar_puesto_rechaza_si_deshabilitado(
+        self, monkeypatch, repos, realtime, reto_individual, sesion_lobby
+    ):
+        import app.application.retos.use_cases as uc
+        from tests.fakes import FakeDb
+
+        def _factory(fake):
+            return lambda db=None: fake
+
+        monkeypatch.setattr(uc, "RetoRepo", _factory(repos.reto))
+        monkeypatch.setattr(uc, "PuntajeRetoRepo", _factory(repos.puntaje_reto))
+
+        async def _deshabilitados(_db):
+            return False
+
+        monkeypatch.setattr(uc, "retos_habilitados", _deshabilitados)
+        repos.reto.retos[reto_individual.id] = reto_individual
+        j1 = await repos.jugador.crear(sesion_lobby.id, "Ana")
+        casos = RetoUseCases(FakeDb(), realtime)
+        with pytest.raises(DatosInvalidos):
+            await casos.asignar_puesto(
+                str(reto_individual.id), str(sesion_lobby.id), str(j1.id), None, 1
+            )

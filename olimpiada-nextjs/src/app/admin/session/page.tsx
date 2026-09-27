@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useParametros, tieneRetos } from "@/lib/parametros";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import ColegiosPanel from "@/components/admin/ColegiosPanel";
 import AlumnosPanel from "@/components/admin/AlumnosPanel";
@@ -55,6 +56,9 @@ export default function AdminSessionPage() {
   const [loading, setLoading] = useState(false);
   const [tiempoRestante, setTiempoRestante] = useState(0);
   const [verificando, setVerificando] = useState(true);
+
+  const parametros = useParametros();
+  const retosActivos = tieneRetos(parametros);
 
   const { lastEvent } = useWebSocket(sesionActiva?.id ?? null, "admin");
 
@@ -886,7 +890,7 @@ export default function AdminSessionPage() {
             </div>
           )}
 
-          {sesionActiva.estado === "reto" && (
+          {retosActivos && sesionActiva.estado === "reto" && (
             <div className="bg-azul/10 border-2 border-azul rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
@@ -908,7 +912,7 @@ export default function AdminSessionPage() {
             </div>
           )}
 
-          {sesionActiva.estado === "reto_podium" && (
+          {retosActivos && sesionActiva.estado === "reto_podium" && (
             <div className="bg-dorado/10 border-2 border-dorado rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
@@ -950,15 +954,17 @@ export default function AdminSessionPage() {
             )}
           </div>
 
-          <div className="mb-6">
-            <RetosPanel
-              gradoId={sesionActiva.grado_id}
-              sesion={sesionActiva}
-              jugadores={jugadores}
-              colegios={colegios}
-              onIniciarReto={() => {}}
-            />
-          </div>
+          {retosActivos && (
+            <div className="mb-6">
+              <RetosPanel
+                gradoId={sesionActiva.grado_id}
+                sesion={sesionActiva}
+                jugadores={jugadores}
+                colegios={colegios}
+                onIniciarReto={() => {}}
+              />
+            </div>
+          )}
 
           <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10">
             <div className="flex justify-between items-center mb-3">

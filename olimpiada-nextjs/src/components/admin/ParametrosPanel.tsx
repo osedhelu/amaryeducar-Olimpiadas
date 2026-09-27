@@ -10,7 +10,7 @@ interface Campo {
   clave: string;
   etiqueta: string;
   descripcion: string;
-  tipo?: "text" | "textarea" | "password";
+  tipo?: "text" | "textarea" | "password" | "checkbox";
 }
 
 const CAMPOS: Campo[] = [
@@ -65,6 +65,13 @@ const CAMPOS: Campo[] = [
     clave: "texto_ronda_completada",
     etiqueta: "Fin de ronda",
     descripcion: "Mensaje que aparece al terminar una ronda.",
+  },
+  {
+    clave: "retos_habilitados",
+    etiqueta: "Pruebas lúdicas (retos)",
+    descripcion:
+      "Si está habilitado, aparece el panel de retos y se pueden usar sus estados. Deshabilitado, se oculta en todo el portal.",
+    tipo: "checkbox",
   },
   {
     clave: "clave_admin",
@@ -173,7 +180,23 @@ export default function ParametrosPanel() {
             <span className="text-sm font-bold text-azul">
               {campo.etiqueta}
             </span>
-            {campo.tipo === "textarea" ? (
+            {campo.tipo === "checkbox" ? (
+              <span className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={(valores[campo.clave] ?? "false") === "true"}
+                  onChange={(e) =>
+                    cambiar(campo.clave, e.target.checked ? "true" : "false")
+                  }
+                  className="w-5 h-5 accent-azul"
+                />
+                <span className="text-sm font-medium text-texto">
+                  {(valores[campo.clave] ?? "false") === "true"
+                    ? "Habilitadas"
+                    : "Deshabilitadas"}
+                </span>
+              </span>
+            ) : campo.tipo === "textarea" ? (
               <textarea
                 value={valores[campo.clave] ?? ""}
                 onChange={(e) => cambiar(campo.clave, e.target.value)}
