@@ -29,7 +29,7 @@ Cada subproyecto tiene su propio `railway.toml` y su propio gestor de paquetes: 
 - **Tailwind v4** — configuración por CSS en `olimpiada-nextjs/src/app/globals.css` (`@theme`: colores `azul`, `dorado`, `rojo`, `verde`, etc.). **No existe `tailwind.config.ts`.**
 - **Postgres en Railway** — la BD subyacente.
 - **FastAPI backend** (`NEXT_PUBLIC_API_URL`, `backend/app/`) — para toda la lógica de juego (preguntas, respuestas, sesiones, retos, tabla, podium, imágenes de preguntas).
-- **WebSocket**: conecta directamente al **FastAPI backend en Railway** (`/ws`). El frontend (`useWebSocket.ts`) se conecta a `NEXT_PUBLIC_WS_URL` → `wss://olimpiadas-api-production.up.railway.app/ws`. No hay servidor WebSocket local; en dev local se conecta al mismo Railway WebSocket.
+- **WebSocket**: conecta directamente al **FastAPI backend en Railway** (`/ws`). El frontend (`useWebSocket.ts`) se conecta a `NEXT_PUBLIC_WS_URL` → `wss://amaryeducar-api.up.railway.app/ws`. No hay servidor WebSocket local; en dev local se conecta al mismo Railway WebSocket.
 
 ## Arquitectura (crítica)
 
@@ -193,8 +193,8 @@ backend/app/
 - **`.env.local` (raíz)** (backend/psql local): `DATABASE_URL`, `POSTGREST_JWT_SECRET`, `CLAVE_ADMIN`.
 
 ```
-NEXT_PUBLIC_API_URL=https://olimpiadas-api-production.up.railway.app        # FastAPI
-NEXT_PUBLIC_WS_URL=wss://olimpiadas-api-production.up.railway.app/ws        # WebSocket
+NEXT_PUBLIC_API_URL=https://amaryeducar-api.up.railway.app        # FastAPI
+NEXT_PUBLIC_WS_URL=wss://amaryeducar-api.up.railway.app/ws         # WebSocket
 POSTGREST_JWT_SECRET=506e2e1ec01557279e5a203939359c812b9af9a40e535ff3b89992ade34e5616  # Firma JWT
 DATABASE_URL=postgresql://...@iriguchi.proxy.rlwy.net:49776/railway          # Postgres directo
 CLAVE_ADMIN=ADMadm1234                                                        # Clave admin docente

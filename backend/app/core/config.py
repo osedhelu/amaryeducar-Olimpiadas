@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     clave_admin: str = "ADMadm1234"
     cors_origins: list[str] = [
         "http://localhost:3000",
+        "https://amaryeducar-web.up.railway.app",
         "https://olimpiadas-web-production.up.railway.app",
     ]
     ws_heartbeat_seconds: int = 30
