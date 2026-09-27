@@ -54,8 +54,26 @@ export default function AdminSessionPage() {
   const [nuevoPin, setNuevoPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [tiempoRestante, setTiempoRestante] = useState(0);
+  const [verificando, setVerificando] = useState(true);
 
   const { lastEvent } = useWebSocket(sesionActiva?.id ?? null, "admin");
+
+  // Navegación entre vistas del panel con historial del navegador: cada cambio
+  // de vista empuja una entrada para que "atrás" recorra las vistas del panel
+  // en vez de salir al login.
+  const cambiarVista = useCallback(
+    (nueva: Vista, sesionId: string | null = null) => {
+      if (typeof window !== "undefined") {
+        const base =
+          (window.history.state as Record<string, unknown> | null) ?? {};
+        window.history.pushState({ ...base, vista: nueva, sesionId }, "");
+      }
+      setVista(nueva);
+      if (nueva === "menu") setSesionActiva(null);
+      if (typeof window !== "undefined") window.scrollTo(0, 0);
+    },
+    [],
+  );
 
   const cargarDatos = useCallback(async () => {
     const g = await api.grados();
@@ -77,16 +95,76 @@ export default function AdminSessionPage() {
     (async () => {
       const { esTokenDocente } = await import("@/lib/session");
       if (!esTokenDocente()) {
-        router.push("/admin");
+        router.replace("/admin");
         return;
       }
       if (!activo) return;
       cargarDatos();
+      setVerificando(false);
     })();
     return () => {
       activo = false;
     };
   }, [cargarDatos, router]);
+
+  // Al retroceder/avanzar en el navegador, restaura la vista (y la sesión)
+  // guardada en la entrada del historial en lugar de salir del panel.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const base = (window.history.state as Record<string, unknown> | null) ?? {};
+    window.history.replaceState({ ...base, vista: "menu", sesionId: null }, "");
+
+    const onPop = (event: PopStateEvent) => {
+      const state = event.state as {
+        vista?: Vista;
+        sesionId?: string | null;
+      } | null;
+      const nueva: Vista = state?.vista ?? "menu";
+      setVista(nueva);
+
+      if (nueva === "menu") {
+        setSesionActiva(null);
+        return;
+      }
+
+      const id = state?.sesionId;
+      if (!id) return;
+
+      api
+        .sesion(id)
+        .then((s) => {
+          setSesionActiva(s);
+          api
+            .jugadores(s.id)
+            .then(setJugadores)
+            .catch(() => {});
+          api
+            .preguntas(s.grado_id)
+            .then(setPreguntas)
+            .catch(() => {});
+          if (s.pregunta_activa_id) {
+            api
+              .respuestasSesion(s.id, s.pregunta_activa_id)
+              .then(setRespuestasPregunta)
+              .catch(() => {});
+          }
+          if (nueva === "podium") {
+            api
+              .podium(s.id)
+              .then(setPodium)
+              .catch(() => {});
+            api
+              .tablaGrado(s.grado_id)
+              .then(setTablaColegios)
+              .catch(() => {});
+          }
+        })
+        .catch(() => {});
+    };
+
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   useEffect(() => {
     if (!lastEvent || !sesionActiva) return;
@@ -163,7 +241,7 @@ export default function AdminSessionPage() {
       setNuevoPin(nueva.pin);
       await cargarDatos();
       setSesionActiva(nueva);
-      setVista("control");
+      cambiarVista("control", nueva.id);
       cargarJugadores(nueva.id);
       cargarPreguntas(gradoId);
     } finally {
@@ -184,7 +262,7 @@ export default function AdminSessionPage() {
 
   async function seleccionarSesion(s: SesionJuego) {
     setSesionActiva(s);
-    setVista("control");
+    cambiarVista("control", s.id);
     cargarJugadores(s.id);
     cargarPreguntas(s.grado_id);
     if (s.pregunta_activa_id) cargarRespuestas(s.pregunta_activa_id);
@@ -267,8 +345,7 @@ export default function AdminSessionPage() {
     setRespuestasPregunta([]);
     setPodium([]);
     setPreguntas([]);
-    setVista("menu");
-    window.scrollTo(0, 0);
+    cambiarVista("menu");
   }
 
   async function mostrarPodium() {
@@ -279,7 +356,7 @@ export default function AdminSessionPage() {
       .tablaGrado(sesionActiva.grado_id)
       .then(setTablaColegios)
       .catch(() => {});
-    setVista("podium");
+    cambiarVista("podium", sesionActiva.id);
     await api.actualizarSesion(sesionActiva.id, { estado: "podium" });
   }
 
@@ -317,12 +394,22 @@ export default function AdminSessionPage() {
 
   const sesionConGrado = sesiones.find((s) => s.id === sesionActiva?.id);
 
+  if (verificando) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-azul to-azul-dark p-6 flex items-center justify-center">
+        <div className="text-white text-xl font-heading animate-pulse">
+          Cargando...
+        </div>
+      </main>
+    );
+  }
+
   if (vista === "colegios") {
     return (
       <main className="min-h-screen bg-bg p-6">
         <div className="max-w-4xl mx-auto">
           <button
-            onClick={() => setVista("menu")}
+            onClick={() => cambiarVista("menu")}
             className="text-white/80 mb-4 hover:text-white"
           >
             ← Volver al menú
@@ -338,7 +425,7 @@ export default function AdminSessionPage() {
       <main className="min-h-screen bg-bg p-6">
         <div className="max-w-4xl mx-auto">
           <button
-            onClick={() => setVista("menu")}
+            onClick={() => cambiarVista("menu")}
             className="text-white/80 mb-4 hover:text-white"
           >
             ← Volver al menú
@@ -354,7 +441,7 @@ export default function AdminSessionPage() {
       <main className="min-h-screen bg-bg p-6">
         <div className="max-w-4xl mx-auto">
           <button
-            onClick={() => setVista("menu")}
+            onClick={() => cambiarVista("menu")}
             className="text-white/80 mb-4 hover:text-white"
           >
             ← Volver al menú
@@ -370,7 +457,7 @@ export default function AdminSessionPage() {
       <main className="min-h-screen bg-bg p-6">
         <div className="max-w-4xl mx-auto">
           <button
-            onClick={() => setVista("menu")}
+            onClick={() => cambiarVista("menu")}
             className="text-white/80 mb-4 hover:text-white"
           >
             ← Volver al menú
@@ -386,7 +473,7 @@ export default function AdminSessionPage() {
       <main className="min-h-screen bg-bg p-6">
         <div className="max-w-4xl mx-auto">
           <button
-            onClick={() => setVista("menu")}
+            onClick={() => cambiarVista("menu")}
             className="text-white/80 mb-4 hover:text-white"
           >
             ← Volver al menú
@@ -433,7 +520,7 @@ export default function AdminSessionPage() {
               </p>
             </button>
             <button
-              onClick={() => setVista("colegios")}
+              onClick={() => cambiarVista("colegios")}
               className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
             >
               <div className="text-3xl mb-1">🏫</div>
@@ -443,7 +530,7 @@ export default function AdminSessionPage() {
               </p>
             </button>
             <button
-              onClick={() => setVista("alumnos")}
+              onClick={() => cambiarVista("alumnos")}
               className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
             >
               <div className="text-3xl mb-1">🎓</div>
@@ -453,7 +540,7 @@ export default function AdminSessionPage() {
               </p>
             </button>
             <button
-              onClick={() => setVista("enfrentamiento")}
+              onClick={() => cambiarVista("enfrentamiento")}
               className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
             >
               <div className="text-3xl mb-1">⚔️</div>
@@ -463,7 +550,7 @@ export default function AdminSessionPage() {
               </p>
             </button>
             <button
-              onClick={() => setVista("duelos")}
+              onClick={() => cambiarVista("duelos")}
               className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
             >
               <div className="text-3xl mb-1">🥊</div>
@@ -473,7 +560,7 @@ export default function AdminSessionPage() {
               </p>
             </button>
             <button
-              onClick={() => setVista("parametros")}
+              onClick={() => cambiarVista("parametros")}
               className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
             >
               <div className="text-3xl mb-1">⚙️</div>
@@ -572,7 +659,7 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex gap-3 justify-center mb-4">
             <button
-              onClick={() => setVista("control")}
+              onClick={() => cambiarVista("control", sesionActiva?.id ?? null)}
               className="text-white/70 hover:text-white"
             >
               ← Volver al control
@@ -681,10 +768,7 @@ export default function AdminSessionPage() {
       <main className="min-h-screen bg-bg p-6">
         <div className="max-w-4xl mx-auto">
           <button
-            onClick={() => {
-              setVista("menu");
-              setSesionActiva(null);
-            }}
+            onClick={() => cambiarVista("menu")}
             className="text-white/80 mb-4 hover:text-white"
           >
             ← Volver al menú

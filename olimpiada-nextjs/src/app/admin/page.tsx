@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useParametros } from "@/lib/parametros";
@@ -10,7 +10,24 @@ export default function AdminLogin() {
   const [clave, setClave] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verificando, setVerificando] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    let activo = true;
+    (async () => {
+      const { esTokenDocente } = await import("@/lib/session");
+      if (!activo) return;
+      if (esTokenDocente()) {
+        router.replace("/admin/session");
+        return;
+      }
+      setVerificando(false);
+    })();
+    return () => {
+      activo = false;
+    };
+  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,11 +38,21 @@ export default function AdminLogin() {
       const { token } = await api.loginDocente(clave);
       const { guardarSesionDocente } = await import("@/lib/session");
       guardarSesionDocente(token);
-      router.push("/admin/session");
+      router.replace("/admin/session");
     } catch {
       setError("Clave incorrecta");
       setLoading(false);
     }
+  }
+
+  if (verificando) {
+    return (
+      <main className="flex-1 flex items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+        <div className="text-white text-xl font-heading animate-pulse">
+          Cargando...
+        </div>
+      </main>
+    );
   }
 
   return (
