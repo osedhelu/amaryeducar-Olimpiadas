@@ -25,6 +25,7 @@ from app.infrastructure.db.models import (
     ColegioORM,
     GradoORM,
     JugadorORM,
+    ParametroORM,
     PreguntaImagenORM,
     PreguntaORM,
     PuntajeRetoORM,
@@ -940,3 +941,23 @@ async def obtener_tabla_colegios(db: AsyncSession, grado_id: uuid.UUID) -> list[
     return agregar_tabla_colegios(
         respuestas, puntajes_retos, jugadores, colegios_participantes
     )
+
+
+class ParametroRepo:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def listar(self) -> dict[str, str]:
+        rows = (await self.db.execute(select(ParametroORM))).scalars().all()
+        return {r.clave: r.valor for r in rows}
+
+    async def upsert_muchos(self, valores: dict[str, str]) -> dict[str, str]:
+        for clave, valor in valores.items():
+            row = await self.db.get(ParametroORM, clave)
+            if row is None:
+                self.db.add(ParametroORM(clave=clave, valor=valor))
+            else:
+                row.valor = valor
+                row.actualizado_en = datetime.now(timezone.utc)
+        await self.db.commit()
+        return await self.listar()

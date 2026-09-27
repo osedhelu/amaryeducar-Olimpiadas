@@ -9,7 +9,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.core.exceptions import DomainError
 from app.infrastructure.realtime.manager import ConnectionManager
-from app.interfaces.api.routers import answers, auth, preguntas, registro, sessions
+from app.interfaces.api.routers import (
+    answers,
+    auth,
+    parametros,
+    preguntas,
+    registro,
+    sessions,
+)
 from app.interfaces.websocket import ws
 
 logging.basicConfig(level=logging.INFO)
@@ -22,13 +29,13 @@ manager = ConnectionManager()
 async def lifespan(app: FastAPI):
     app.state.manager = manager
     await manager.start()
-    logger.info("Backend Amar y Educar iniciado")
+    logger.info("Backend Amar y Educar - Olimpiadas de Inglés iniciado")
     yield
     await manager.stop()
 
 
 app = FastAPI(
-    title="Amar y Educar - Olimpiadas API", version="1.0.0", lifespan=lifespan
+    title="Amar y Educar - Olimpiadas de Inglés API", version="1.0.0", lifespan=lifespan
 )
 
 settings = get_settings()
@@ -41,6 +48,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(parametros.router)
 app.include_router(sessions.router)
 app.include_router(answers.router)
 app.include_router(registro.router)

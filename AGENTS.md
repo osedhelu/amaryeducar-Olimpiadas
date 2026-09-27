@@ -8,7 +8,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# Amar y Educar — Olimpiadas Matemáticas 2026
+# Amar y Educar — Olimpiadas de Inglés 2026
 
 Plataforma tipo Kahoot para olimpiadas escolares: pantalla grande (proyector), panel docente y respuesta en vivo desde el navegador del estudiante. **Backend: FastAPI sobre Postgres (Railway).** **No hay Supabase.**
 

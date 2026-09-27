@@ -14,7 +14,7 @@ TRUNCATE TABLE puntajes_retos, respuestas, jugadores, sesiones_juego,
 -- 2) Parámetros del evento (necesarios para el login admin)
 INSERT INTO parametros (clave, valor) VALUES
     ('clave_admin', 'ADMadm1234'),
-    ('nombre_evento', 'Amar y Educar Olimpiadas Matemáticas 2026');
+    ('nombre_evento', 'Olimpiadas de Inglés 2026');
 
 -- 3) Colegios
 INSERT INTO colegios (nombre, codigo) VALUES

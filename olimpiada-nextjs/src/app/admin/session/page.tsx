@@ -8,6 +8,7 @@ import ColegiosPanel from "@/components/admin/ColegiosPanel";
 import AlumnosPanel from "@/components/admin/AlumnosPanel";
 import EnfrentamientoPanel from "@/components/admin/EnfrentamientoPanel";
 import DuelosPanel from "@/components/admin/DuelosPanel";
+import ParametrosPanel from "@/components/admin/ParametrosPanel";
 import RetosPanel from "@/components/admin/RetosPanel";
 import type {
   Colegio,
@@ -32,7 +33,8 @@ type Vista =
   | "colegios"
   | "alumnos"
   | "enfrentamiento"
-  | "duelos";
+  | "duelos"
+  | "parametros";
 
 export default function AdminSessionPage() {
   const router = useRouter();
@@ -321,7 +323,7 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => setVista("menu")}
-            className="text-azul mb-4 hover:text-azul-light"
+            className="text-white/80 mb-4 hover:text-white"
           >
             ← Volver al menú
           </button>
@@ -337,7 +339,7 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => setVista("menu")}
-            className="text-azul mb-4 hover:text-azul-light"
+            className="text-white/80 mb-4 hover:text-white"
           >
             ← Volver al menú
           </button>
@@ -353,7 +355,7 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => setVista("menu")}
-            className="text-azul mb-4 hover:text-azul-light"
+            className="text-white/80 mb-4 hover:text-white"
           >
             ← Volver al menú
           </button>
@@ -369,11 +371,27 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => setVista("menu")}
-            className="text-azul mb-4 hover:text-azul-light"
+            className="text-white/80 mb-4 hover:text-white"
           >
             ← Volver al menú
           </button>
           <DuelosPanel />
+        </div>
+      </main>
+    );
+  }
+
+  if (vista === "parametros") {
+    return (
+      <main className="min-h-screen bg-bg p-6">
+        <div className="max-w-4xl mx-auto">
+          <button
+            onClick={() => setVista("menu")}
+            className="text-white/80 mb-4 hover:text-white"
+          >
+            ← Volver al menú
+          </button>
+          <ParametrosPanel />
         </div>
       </main>
     );
@@ -385,10 +403,10 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-heading font-extrabold text-azul">
+              <h1 className="text-3xl font-heading font-extrabold text-white">
                 Panel del Docente
               </h1>
-              <p className="text-texto-light">
+              <p className="text-white/70">
                 Registra colegios y alumnos, arma duelos y controla las sesiones
               </p>
             </div>
@@ -454,6 +472,16 @@ export default function AdminSessionPage() {
                 Duelo interno alumno vs alumno
               </p>
             </button>
+            <button
+              onClick={() => setVista("parametros")}
+              className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
+            >
+              <div className="text-3xl mb-1">⚙️</div>
+              <p className="font-heading font-bold text-azul">Configuración</p>
+              <p className="text-xs text-texto-light">
+                Textos, marca y clave del portal
+              </p>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
@@ -492,7 +520,7 @@ export default function AdminSessionPage() {
 
           {sesiones.length > 0 && (
             <div>
-              <h2 className="text-xl font-heading font-bold text-azul mb-3">
+              <h2 className="text-xl font-heading font-bold text-white mb-3">
                 Sesiones existentes
               </h2>
               <div className="space-y-2">
@@ -657,17 +685,17 @@ export default function AdminSessionPage() {
               setVista("menu");
               setSesionActiva(null);
             }}
-            className="text-azul mb-4 hover:text-azul-light"
+            className="text-white/80 mb-4 hover:text-white"
           >
             ← Volver al menú
           </button>
 
           <div className="flex flex-wrap gap-4 items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-heading font-extrabold text-azul">
+              <h1 className="text-2xl font-heading font-extrabold text-white">
                 {sesionConGrado?.grado?.nombre ?? "—"} — PIN: {sesionActiva.pin}
               </h1>
-              <p className="text-texto-light text-sm">
+              <p className="text-white/70 text-sm">
                 Estado:{" "}
                 <span className="font-bold">
                   {sesionActiva.estado === "pregunta"
@@ -707,10 +735,10 @@ export default function AdminSessionPage() {
             <div className="bg-dorado/10 border-2 border-dorado rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-heading font-bold text-azul-dark">
+                  <p className="font-heading font-bold text-white">
                     Pregunta en curso
                   </p>
-                  <p className="text-sm text-texto-light">
+                  <p className="text-sm text-white/80">
                     {respuestasPregunta.length} de{" "}
                     {jugadores.filter((j) => j.conectado).length} conectados
                     respondieron
@@ -730,10 +758,10 @@ export default function AdminSessionPage() {
             <div className="bg-verde/10 border-2 border-verde rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-heading font-bold text-verde">
+                  <p className="font-heading font-bold text-white">
                     ✓ Resultado mostrado
                   </p>
-                  <p className="text-sm text-texto-light">
+                  <p className="text-sm text-white/80">
                     {respuestasPregunta.filter((r) => r.correcta).length} de{" "}
                     {respuestasPregunta.length} acertaron — lista para la
                     siguiente
@@ -753,10 +781,10 @@ export default function AdminSessionPage() {
             <div className="bg-verde/10 border-2 border-verde rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-heading font-bold text-verde">
+                  <p className="font-heading font-bold text-white">
                     🏁 ¡Grado finalizado!
                   </p>
-                  <p className="text-sm text-texto-light">
+                  <p className="text-sm text-white/80">
                     Los puntos están sumados. Muestra el podium para premiar, o{" "}
                     <span className="font-bold">
                       re-lanza cualquier pregunta
@@ -778,10 +806,10 @@ export default function AdminSessionPage() {
             <div className="bg-azul/10 border-2 border-azul rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-heading font-bold text-azul">
+                  <p className="font-heading font-bold text-white">
                     🎯 Actividad lúdica en curso
                   </p>
-                  <p className="text-sm text-texto-light">
+                  <p className="text-sm text-white/80">
                     El jurado está calificando el reto. La pantalla grande
                     muestra las instrucciones.
                   </p>
@@ -800,10 +828,10 @@ export default function AdminSessionPage() {
             <div className="bg-dorado/10 border-2 border-dorado rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-heading font-bold text-azul-dark">
+                  <p className="font-heading font-bold text-white">
                     🏆 Podio del reto en pantalla grande
                   </p>
-                  <p className="text-sm text-texto-light">
+                  <p className="text-sm text-white/80">
                     La pantalla grande muestra los ganadores de este reto. El
                     jurado puede seguir corrigiendo puestos.
                   </p>
@@ -962,7 +990,7 @@ export default function AdminSessionPage() {
                       className={`flex items-center justify-between p-3 rounded-xl ${
                         p.puesto === 1
                           ? "bg-dorado text-azul-dark"
-                          : "bg-bg text-texto"
+                          : "bg-bg-card text-texto"
                       }`}
                     >
                       <div className="flex items-center gap-3">

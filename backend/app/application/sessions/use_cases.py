@@ -23,21 +23,63 @@ from app.infrastructure.db.repositories import (
     ColegioRepo,
     GradoRepo,
     JugadorRepo,
+    ParametroRepo,
     PreguntaRepo,
     RespuestaRepo,
     SesionRepo,
     generar_pin_unico,
 )
 
+PARAMETROS_DEFAULT: dict[str, str] = {
+    "nombre_institucion": "Amar y Educar",
+    "nombre_evento": "Olimpiadas de Inglés 2026",
+    "subtitulo_evento": "Preguntas y respuestas en inglés",
+    "texto_bienvenida": "Nos alegra enormemente darles la bienvenida a esta jornada de conocimiento, idioma y superación.",
+    "texto_unirse": "Únete a la Olimpiada",
+    "texto_join_ayuda": "Ingresa el PIN y toca tu nombre en la lista",
+    "texto_panel_docente": "Panel del Docente",
+    "texto_unirme_estudiante": "Unirme como Estudiante",
+    "texto_pin_label": "PIN de la sesión",
+    "texto_ronda_completada": "¡Ronda completada!",
+    "clave_admin": "ADMadm1234",
+}
+
+PARAMETROS_SECRETOS = {"clave_admin"}
+
 
 class AuthUseCases:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def _clave_admin_valida(self, clave: str) -> bool:
+        if validar_clave_admin(clave):
+            return True
+        if self.db is None:
+            return False
+        parametros = await ParametroRepo(self.db).listar()
+        almacenada = parametros.get("clave_admin")
+        return bool(almacenada) and clave == almacenada
+
     async def login_docente(self, clave: str) -> dict:
-        if not validar_clave_admin(clave):
+        if not await self._clave_admin_valida(clave):
             raise ClaveIncorrecta()
         return {"token": crear_jwt(RolJWT.DOCENTE.value), "role": RolJWT.DOCENTE.value}
+
+    async def listar_parametros(self, incluir_secretos: bool = False) -> dict[str, str]:
+        parametros = {**PARAMETROS_DEFAULT, **await ParametroRepo(self.db).listar()}
+        if not incluir_secretos:
+            for clave in PARAMETROS_SECRETOS:
+                parametros.pop(clave, None)
+        return parametros
+
+    async def actualizar_parametros(self, valores: dict[str, str]) -> dict[str, str]:
+        limpios = {
+            clave: str(valor)
+            for clave, valor in valores.items()
+            if isinstance(clave, str) and valor is not None
+        }
+        await ParametroRepo(self.db).upsert_muchos(limpios)
+        return await self.listar_parametros(incluir_secretos=True)
 
     async def token_estudiante(self, jugador_id: str, sesion_id: str) -> dict:
         return {

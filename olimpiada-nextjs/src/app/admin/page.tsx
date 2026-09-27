@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useParametros } from "@/lib/parametros";
 
 export default function AdminLogin() {
+  const parametros = useParametros();
   const [clave, setClave] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,7 +37,7 @@ export default function AdminLogin() {
         <div className="text-center">
           <div className="text-4xl mb-2">🔐</div>
           <h1 className="text-2xl font-heading font-bold text-azul">
-            Panel del Docente
+            {parametros.texto_panel_docente}
           </h1>
           <p className="text-texto-light text-sm mt-1">
             Ingresa la clave maestra para continuar

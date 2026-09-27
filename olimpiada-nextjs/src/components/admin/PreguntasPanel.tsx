@@ -303,14 +303,14 @@ export default function PreguntasPanel() {
           <div>
             <button
               onClick={() => router.push("/admin/session")}
-              className="text-sm text-azul hover:underline mb-1"
+              className="text-sm text-white/80 hover:text-white hover:underline mb-1"
             >
               ← Volver al menú
             </button>
-            <h1 className="text-3xl font-heading font-extrabold text-azul">
+            <h1 className="text-3xl font-heading font-extrabold text-white">
               Banco de preguntas
             </h1>
-            <p className="text-texto-light text-sm">
+            <p className="text-white/70 text-sm">
               Crea y edita preguntas, y ponles su imagen
             </p>
           </div>

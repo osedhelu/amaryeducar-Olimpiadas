@@ -1,6 +1,21 @@
 export type GradoNombre =
   "Primero" | "Segundo" | "Tercero" | "Cuarto" | "Quinto";
 
+export interface ParametrosEvento {
+  nombre_institucion: string;
+  nombre_evento: string;
+  subtitulo_evento: string;
+  texto_bienvenida: string;
+  texto_unirse: string;
+  texto_join_ayuda: string;
+  texto_panel_docente: string;
+  texto_unirme_estudiante: string;
+  texto_pin_label: string;
+  texto_ronda_completada: string;
+  clave_admin?: string;
+  [clave: string]: string | undefined;
+}
+
 export type EstadoSesion =
   | "borrador"
   | "lobby"

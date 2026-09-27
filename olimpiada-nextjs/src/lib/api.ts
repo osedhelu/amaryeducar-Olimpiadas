@@ -3,6 +3,7 @@ import type {
   Colegio,
   Grado,
   Jugador,
+  ParametrosEvento,
   PodiumEntry,
   Pregunta,
   PuntajeReto,
@@ -384,6 +385,21 @@ export const api = {
   // ── Pódium ───────────────────────────────────────────
   podium: (sesionId: string): Promise<PodiumEntry[]> =>
     request<PodiumEntry[]>(`/podium/${sesionId}`),
+
+  // ── Parámetros del evento ────────────────────────────
+  parametros: (): Promise<ParametrosEvento> =>
+    request<ParametrosEvento>("/parametros"),
+
+  parametrosAdmin: (): Promise<ParametrosEvento> =>
+    request<ParametrosEvento>("/parametros/admin"),
+
+  actualizarParametros: (
+    valores: Partial<ParametrosEvento>,
+  ): Promise<ParametrosEvento> =>
+    request<ParametrosEvento>("/parametros", {
+      method: "PUT",
+      body: JSON.stringify(valores),
+    }),
 };
 
 export const apiUrl = BASE_URL;

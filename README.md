@@ -1,4 +1,4 @@
-# Amar y Educar — Olimpiadas Matemáticas 2026
+# Amar y Educar — Olimpiadas de Inglés 2026
 
 Monorepo de la plataforma y presentaciones del proyecto **Amar y Educar**.
 

@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useParametros } from "@/lib/parametros";
 import type { Alumno, Colegio, SesionJuego } from "@/types/game";
 
 export default function JoinPage() {
+  const parametros = useParametros();
   const [pin, setPin] = useState("");
   const [sesion, setSesion] = useState<SesionJuego | null>(null);
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
@@ -83,10 +85,10 @@ export default function JoinPage() {
         <div className="text-center">
           <div className="text-4xl mb-2">🎓</div>
           <h1 className="text-2xl font-heading font-bold text-azul">
-            Únete a la Olimpiada
+            {parametros.texto_unirse}
           </h1>
           <p className="text-texto-light text-sm mt-1">
-            Ingresa el PIN y toca tu nombre en la lista
+            {parametros.texto_join_ayuda}
           </p>
         </div>
 

@@ -17,9 +17,9 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Amar y Educar - Olimpiadas Matemáticas 2026",
+  title: "Amar y Educar - Olimpiadas de Inglés 2026",
   description:
-    "Plataforma en vivo para las Olimpiadas Matemáticas 2026 de Amar y Educar",
+    "Plataforma en vivo para las Olimpiadas de Inglés 2026 de Amar y Educar",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

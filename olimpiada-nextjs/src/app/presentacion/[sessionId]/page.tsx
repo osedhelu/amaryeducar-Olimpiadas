@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { api, imagenPreguntaUrl } from "@/lib/api";
+import { useParametros } from "@/lib/parametros";
 import type {
   SesionJuego,
   Pregunta,
@@ -29,6 +30,7 @@ type Vista =
 export default function PresentacionPage() {
   const params = useParams();
   const sessionId = params.sessionId as string;
+  const parametros = useParametros();
 
   const [sesion, setSesion] = useState<SesionJuego | null>(null);
   const [pregunta, setPregunta] = useState<Pregunta | null>(null);
@@ -242,14 +244,16 @@ export default function PresentacionPage() {
         <div className="max-w-4xl w-full text-center space-y-8 animate-fade-in">
           <div className="text-7xl">🏆</div>
           <h1 className="text-5xl md:text-6xl font-heading font-extrabold text-white">
-            Amar y Educar
+            {parametros.nombre_institucion}
           </h1>
           <h2 className="text-3xl md:text-4xl font-heading font-bold text-dorado">
-            Olimpiadas Matemáticas 2026
+            {parametros.nombre_evento}
           </h2>
 
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 max-w-sm mx-auto">
-            <p className="text-white/70 text-sm mb-1">PIN de la sesión</p>
+            <p className="text-white/70 text-sm mb-1">
+              {parametros.texto_pin_label}
+            </p>
             <p className="text-dorado text-6xl font-heading font-extrabold tracking-widest">
               {sesion.pin}
             </p>
@@ -372,7 +376,7 @@ export default function PresentacionPage() {
         <div className="max-w-3xl w-full text-center space-y-6">
           <div className="text-5xl animate-bounce-in">🎉</div>
           <h1 className="text-4xl font-heading font-extrabold text-dorado">
-            ¡Ronda completada!
+            {parametros.texto_ronda_completada}
           </h1>
 
           <div className="grid grid-cols-3 gap-3">
