@@ -400,8 +400,8 @@ export default function AdminSessionPage() {
 
   if (verificando) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-azul to-azul-dark p-6 flex items-center justify-center">
-        <div className="text-white text-xl font-heading animate-pulse">
+      <main className="min-h-screen bg-bg p-6 flex items-center justify-center">
+        <div className="text-azul text-xl font-heading animate-pulse">
           Cargando...
         </div>
       </main>
@@ -414,7 +414,7 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => cambiarVista("menu")}
-            className="text-white/80 mb-4 hover:text-white"
+            className="text-azul mb-4 hover:text-azul-light"
           >
             ← Volver al menú
           </button>
@@ -430,7 +430,7 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => cambiarVista("menu")}
-            className="text-white/80 mb-4 hover:text-white"
+            className="text-azul mb-4 hover:text-azul-light"
           >
             ← Volver al menú
           </button>
@@ -446,7 +446,7 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => cambiarVista("menu")}
-            className="text-white/80 mb-4 hover:text-white"
+            className="text-azul mb-4 hover:text-azul-light"
           >
             ← Volver al menú
           </button>
@@ -462,7 +462,7 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => cambiarVista("menu")}
-            className="text-white/80 mb-4 hover:text-white"
+            className="text-azul mb-4 hover:text-azul-light"
           >
             ← Volver al menú
           </button>
@@ -478,7 +478,7 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => cambiarVista("menu")}
-            className="text-white/80 mb-4 hover:text-white"
+            className="text-azul mb-4 hover:text-azul-light"
           >
             ← Volver al menú
           </button>
@@ -494,10 +494,10 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-heading font-extrabold text-white">
+              <h1 className="text-3xl font-heading font-extrabold text-azul">
                 Panel del Docente
               </h1>
-              <p className="text-white/70">
+              <p className="text-texto-light">
                 Registra colegios y alumnos, arma duelos y controla las sesiones
               </p>
             </div>
@@ -611,7 +611,7 @@ export default function AdminSessionPage() {
 
           {sesiones.length > 0 && (
             <div>
-              <h2 className="text-xl font-heading font-bold text-white mb-3">
+              <h2 className="text-xl font-heading font-bold text-azul mb-3">
                 Sesiones existentes
               </h2>
               <div className="space-y-2">
@@ -659,12 +659,12 @@ export default function AdminSessionPage() {
         ? tablaColegios
         : podium.filter((e) => e.es_colegio);
     return (
-      <main className="min-h-screen bg-gradient-to-b from-azul to-azul-dark p-6">
+      <main className="min-h-screen bg-bg p-6">
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex gap-3 justify-center mb-4">
             <button
               onClick={() => cambiarVista("control", sesionActiva?.id ?? null)}
-              className="text-white/70 hover:text-white"
+              className="text-azul hover:text-azul-light"
             >
               ← Volver al control
             </button>
@@ -675,13 +675,13 @@ export default function AdminSessionPage() {
               ✅ Finalizar sesión
             </button>
           </div>
-          <h1 className="text-3xl font-heading font-extrabold text-dorado mb-8">
+          <h1 className="text-3xl font-heading font-extrabold text-azul mb-8">
             🏆 Podium
           </h1>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-left">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
-              <h2 className="text-lg font-heading font-bold text-white mb-3 text-center">
+            <div className="bg-bg-card border border-azul/10 rounded-2xl p-5">
+              <h2 className="text-lg font-heading font-bold text-azul mb-3 text-center">
                 🎓 Estudiantes
               </h2>
               <div className="space-y-2">
@@ -691,7 +691,7 @@ export default function AdminSessionPage() {
                     className={`flex items-center justify-between p-3 rounded-xl ${
                       entry.puesto === 1
                         ? "bg-dorado text-azul-dark"
-                        : "bg-white/5 text-white"
+                        : "bg-white border border-azul/10 text-texto"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -714,15 +714,15 @@ export default function AdminSessionPage() {
                   </div>
                 ))}
                 {estudiantes.length === 0 && (
-                  <p className="text-white/60 text-sm text-center">
+                  <p className="text-texto-light text-sm text-center">
                     Sin datos individuales.
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
-              <h2 className="text-lg font-heading font-bold text-white mb-3 text-center">
+            <div className="bg-bg-card border border-azul/10 rounded-2xl p-5">
+              <h2 className="text-lg font-heading font-bold text-azul mb-3 text-center">
                 🏫 Colegios
               </h2>
               <div className="space-y-2">
@@ -732,7 +732,7 @@ export default function AdminSessionPage() {
                     className={`flex items-center justify-between p-3 rounded-xl ${
                       entry.puesto === 1
                         ? "bg-dorado text-azul-dark"
-                        : "bg-white/5 text-white"
+                        : "bg-white border border-azul/10 text-texto"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -755,7 +755,7 @@ export default function AdminSessionPage() {
                   </div>
                 ))}
                 {colegiosTabla.length === 0 && (
-                  <p className="text-white/60 text-sm text-center">
+                  <p className="text-texto-light text-sm text-center">
                     Sin datos de colegios.
                   </p>
                 )}
@@ -773,17 +773,17 @@ export default function AdminSessionPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => cambiarVista("menu")}
-            className="text-white/80 mb-4 hover:text-white"
+            className="text-azul mb-4 hover:text-azul-light"
           >
             ← Volver al menú
           </button>
 
           <div className="flex flex-wrap gap-4 items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-heading font-extrabold text-white">
+              <h1 className="text-2xl font-heading font-extrabold text-azul">
                 {sesionConGrado?.grado?.nombre ?? "—"} — PIN: {sesionActiva.pin}
               </h1>
-              <p className="text-white/70 text-sm">
+              <p className="text-texto-light text-sm">
                 Estado:{" "}
                 <span className="font-bold">
                   {sesionActiva.estado === "pregunta"
@@ -823,10 +823,10 @@ export default function AdminSessionPage() {
             <div className="bg-dorado/10 border-2 border-dorado rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-heading font-bold text-white">
+                  <p className="font-heading font-bold text-azul-dark">
                     Pregunta en curso
                   </p>
-                  <p className="text-sm text-white/80">
+                  <p className="text-sm text-texto-light">
                     {respuestasPregunta.length} de{" "}
                     {jugadores.filter((j) => j.conectado).length} conectados
                     respondieron
@@ -846,10 +846,10 @@ export default function AdminSessionPage() {
             <div className="bg-verde/10 border-2 border-verde rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-heading font-bold text-white">
+                  <p className="font-heading font-bold text-verde">
                     ✓ Resultado mostrado
                   </p>
-                  <p className="text-sm text-white/80">
+                  <p className="text-sm text-texto-light">
                     {respuestasPregunta.filter((r) => r.correcta).length} de{" "}
                     {respuestasPregunta.length} acertaron — lista para la
                     siguiente
@@ -869,10 +869,10 @@ export default function AdminSessionPage() {
             <div className="bg-verde/10 border-2 border-verde rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-heading font-bold text-white">
+                  <p className="font-heading font-bold text-verde">
                     🏁 ¡Grado finalizado!
                   </p>
-                  <p className="text-sm text-white/80">
+                  <p className="text-sm text-texto-light">
                     Los puntos están sumados. Muestra el podium para premiar, o{" "}
                     <span className="font-bold">
                       re-lanza cualquier pregunta
@@ -894,10 +894,10 @@ export default function AdminSessionPage() {
             <div className="bg-azul/10 border-2 border-azul rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-heading font-bold text-white">
+                  <p className="font-heading font-bold text-azul">
                     🎯 Actividad lúdica en curso
                   </p>
-                  <p className="text-sm text-white/80">
+                  <p className="text-sm text-texto-light">
                     El jurado está calificando el reto. La pantalla grande
                     muestra las instrucciones.
                   </p>
@@ -916,10 +916,10 @@ export default function AdminSessionPage() {
             <div className="bg-dorado/10 border-2 border-dorado rounded-xl p-4 mb-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-heading font-bold text-white">
+                  <p className="font-heading font-bold text-azul-dark">
                     🏆 Podio del reto en pantalla grande
                   </p>
-                  <p className="text-sm text-white/80">
+                  <p className="text-sm text-texto-light">
                     La pantalla grande muestra los ganadores de este reto. El
                     jurado puede seguir corrigiendo puestos.
                   </p>

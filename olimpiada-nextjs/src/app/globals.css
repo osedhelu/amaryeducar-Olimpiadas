@@ -10,7 +10,7 @@
   --color-verde: #2f9e44;
   --color-crema: #f5ebe1;
   --color-rojo-error: #d64550;
-  --color-bg: #bc2229;
+  --color-bg: #ffffff;
   --color-bg-card: #f5ebe1;
   --color-texto: #374151;
   --color-texto-light: #6b7280;
@@ -71,12 +71,7 @@
 }
 
 body {
-  background: linear-gradient(
-    160deg,
-    var(--color-azul) 0%,
-    var(--color-azul-dark) 100%
-  );
-  background-attachment: fixed;
+  background: var(--color-bg);
   color: var(--color-texto);
   font-family: var(--font-body);
 }

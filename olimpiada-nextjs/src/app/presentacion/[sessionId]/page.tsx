@@ -231,8 +231,8 @@ export default function PresentacionPage() {
 
   if (!sesion) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-azul to-azul-dark min-h-screen">
-        <div className="text-white text-3xl font-heading font-bold animate-pulse">
+      <div className="flex-1 flex items-center justify-center bg-bg min-h-screen">
+        <div className="text-azul text-3xl font-heading font-bold animate-pulse">
           Cargando...
         </div>
       </div>
@@ -241,43 +241,45 @@ export default function PresentacionPage() {
 
   if (vista === "bienvenida" || vista === "lobby") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
         <div className="max-w-4xl w-full text-center space-y-8 animate-fade-in">
           <div className="text-7xl">🏆</div>
-          <h1 className="text-5xl md:text-6xl font-heading font-extrabold text-white">
+          <h1 className="text-5xl md:text-6xl font-heading font-extrabold text-azul">
             {parametros.nombre_institucion}
           </h1>
-          <h2 className="text-3xl md:text-4xl font-heading font-bold text-dorado">
+          <h2 className="text-3xl md:text-4xl font-heading font-bold text-azul">
             {parametros.nombre_evento}
           </h2>
 
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 max-w-sm mx-auto">
-            <p className="text-white/70 text-sm mb-1">
+          <div className="bg-bg-card border border-azul/10 rounded-2xl p-6 max-w-sm mx-auto">
+            <p className="text-texto-light text-sm mb-1">
               {parametros.texto_pin_label}
             </p>
-            <p className="text-dorado text-6xl font-heading font-extrabold tracking-widest">
+            <p className="text-azul text-6xl font-heading font-extrabold tracking-widest">
               {sesion.pin}
             </p>
           </div>
 
           <div>
-            <p className="text-white/70 text-sm mb-2">Jugadores conectados</p>
+            <p className="text-texto-light text-sm mb-2">
+              Jugadores conectados
+            </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {jugadores.map((j) => (
                 <span
                   key={j.id}
-                  className="px-3 py-1 bg-dorado/20 text-dorado rounded-full text-sm font-heading font-bold animate-bounce-in"
+                  className="px-3 py-1 bg-dorado/20 text-azul rounded-full text-sm font-heading font-bold animate-bounce-in"
                 >
                   {j.nombre}
                 </span>
               ))}
             </div>
-            <p className="text-white/50 text-sm mt-2">
+            <p className="text-texto-light text-sm mt-2">
               {jugadores.length} participantes
             </p>
           </div>
 
-          <div className="flex items-center justify-center gap-2 text-white/50 text-sm">
+          <div className="flex items-center justify-center gap-2 text-texto-light text-sm">
             <span
               className={`w-2 h-2 rounded-full ${connected ? "bg-verde" : "bg-rojo-error"}`}
             />
@@ -302,22 +304,22 @@ export default function PresentacionPage() {
     ).length;
 
     return (
-      <div className="flex-1 flex flex-col p-6 md:p-10 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col p-6 md:p-10 bg-bg min-h-screen">
         <div className="flex justify-between items-center mb-6">
-          <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl">
-            <span className="text-dorado font-heading font-bold">
+          <div className="bg-bg-card border border-azul/10 px-4 py-2 rounded-xl">
+            <span className="text-azul font-heading font-bold">
               PIN: {sesion.pin}
             </span>
           </div>
           {sesion.cronometro_segundos > 0 && (
             <div className="flex items-center gap-3">
-              <div className="w-48 h-4 bg-white/20 rounded-full overflow-hidden">
+              <div className="w-48 h-4 bg-azul/15 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-dorado transition-all duration-200 rounded-full"
                   style={{ width: `${porcentaje}%` }}
                 />
               </div>
-              <span className="text-white font-heading font-extrabold text-3xl w-12 text-right">
+              <span className="text-texto font-heading font-extrabold text-3xl w-12 text-right">
                 {tiempoRestante}
               </span>
             </div>
@@ -342,9 +344,9 @@ export default function PresentacionPage() {
             </div>
           )}
 
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+          <div className="bg-bg-card rounded-2xl p-4 border border-azul/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-40 h-2.5 bg-white/20 rounded-full overflow-hidden">
+              <div className="w-40 h-2.5 bg-azul/15 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-verde rounded-full transition-all duration-300"
                   style={{
@@ -352,7 +354,7 @@ export default function PresentacionPage() {
                   }}
                 />
               </div>
-              <span className="text-white font-heading font-bold text-sm">
+              <span className="text-texto font-heading font-bold text-sm">
                 {totalRespondidos}/{totalConectados} respondieron
               </span>
             </div>
@@ -373,10 +375,10 @@ export default function PresentacionPage() {
     const fallaron = totalRespondidos - acertaron;
 
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
         <div className="max-w-3xl w-full text-center space-y-6">
           <div className="text-5xl animate-bounce-in">🎉</div>
-          <h1 className="text-4xl font-heading font-extrabold text-dorado">
+          <h1 className="text-4xl font-heading font-extrabold text-azul">
             {parametros.texto_ronda_completada}
           </h1>
 
@@ -385,19 +387,19 @@ export default function PresentacionPage() {
               <p className="text-4xl font-heading font-extrabold text-verde">
                 {acertaron}
               </p>
-              <p className="text-white/70 text-sm">acertaron</p>
+              <p className="text-texto-light text-sm">acertaron</p>
             </div>
             <div className="bg-rojo/20 rounded-2xl p-4 animate-bounce-in">
               <p className="text-4xl font-heading font-extrabold text-rojo-error">
                 {fallaron}
               </p>
-              <p className="text-white/70 text-sm">fallaron</p>
+              <p className="text-texto-light text-sm">fallaron</p>
             </div>
-            <div className="bg-white/10 rounded-2xl p-4 animate-bounce-in">
-              <p className="text-4xl font-heading font-extrabold text-white/70">
+            <div className="bg-bg-card border border-azul/10 rounded-2xl p-4 animate-bounce-in">
+              <p className="text-4xl font-heading font-extrabold text-texto-light">
                 {sinResponder}
               </p>
-              <p className="text-white/70 text-sm">sin responder</p>
+              <p className="text-texto-light text-sm">sin responder</p>
             </div>
           </div>
         </div>
@@ -407,26 +409,26 @@ export default function PresentacionPage() {
 
   if (retosActivos && vista === "reto") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
         <div className="max-w-4xl w-full text-center space-y-8">
           <div className="text-7xl animate-bounce-in">🎯</div>
-          <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-dorado">
+          <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-azul">
             RETO LÚDICO
           </h1>
           {retoActivo ? (
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 animate-fade-in space-y-4">
-              <h2 className="text-3xl md:text-4xl font-heading font-bold text-white">
+            <div className="bg-bg-card border border-azul/10 rounded-2xl p-8 animate-fade-in space-y-4">
+              <h2 className="text-3xl md:text-4xl font-heading font-bold text-azul-dark">
                 {retoActivo.nombre}
               </h2>
-              <span className="inline-block px-4 py-1 bg-dorado/20 text-dorado rounded-full text-sm font-heading font-bold">
+              <span className="inline-block px-4 py-1 bg-dorado/20 text-azul rounded-full text-sm font-heading font-bold">
                 {retoActivo.tipo === "grupal" ? "👥 Grupal" : "🙋 Individual"}
               </span>
-              <p className="text-white/80 text-xl md:text-2xl font-body leading-relaxed max-w-3xl mx-auto">
+              <p className="text-texto text-xl md:text-2xl font-body leading-relaxed max-w-3xl mx-auto">
                 {retoActivo.instrucciones}
               </p>
             </div>
           ) : (
-            <p className="text-white/70 text-xl font-heading">
+            <p className="text-texto-light text-xl font-heading">
               Cargando actividad...
             </p>
           )}
@@ -437,20 +439,20 @@ export default function PresentacionPage() {
 
   if (retosActivos && vista === "reto_podium") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
         <div className="max-w-3xl w-full text-center space-y-8">
           <div className="text-7xl animate-bounce-in">🎯🏆</div>
-          <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-dorado">
+          <h1 className="text-4xl md:text-5xl font-heading font-extrabold text-azul">
             Resultado del reto
           </h1>
           {retoActivo && (
-            <h2 className="text-2xl md:text-3xl font-heading font-bold text-white">
+            <h2 className="text-2xl md:text-3xl font-heading font-bold text-azul-dark">
               {retoActivo.nombre}
             </h2>
           )}
 
           {puntajesReto.length === 0 ? (
-            <p className="text-white/70 text-xl font-heading">
+            <p className="text-texto-light text-xl font-heading">
               Aún no hay puestos asignados en este reto.
             </p>
           ) : (
@@ -462,10 +464,10 @@ export default function PresentacionPage() {
                     p.puesto === 1
                       ? "bg-dorado text-azul-dark scale-105"
                       : p.puesto === 2
-                        ? "bg-white/90 text-azul-dark"
+                        ? "bg-bg-card text-texto"
                         : p.puesto === 3
-                          ? "bg-white/70 text-azul-dark"
-                          : "bg-white/30 text-white"
+                          ? "bg-white border border-azul/15 text-texto"
+                          : "bg-white border border-azul/10 text-texto-light"
                   }`}
                   style={{ animationDelay: `${idx * 300}ms` }}
                 >
@@ -498,10 +500,10 @@ export default function PresentacionPage() {
 
   if (vista === "podium") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
         <div className="max-w-3xl w-full text-center space-y-8">
           <div className="text-7xl animate-bounce-in">🏆</div>
-          <h1 className="text-5xl font-heading font-extrabold text-dorado">
+          <h1 className="text-5xl font-heading font-extrabold text-azul">
             PÓDIUM
           </h1>
 
@@ -513,10 +515,10 @@ export default function PresentacionPage() {
                   entry.puesto === 1
                     ? "bg-dorado text-azul-dark scale-105"
                     : entry.puesto === 2
-                      ? "bg-white/90 text-azul-dark"
+                      ? "bg-bg-card text-texto"
                       : entry.puesto === 3
-                        ? "bg-white/70 text-azul-dark"
-                        : "bg-white/30 text-white"
+                        ? "bg-white border border-azul/15 text-texto"
+                        : "bg-white border border-azul/10 text-texto-light"
                 }`}
                 style={{ animationDelay: `${idx * 300}ms` }}
               >
@@ -552,29 +554,29 @@ export default function PresentacionPage() {
       tabla.length > 0 ? tabla : podium.filter((e) => e.es_colegio);
 
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
         <div className="max-w-5xl w-full text-center space-y-8">
           <div className="text-6xl">🏁</div>
-          <h1 className="text-4xl font-heading font-extrabold text-dorado">
+          <h1 className="text-4xl font-heading font-extrabold text-azul">
             ¡Sesión terminada!
           </h1>
-          <p className="text-white/70 text-lg">
+          <p className="text-texto-light text-lg">
             Resultados finales de este grupo
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-              <h2 className="text-2xl font-heading font-bold text-white mb-4">
+            <div className="bg-bg-card border border-azul/10 rounded-2xl p-6">
+              <h2 className="text-2xl font-heading font-bold text-azul mb-4">
                 🎓 Puntos por estudiante
               </h2>
               <div className="space-y-2">
                 {estudiantes.length === 0 && (
-                  <p className="text-white/60 text-sm">Sin resultados.</p>
+                  <p className="text-texto-light text-sm">Sin resultados.</p>
                 )}
                 {estudiantes.map((entry, idx) => (
                   <div
                     key={entry.entity_id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 animate-slide-up"
+                    className="flex items-center justify-between p-3 rounded-xl bg-white border border-azul/10 animate-slide-up"
                     style={{ animationDelay: `${idx * 100}ms` }}
                   >
                     <div className="flex items-center gap-3">
@@ -587,11 +589,11 @@ export default function PresentacionPage() {
                               ? "🥉"
                               : `${entry.puesto}°`}
                       </span>
-                      <span className="font-heading font-bold text-white text-lg">
+                      <span className="font-heading font-bold text-texto text-lg">
                         {entry.nombre}
                       </span>
                     </div>
-                    <span className="font-heading font-extrabold text-dorado text-xl">
+                    <span className="font-heading font-extrabold text-azul text-xl">
                       {entry.puntos_total} pts
                     </span>
                   </div>
@@ -599,18 +601,18 @@ export default function PresentacionPage() {
               </div>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-              <h2 className="text-2xl font-heading font-bold text-white mb-4">
+            <div className="bg-bg-card border border-azul/10 rounded-2xl p-6">
+              <h2 className="text-2xl font-heading font-bold text-azul mb-4">
                 🏫 Puntos por colegio
               </h2>
               <div className="space-y-2">
                 {colegiosTabla.length === 0 && (
-                  <p className="text-white/60 text-sm">Sin resultados.</p>
+                  <p className="text-texto-light text-sm">Sin resultados.</p>
                 )}
                 {colegiosTabla.map((entry, idx) => (
                   <div
                     key={`${entry.nombre}-${idx}`}
-                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 animate-slide-up"
+                    className="flex items-center justify-between p-3 rounded-xl bg-white border border-azul/10 animate-slide-up"
                     style={{ animationDelay: `${idx * 100}ms` }}
                   >
                     <div className="flex items-center gap-3">
@@ -623,11 +625,11 @@ export default function PresentacionPage() {
                               ? "🥉"
                               : `${entry.puesto}°`}
                       </span>
-                      <span className="font-heading font-bold text-white text-lg">
+                      <span className="font-heading font-bold text-texto text-lg">
                         {entry.nombre}
                       </span>
                     </div>
-                    <span className="font-heading font-extrabold text-dorado text-xl">
+                    <span className="font-heading font-extrabold text-azul text-xl">
                       {entry.puntos_total} pts
                     </span>
                   </div>
@@ -641,8 +643,8 @@ export default function PresentacionPage() {
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-azul to-azul-dark min-h-screen">
-      <div className="text-white text-xl font-heading">
+    <div className="flex-1 flex items-center justify-center bg-bg min-h-screen">
+      <div className="text-texto text-xl font-heading">
         Estado: {sesion.estado}
       </div>
     </div>

@@ -80,8 +80,8 @@ export default function JoinPage() {
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg space-y-6 animate-bounce-in">
+    <main className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
+      <div className="bg-white rounded-2xl shadow-2xl border border-azul/10 p-8 w-full max-w-lg space-y-6 animate-bounce-in">
         <div className="text-center">
           <div className="text-4xl mb-2">🎓</div>
           <h1 className="text-2xl font-heading font-bold text-azul">

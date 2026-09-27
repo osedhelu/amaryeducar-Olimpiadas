@@ -47,8 +47,8 @@ export default function AdminLogin() {
 
   if (verificando) {
     return (
-      <main className="flex-1 flex items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
-        <div className="text-white text-xl font-heading animate-pulse">
+      <main className="flex-1 flex items-center justify-center p-8 bg-bg min-h-screen">
+        <div className="text-azul text-xl font-heading animate-pulse">
           Cargando...
         </div>
       </main>
@@ -56,10 +56,10 @@ export default function AdminLogin() {
   }
 
   return (
-    <main className="flex-1 flex items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+    <main className="flex-1 flex items-center justify-center p-8 bg-bg min-h-screen">
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md space-y-6 animate-bounce-in"
+        className="bg-white rounded-2xl shadow-2xl border border-azul/10 p-8 w-full max-w-md space-y-6 animate-bounce-in"
       >
         <div className="text-center">
           <div className="text-4xl mb-2">🔐</div>

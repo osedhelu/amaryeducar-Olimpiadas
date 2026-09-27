@@ -156,23 +156,23 @@ export default function GamePage() {
 
   if (!sesion) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-azul to-azul-dark min-h-screen">
-        <div className="text-white text-xl font-heading">Cargando...</div>
+      <div className="flex-1 flex items-center justify-center bg-bg min-h-screen">
+        <div className="text-azul text-xl font-heading">Cargando...</div>
       </div>
     );
   }
 
   if (sesion.estado === "lobby") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
         <div className="text-6xl mb-4 animate-bounce-in">⏳</div>
-        <h1 className="text-3xl font-heading font-bold text-white mb-2">
+        <h1 className="text-3xl font-heading font-bold text-azul mb-2">
           ¡Hola, {jugadorNombre}!
         </h1>
-        <p className="text-dorado text-xl font-heading mb-4">
+        <p className="text-azul text-xl font-heading mb-4">
           Esperando al docente...
         </p>
-        <div className="flex items-center gap-2 text-white/70 text-sm">
+        <div className="flex items-center gap-2 text-texto-light text-sm">
           <span
             className={`w-2 h-2 rounded-full ${connected ? "bg-verde" : "bg-rojo-error"}`}
           />
@@ -184,20 +184,20 @@ export default function GamePage() {
 
   if (sesion.estado === "resultado" && ultimoResultado) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
         <div className="text-center animate-bounce-in">
           <div className="text-6xl mb-4">
             {ultimoResultado.correcta ? "🎉" : "😔"}
           </div>
-          <h2 className="text-2xl font-heading font-bold text-white mb-2">
+          <h2 className="text-2xl font-heading font-bold text-azul-dark mb-2">
             {ultimoResultado.correcta ? "¡Correcto!" : "Incorrecto"}
           </h2>
           {ultimoResultado.correcta && (
-            <div className="text-dorado text-4xl font-heading font-extrabold animate-pulse-score">
+            <div className="text-azul text-4xl font-heading font-extrabold animate-pulse-score">
               +{ultimoResultado.puntos} pts
             </div>
           )}
-          <p className="text-white/70 mt-4">
+          <p className="text-texto-light mt-4">
             Esperando la siguiente pregunta...
           </p>
         </div>
@@ -214,20 +214,20 @@ export default function GamePage() {
         : 100;
 
     return (
-      <div className="flex-1 flex flex-col p-4 md:p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col p-4 md:p-8 bg-bg min-h-screen">
         <div className="flex justify-between items-center mb-4">
-          <span className="text-dorado font-heading font-bold text-sm">
+          <span className="text-azul font-heading font-bold text-sm">
             {jugadorNombre}
           </span>
           {sesion.cronometro_segundos > 0 && (
             <div className="flex items-center gap-2">
-              <div className="w-32 h-3 bg-white/20 rounded-full overflow-hidden">
+              <div className="w-32 h-3 bg-azul/15 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-dorado transition-all duration-250"
                   style={{ width: `${porcentajeTiempo}%` }}
                 />
               </div>
-              <span className="text-white font-heading font-bold text-sm w-8 text-right">
+              <span className="text-azul font-heading font-bold text-sm w-8 text-right">
                 {tiempoRestante}s
               </span>
             </div>
@@ -235,8 +235,8 @@ export default function GamePage() {
         </div>
 
         <div className="flex-1 flex flex-col justify-center max-w-xl mx-auto w-full space-y-6">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 animate-fade-in">
-            <p className="text-white text-lg md:text-xl font-body leading-relaxed">
+          <div className="bg-bg-card border border-azul/10 rounded-2xl p-6 animate-fade-in">
+            <p className="text-texto text-lg md:text-xl font-body leading-relaxed">
               {preguntaActual.enunciado}
             </p>
           </div>
@@ -276,7 +276,7 @@ export default function GamePage() {
           </div>
 
           {respuestaEnviada && (
-            <div className="text-center text-dorado font-heading animate-fade-in">
+            <div className="text-center text-azul font-heading animate-fade-in">
               ✓ Respuesta enviada
             </div>
           )}
@@ -287,13 +287,13 @@ export default function GamePage() {
 
   if (sesion.estado === "final") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
         <div className="text-center animate-bounce-in space-y-6">
           <div className="text-8xl">🏁</div>
-          <h1 className="text-4xl font-heading font-extrabold text-dorado">
+          <h1 className="text-4xl font-heading font-extrabold text-azul">
             ¡La sesión ha finalizado!
           </h1>
-          <p className="text-white/70 text-lg">
+          <p className="text-texto-light text-lg">
             Gracias por participar, {jugadorNombre}.
           </p>
           <button
@@ -313,16 +313,16 @@ export default function GamePage() {
 
   if (retosActivos && sesion.estado === "reto") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
         <div className="text-center animate-bounce-in space-y-4">
           <div className="text-7xl">🎯</div>
-          <h1 className="text-3xl font-heading font-extrabold text-dorado">
+          <h1 className="text-3xl font-heading font-extrabold text-azul">
             ¡Actividad lúdica en curso!
           </h1>
-          <p className="text-white/80 text-lg">
+          <p className="text-texto text-lg">
             Escucha las instrucciones del docente y participa.
           </p>
-          <p className="text-white/60 text-sm">
+          <p className="text-texto-light text-sm">
             El jurado registrará tu puesto si logras terminar primero.
           </p>
         </div>
@@ -331,12 +331,12 @@ export default function GamePage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-azul to-azul-dark min-h-screen">
+    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
       <div className="text-4xl mb-4">🎮</div>
-      <h1 className="text-2xl font-heading font-bold text-white mb-2">
+      <h1 className="text-2xl font-heading font-bold text-azul mb-2">
         ¡Listo, {jugadorNombre}!
       </h1>
-      <p className="text-white/70">Sesión: {sesion.estado}</p>
+      <p className="text-texto-light">Sesión: {sesion.estado}</p>
     </div>
   );
 }
