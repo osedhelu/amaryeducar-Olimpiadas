@@ -248,6 +248,15 @@ export const api = {
   finalizarSesion: (id: string) =>
     request<SesionJuego>(`/sessions/${id}/finalizar`, { method: "PATCH" }),
 
+  eliminarSesion: (id: string) =>
+    request<{ eliminadas: number }>(`/sessions/${id}`, { method: "DELETE" }),
+
+  eliminarSesiones: (ids: string[]) =>
+    request<{ eliminadas: number }>("/sessions/eliminar", {
+      method: "POST",
+      body: JSON.stringify({ sesion_ids: ids }),
+    }),
+
   // ── Preguntas / Retos / Respuestas ─────────────────────────
   preguntas: (gradoId: string, incluirInactivas = false): Promise<Pregunta[]> =>
     request<Pregunta[]>(

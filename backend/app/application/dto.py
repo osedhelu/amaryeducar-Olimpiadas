@@ -55,6 +55,10 @@ class ActualizarSesionRequest(BaseModel):
     reset_pregunta: Optional[bool] = None
 
 
+class EliminarSesionesRequest(BaseModel):
+    sesion_ids: list[uuid.UUID] = Field(default_factory=list)
+
+
 class EnviarRespuestaRequest(BaseModel):
     pregunta_id: uuid.UUID
     jugador_id: uuid.UUID

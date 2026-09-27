@@ -56,6 +56,7 @@ export default function AdminSessionPage() {
   const [loading, setLoading] = useState(false);
   const [tiempoRestante, setTiempoRestante] = useState(0);
   const [verificando, setVerificando] = useState(true);
+  const [seleccionadas, setSeleccionadas] = useState<string[]>([]);
 
   const parametros = useParametros();
   const retosActivos = tieneRetos(parametros);
@@ -275,6 +276,67 @@ export default function AdminSessionPage() {
   async function cargarPreguntas(sesionId: string) {
     const p = await api.preguntasSesion(sesionId);
     setPreguntas(p);
+  }
+
+  function toggleSeleccion(id: string) {
+    setSeleccionadas((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  function toggleTodas() {
+    setSeleccionadas((prev) =>
+      prev.length === sesiones.length ? [] : sesiones.map((s) => s.id),
+    );
+  }
+
+  function limpiarSesionActivaSiIncluida(ids: string[]) {
+    if (sesionActiva && ids.includes(sesionActiva.id)) {
+      setSesionActiva(null);
+      setJugadores([]);
+      setPreguntas([]);
+      setRespuestasPregunta([]);
+      setPodium([]);
+      cambiarVista("menu");
+    }
+  }
+
+  async function eliminarSeleccionadas() {
+    if (seleccionadas.length === 0) return;
+    const confirmar = window.confirm(
+      `¿Eliminar ${seleccionadas.length} sesión(es)? Se borran sus jugadores, respuestas, puntajes y preguntas asignadas. No se puede deshacer.`,
+    );
+    if (!confirmar) return;
+    setLoading(true);
+    try {
+      await api.eliminarSesiones(seleccionadas);
+      limpiarSesionActivaSiIncluida(seleccionadas);
+      setSeleccionadas([]);
+      await cargarDatos();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudieron eliminar");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function eliminarUna(id: string) {
+    const s = sesiones.find((x) => x.id === id);
+    const confirmar = window.confirm(
+      `¿Eliminar la sesión de ${s?.grado?.nombre ?? "—"} (PIN ${s?.pin ?? ""})? Se borran jugadores, respuestas y puntajes.`,
+    );
+    if (!confirmar) return;
+    setLoading(true);
+    try {
+      await api.eliminarSesion(id);
+      limpiarSesionActivaSiIncluida([id]);
+      setSeleccionadas((prev) => prev.filter((x) => x !== id));
+      await cargarDatos();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo eliminar");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function lanzarPregunta(p: Pregunta) {
@@ -611,38 +673,81 @@ export default function AdminSessionPage() {
 
           {sesiones.length > 0 && (
             <div>
-              <h2 className="text-xl font-heading font-bold text-azul mb-3">
-                Sesiones existentes
-              </h2>
+              <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+                <h2 className="text-xl font-heading font-bold text-azul">
+                  Sesiones existentes
+                </h2>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm text-texto cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={
+                        seleccionadas.length === sesiones.length &&
+                        sesiones.length > 0
+                      }
+                      onChange={toggleTodas}
+                      className="w-4 h-4 accent-azul"
+                    />
+                    Seleccionar todas
+                  </label>
+                  <button
+                    onClick={eliminarSeleccionadas}
+                    disabled={seleccionadas.length === 0 || loading}
+                    className="px-4 py-2 bg-rojo text-white rounded-lg font-heading font-bold text-sm hover:bg-rojo/80 disabled:opacity-50"
+                  >
+                    🗑 Eliminar ({seleccionadas.length})
+                  </button>
+                </div>
+              </div>
               <div className="space-y-2">
                 {sesiones.map((s) => (
-                  <button
+                  <div
                     key={s.id}
-                    onClick={() => seleccionarSesion(s)}
-                    className="w-full flex items-center justify-between bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
+                    className="flex items-center gap-3 bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors"
                   >
-                    <div>
-                      <span className="font-heading font-bold text-azul">
-                        {s.grado?.nombre ?? "—"}
-                      </span>
-                      <span className="ml-3 text-texto-light">
-                        PIN: {s.pin}
-                      </span>
-                    </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        s.estado === "lobby"
-                          ? "bg-azul-light/20 text-azul"
-                          : s.estado === "pregunta"
-                            ? "bg-dorado/20 text-dorado"
-                            : s.estado === "final"
-                              ? "bg-verde/20 text-verde"
-                              : "bg-azul/10 text-azul"
-                      }`}
+                    <input
+                      type="checkbox"
+                      checked={seleccionadas.includes(s.id)}
+                      onChange={() => toggleSeleccion(s.id)}
+                      className="w-4 h-4 accent-azul shrink-0"
+                      aria-label={`Seleccionar sesión ${s.pin}`}
+                    />
+                    <button
+                      onClick={() => seleccionarSesion(s)}
+                      className="flex-1 flex items-center justify-between text-left"
                     >
-                      {s.estado}
-                    </span>
-                  </button>
+                      <div>
+                        <span className="font-heading font-bold text-azul">
+                          {s.grado?.nombre ?? "—"}
+                        </span>
+                        <span className="ml-3 text-texto-light">
+                          PIN: {s.pin}
+                        </span>
+                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          s.estado === "lobby"
+                            ? "bg-azul-light/20 text-azul"
+                            : s.estado === "pregunta"
+                              ? "bg-dorado/20 text-dorado"
+                              : s.estado === "final"
+                                ? "bg-verde/20 text-verde"
+                                : "bg-azul/10 text-azul"
+                        }`}
+                      >
+                        {s.estado}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => eliminarUna(s.id)}
+                      disabled={loading}
+                      className="text-lg shrink-0 text-rojo hover:text-rojo-error disabled:opacity-40"
+                      title="Eliminar esta sesión"
+                      aria-label={`Eliminar sesión ${s.pin}`}
+                    >
+                      🗑
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

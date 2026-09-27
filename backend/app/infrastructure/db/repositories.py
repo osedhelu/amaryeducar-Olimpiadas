@@ -214,6 +214,22 @@ class SesionRepo:
         )
         return [_row_to_obj(r, SesionJuego) for r in rows]
 
+    async def eliminar(self, sesion_id: uuid.UUID) -> int:
+        """Borra la sesión. Las tablas hijas (jugadores, respuestas,
+        puntajes_retos, sesion_preguntas) caen por ON DELETE CASCADE."""
+        result = await self.db.execute(
+            delete(SesionJuegoORM).where(SesionJuegoORM.id == sesion_id)
+        )
+        return int(result.rowcount or 0)
+
+    async def eliminar_muchas(self, ids: list[uuid.UUID]) -> int:
+        if not ids:
+            return 0
+        result = await self.db.execute(
+            delete(SesionJuegoORM).where(SesionJuegoORM.id.in_(ids))
+        )
+        return int(result.rowcount or 0)
+
     async def actualizar(
         self,
         sesion_id: uuid.UUID,

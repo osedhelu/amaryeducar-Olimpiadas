@@ -290,6 +290,17 @@ class SesionUseCases:
             )
         return entity_to_dict(updated) if updated else {}
 
+    async def eliminar(self, sesion_id: str) -> dict:
+        eliminadas = await SesionRepo(self.db).eliminar(uuid.UUID(sesion_id))
+        await self.db.commit()
+        return {"eliminadas": eliminadas}
+
+    async def eliminar_muchas(self, sesion_ids: list[str]) -> dict:
+        ids = [uuid.UUID(s) for s in sesion_ids]
+        eliminadas = await SesionRepo(self.db).eliminar_muchas(ids)
+        await self.db.commit()
+        return {"eliminadas": eliminadas}
+
 
 class ControlRondaUseCases:
     def __init__(self, db: AsyncSession, realtime: RealtimePublisher):

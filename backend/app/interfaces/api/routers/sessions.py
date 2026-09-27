@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.dto import (
     ActualizarSesionRequest,
     CrearSesionRequest,
+    EliminarSesionesRequest,
 )
 from app.application.sessions.use_cases import ControlRondaUseCases, SesionUseCases
 from app.core.exceptions import DomainError
@@ -106,6 +107,28 @@ async def finalizar_sesion(
         return await SesionUseCases(db, get_manager()).finalizar(sesion_id)
     except DomainError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+
+@router.delete("/sessions/{sesion_id}")
+async def eliminar_sesion(
+    sesion_id: str, db: AsyncSession = Depends(get_db)
+) -> dict:  # noqa: B008
+    try:
+        return await SesionUseCases(db, get_manager()).eliminar(sesion_id)
+    except (ValueError, DomainError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/sessions/eliminar")
+async def eliminar_sesiones(
+    body: EliminarSesionesRequest, db: AsyncSession = Depends(get_db)
+) -> dict:  # noqa: B008
+    try:
+        return await SesionUseCases(db, get_manager()).eliminar_muchas(
+            [str(s) for s in body.sesion_ids]
+        )
+    except (ValueError, DomainError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/preguntas")
