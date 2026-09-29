@@ -45,10 +45,13 @@ async def websocket_endpoint(ws: WebSocket) -> None:
             if msg == "__ping__" or msg == "__pong__":
                 await ws.send_text("__pong__")
     except WebSocketDisconnect:
-        meta = manager.desconectar(ws)
+        pass
     except Exception:  # noqa: BLE001
-        meta = manager.desconectar(ws)
+        pass
     finally:
+        # Un único punto de desconexión (si se hiciera también en el except,
+        # la segunda llamada devolvería None y el estudiante nunca se marcaría
+        # como desconectado en la BD).
         meta = manager.desconectar(ws)
         if meta and meta.get("role") == "student" and meta.get("jugador_id"):
             try:

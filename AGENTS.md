@@ -69,12 +69,13 @@ npm run dev        # Next.js (puerto 3000) — el WS conecta directo a Railway
 npx tsc --noEmit   # typecheck
 npm run build      # build
 npm run start      # servir el build (lo que usa Railway)
+npm test           # vitest (WebSocket + render de estudiante/pantalla grande)
 ```
 
 - El backend FastAPI se ejecuta dentro de `backend/` (ver `backend/railway.toml`).
 - La diapositiva se ejecuta dentro de `amaryeducarDiapositiva/` con **pnpm** (`pnpm dev`, `pnpm build`).
 - Verificación rápida tras cambios: `npx tsc --noEmit` y `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ruta`.
-- Sin framework de tests en el frontend.
+- **Tests**: frontend con **vitest** (`npm test`, archivos `src/**/*.test.{ts,tsx}`) y backend con **pytest** (`cd backend && ./.venv/bin/python -m pytest`). El backend tiene tests de WebSocket (`tests/test_websocket*.py`).
 - No hay servidor WebSocket local. El frontend se conecta directamente al WebSocket de Railway en dev y producción.
 
 ## Base de datos (Railway)

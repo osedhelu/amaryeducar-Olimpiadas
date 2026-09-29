@@ -70,6 +70,52 @@ class FakeRealtime(RealtimePublisher):
         return list(self.conectados)
 
 
+class FakeWebSocket:
+    """WebSocket falso para probar el ConnectionManager sin red.
+
+    Registra lo que se le envía y su estado de conexión.
+    """
+
+    class _State:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    def __init__(self) -> None:
+        self.accepted = False
+        self.closed: tuple[int, str] | None = None
+        self.sent_json: list[dict] = []
+        self.sent_text: list[str] = []
+        self.is_alive = True
+        self._conectado = False
+
+    @property
+    def client_state(self) -> "FakeWebSocket._State":
+        return self._State("CONNECTED" if self._conectado else "DISCONNECTED")
+
+    @property
+    def tipos(self) -> list[str | None]:
+        return [m.get("tipo") for m in self.sent_json]
+
+    def recibio(self, tipo: str) -> bool:
+        return tipo in self.tipos
+
+    async def accept(self) -> None:
+        self.accepted = True
+        self._conectado = True
+
+    async def close(self, code: int = 1000, reason: str = "") -> None:
+        self.closed = (code, reason)
+        self._conectado = False
+
+    async def send_json(self, message: dict) -> None:
+        if not self._conectado:
+            raise RuntimeError("socket cerrado")
+        self.sent_json.append(message)
+
+    async def send_text(self, text: str) -> None:
+        self.sent_text.append(text)
+
+
 class _Singleton:
     _instancia: dict[type, object] = {}
 
