@@ -20,11 +20,39 @@ export const PARAMETROS_DEFAULT: ParametrosEvento = {
   retos_habilitados: "false",
   modo_quiz: "false",
   preguntas_por_sesion: "10",
+  mostrar_duelos: "true",
+  mostrar_enfrentamiento: "true",
+  grado_1: "true",
+  grado_2: "true",
+  grado_3: "true",
+  grado_4: "true",
+  grado_5: "true",
 };
 
+function esVerdadero(valor: string | undefined): boolean {
+  const v = (valor ?? "").trim().toLowerCase();
+  return v === "true" || v === "1" || v === "si" || v === "sí";
+}
+
 export function tieneRetos(p: ParametrosEvento): boolean {
-  const valor = (p.retos_habilitados ?? "false").trim().toLowerCase();
-  return valor === "true" || valor === "1" || valor === "si" || valor === "sí";
+  return esVerdadero(p.retos_habilitados ?? "false");
+}
+
+export function mostrarDuelos(p: ParametrosEvento): boolean {
+  return esVerdadero(p.mostrar_duelos ?? "true");
+}
+
+export function mostrarEnfrentamiento(p: ParametrosEvento): boolean {
+  return esVerdadero(p.mostrar_enfrentamiento ?? "true");
+}
+
+/** Set de grados habilitados por `orden` (1..5). */
+export function gradosHabilitados(p: ParametrosEvento): Set<number> {
+  const set = new Set<number>();
+  for (let i = 1; i <= 5; i++) {
+    if (esVerdadero(p[`grado_${i}`] ?? "true")) set.add(i);
+  }
+  return set;
 }
 
 let cache: ParametrosEvento | null = null;

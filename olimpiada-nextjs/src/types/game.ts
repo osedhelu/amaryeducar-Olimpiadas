@@ -15,6 +15,13 @@ export interface ParametrosEvento {
   retos_habilitados?: string;
   modo_quiz?: string;
   preguntas_por_sesion?: string;
+  mostrar_duelos?: string;
+  mostrar_enfrentamiento?: string;
+  grado_1?: string;
+  grado_2?: string;
+  grado_3?: string;
+  grado_4?: string;
+  grado_5?: string;
   clave_admin?: string;
   [clave: string]: string | undefined;
 }

@@ -87,6 +87,48 @@ const CAMPOS: Campo[] = [
       "Cuántas preguntas al azar se fijan para cada sala en modo quiz.",
   },
   {
+    clave: "mostrar_duelos",
+    etiqueta: "Mostrar Prueba 1v1",
+    descripcion: "Muestra la tarjeta y la vista de duelo alumno vs alumno.",
+    tipo: "checkbox",
+  },
+  {
+    clave: "mostrar_enfrentamiento",
+    etiqueta: "Mostrar Enfrentamiento",
+    descripcion: "Muestra la tarjeta y la vista de tabla colegio vs colegio.",
+    tipo: "checkbox",
+  },
+  {
+    clave: "grado_1",
+    etiqueta: "Habilitar Grado Primero",
+    descripcion: "Aparece en el panel para crear sesión.",
+    tipo: "checkbox",
+  },
+  {
+    clave: "grado_2",
+    etiqueta: "Habilitar Grado Segundo",
+    descripcion: "Aparece en el panel para crear sesión.",
+    tipo: "checkbox",
+  },
+  {
+    clave: "grado_3",
+    etiqueta: "Habilitar Grado Tercero",
+    descripcion: "Aparece en el panel para crear sesión.",
+    tipo: "checkbox",
+  },
+  {
+    clave: "grado_4",
+    etiqueta: "Habilitar Grado Cuarto",
+    descripcion: "Aparece en el panel para crear sesión.",
+    tipo: "checkbox",
+  },
+  {
+    clave: "grado_5",
+    etiqueta: "Habilitar Grado Quinto",
+    descripcion: "Aparece en el panel para crear sesión.",
+    tipo: "checkbox",
+  },
+  {
     clave: "clave_admin",
     etiqueta: "Clave del panel docente",
     descripcion: "Clave maestra para entrar a /admin.",

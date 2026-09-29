@@ -3,7 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import { useParametros, tieneRetos } from "@/lib/parametros";
+import {
+  useParametros,
+  tieneRetos,
+  gradosHabilitados,
+  mostrarDuelos,
+  mostrarEnfrentamiento,
+} from "@/lib/parametros";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import ColegiosPanel from "@/components/admin/ColegiosPanel";
 import AlumnosPanel from "@/components/admin/AlumnosPanel";
@@ -48,6 +54,7 @@ export default function AdminSessionPage() {
   const [preguntas, setPreguntas] = useState<Pregunta[]>([]);
   const [jugadores, setJugadores] = useState<Jugador[]>([]);
   const [respuestasPregunta, setRespuestasPregunta] = useState<Respuesta[]>([]);
+  const [respuestasTodas, setRespuestasTodas] = useState<Respuesta[]>([]);
   const [podium, setPodium] = useState<PodiumEntry[]>([]);
   const [podiumReto, setPodiumReto] = useState<PuntajeReto[] | null>(null);
   const [tablaColegios, setTablaColegios] = useState<TablaColegio[]>([]);
@@ -60,6 +67,10 @@ export default function AdminSessionPage() {
 
   const parametros = useParametros();
   const retosActivos = tieneRetos(parametros);
+  const gradosSet = gradosHabilitados(parametros);
+  const verDuelos = mostrarDuelos(parametros);
+  const verEnfrentamiento = mostrarEnfrentamiento(parametros);
+  const gradosVisibles = grados.filter((g) => gradosSet.has(g.orden));
 
   const { lastEvent } = useWebSocket(sesionActiva?.id ?? null, "admin");
 
@@ -205,39 +216,62 @@ export default function AdminSessionPage() {
     }
   }, [lastEvent, sesionActiva]);
 
-  // Contador exacto de respuestas: reconcilia con la BD para que "X de Y
-  // jugadores respondieron" sea correcto aunque se pierda un evento WS.
-  const recargarRespuestas = useCallback(async () => {
-    if (!sesionActiva?.pregunta_activa_id) return;
-    try {
-      const r = await api.respuestasSesion(
-        sesionActiva.id,
-        sesionActiva.pregunta_activa_id,
-      );
-      setRespuestasPregunta(r);
-    } catch {
-      /* mantener estado */
-    }
-  }, [sesionActiva?.id, sesionActiva?.pregunta_activa_id]);
+  // Reconcilia TODO desde la BD (sesión, jugadores, respuestas y, opcionalmente,
+  // preguntas). Así el panel se autocorrige aunque se pierda un evento WebSocket.
+  const cargarEstadoControl = useCallback(
+    async (id: string, conPreguntas = true) => {
+      try {
+        const [s, js, todas] = await Promise.all([
+          api.sesion(id),
+          api.jugadores(id),
+          api.respuestasSesion(id),
+        ]);
+        setSesionActiva(s);
+        setJugadores(js);
+        setRespuestasTodas(todas);
+        setRespuestasPregunta(
+          s.pregunta_activa_id
+            ? todas.filter((r) => r.pregunta_id === s.pregunta_activa_id)
+            : [],
+        );
+        if (conPreguntas) {
+          setPreguntas(await api.preguntasSesion(id));
+        }
+      } catch {
+        /* mantener estado actual */
+      }
+    },
+    [],
+  );
+
+  const recargarTodo = useCallback(
+    async (conPreguntas = true) => {
+      const id = sesionActiva?.id;
+      if (id) await cargarEstadoControl(id, conPreguntas);
+    },
+    [sesionActiva?.id, cargarEstadoControl],
+  );
 
   useEffect(() => {
     if (!lastEvent || !sesionActiva) return;
     const ev = lastEvent as EventoWS;
     if (
       ev.tipo === "respuesta_recibida" ||
+      ev.tipo === "resultado_pregunta" ||
       (ev.tipo === "sesion_cambio" && ev.data.id === sesionActiva.id)
     ) {
-      const t = setTimeout(recargarRespuestas, 600);
+      const t = setTimeout(() => recargarTodo(false), 600);
       return () => clearTimeout(t);
     }
-  }, [lastEvent, sesionActiva, recargarRespuestas]);
+  }, [lastEvent, sesionActiva, recargarTodo]);
 
-  // Mientras hay pregunta activa, reconciliar cada 2s por si se perdió un evento
+  // Mientras se está controlando una sala, reconciliar cada 3s (estado incluido)
+  // por si el WebSocket se queda desconectado o pierde eventos.
   useEffect(() => {
-    if (!sesionActiva?.pregunta_activa_id) return;
-    const interval = setInterval(recargarRespuestas, 2000);
+    if (vista !== "control" || !sesionActiva?.id) return;
+    const interval = setInterval(() => recargarTodo(false), 3000);
     return () => clearInterval(interval);
-  }, [sesionActiva?.pregunta_activa_id, recargarRespuestas]);
+  }, [vista, sesionActiva?.id, recargarTodo]);
 
   async function crearSesion(gradoId: string) {
     setLoading(true);
@@ -247,16 +281,10 @@ export default function AdminSessionPage() {
       await cargarDatos();
       setSesionActiva(nueva);
       cambiarVista("control", nueva.id);
-      cargarJugadores(nueva.id);
-      cargarPreguntas(nueva.id);
+      cargarEstadoControl(nueva.id, true);
     } finally {
       setLoading(false);
     }
-  }
-
-  async function cargarJugadores(sesionId: string) {
-    const j = await api.jugadores(sesionId);
-    setJugadores(j);
   }
 
   async function cargarRespuestas(preguntaId: string) {
@@ -268,14 +296,7 @@ export default function AdminSessionPage() {
   async function seleccionarSesion(s: SesionJuego) {
     setSesionActiva(s);
     cambiarVista("control", s.id);
-    cargarJugadores(s.id);
-    cargarPreguntas(s.id);
-    if (s.pregunta_activa_id) cargarRespuestas(s.pregunta_activa_id);
-  }
-
-  async function cargarPreguntas(sesionId: string) {
-    const p = await api.preguntasSesion(sesionId);
-    setPreguntas(p);
+    cargarEstadoControl(s.id, true);
   }
 
   function toggleSeleccion(id: string) {
@@ -296,6 +317,7 @@ export default function AdminSessionPage() {
       setJugadores([]);
       setPreguntas([]);
       setRespuestasPregunta([]);
+      setRespuestasTodas([]);
       setPodium([]);
       cambiarVista("menu");
     }
@@ -344,15 +366,14 @@ export default function AdminSessionPage() {
     setRespuestasPregunta([]);
     const updated = await api.lanzarPregunta(sesionActiva.id, p.id);
     setSesionActiva(updated);
-    cargarJugadores(sesionActiva.id);
+    cargarEstadoControl(sesionActiva.id, false);
   }
 
   async function cerrarPregunta() {
     if (!sesionActiva) return;
     const updated = await api.cerrarPregunta(sesionActiva.id);
     setSesionActiva(updated);
-    if (updated.pregunta_activa_id)
-      cargarRespuestas(updated.pregunta_activa_id);
+    cargarEstadoControl(sesionActiva.id, false);
   }
 
   async function siguientePregunta() {
@@ -409,6 +430,7 @@ export default function AdminSessionPage() {
     setSesionActiva(null);
     setJugadores([]);
     setRespuestasPregunta([]);
+    setRespuestasTodas([]);
     setPodium([]);
     setPreguntas([]);
     cambiarVista("menu");
@@ -502,7 +524,7 @@ export default function AdminSessionPage() {
     );
   }
 
-  if (vista === "enfrentamiento") {
+  if (vista === "enfrentamiento" && verEnfrentamiento) {
     return (
       <main className="min-h-screen bg-bg p-6">
         <div className="max-w-4xl mx-auto">
@@ -518,7 +540,7 @@ export default function AdminSessionPage() {
     );
   }
 
-  if (vista === "duelos") {
+  if (vista === "duelos" && verDuelos) {
     return (
       <main className="min-h-screen bg-bg p-6">
         <div className="max-w-4xl mx-auto">
@@ -605,26 +627,32 @@ export default function AdminSessionPage() {
                 Registrar alumnos por grado
               </p>
             </button>
-            <button
-              onClick={() => cambiarVista("enfrentamiento")}
-              className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
-            >
-              <div className="text-3xl mb-1">⚔️</div>
-              <p className="font-heading font-bold text-azul">Enfrentamiento</p>
-              <p className="text-xs text-texto-light">
-                Tabla colegio vs colegio
-              </p>
-            </button>
-            <button
-              onClick={() => cambiarVista("duelos")}
-              className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
-            >
-              <div className="text-3xl mb-1">🥊</div>
-              <p className="font-heading font-bold text-azul">Prueba 1v1</p>
-              <p className="text-xs text-texto-light">
-                Duelo interno alumno vs alumno
-              </p>
-            </button>
+            {verEnfrentamiento && (
+              <button
+                onClick={() => cambiarVista("enfrentamiento")}
+                className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
+              >
+                <div className="text-3xl mb-1">⚔️</div>
+                <p className="font-heading font-bold text-azul">
+                  Enfrentamiento
+                </p>
+                <p className="text-xs text-texto-light">
+                  Tabla colegio vs colegio
+                </p>
+              </button>
+            )}
+            {verDuelos && (
+              <button
+                onClick={() => cambiarVista("duelos")}
+                className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
+              >
+                <div className="text-3xl mb-1">🥊</div>
+                <p className="font-heading font-bold text-azul">Prueba 1v1</p>
+                <p className="text-xs text-texto-light">
+                  Duelo interno alumno vs alumno
+                </p>
+              </button>
+            )}
             <button
               onClick={() => cambiarVista("parametros")}
               className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
@@ -638,7 +666,12 @@ export default function AdminSessionPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {grados.map((g) => (
+            {gradosVisibles.length === 0 && (
+              <p className="text-texto-light text-sm">
+                No hay grados habilitados. Actívalos en Configuración.
+              </p>
+            )}
+            {gradosVisibles.map((g) => (
               <div
                 key={g.id}
                 className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10"
@@ -647,9 +680,9 @@ export default function AdminSessionPage() {
                   Grado {g.nombre}
                 </h3>
                 <p className="text-sm text-texto-light mb-3">
-                  {g.orden <= 3
-                    ? "Duelo individual"
-                    : "Competencia entre colegios"}
+                  {parametros.modo_quiz === "true" || g.orden >= 4
+                    ? "Competencia individual"
+                    : "Duelo individual"}
                 </p>
                 <button
                   onClick={() => crearSesion(g.id)}
@@ -873,6 +906,20 @@ export default function AdminSessionPage() {
   }
 
   if (vista === "control" && sesionActiva) {
+    const bienActiva = respuestasPregunta.filter(
+      (r) => r.correcta === true,
+    ).length;
+    const malActiva = respuestasPregunta.filter(
+      (r) => r.correcta === false,
+    ).length;
+    const jugadoresOrdenados = [...jugadores].sort((a, b) =>
+      a.nombre.localeCompare(b.nombre),
+    );
+    const respuestasPorJugadorPregunta = new Map<string, Respuesta>();
+    for (const r of respuestasTodas) {
+      respuestasPorJugadorPregunta.set(`${r.jugador_id}:${r.pregunta_id}`, r);
+    }
+
     return (
       <main className="min-h-screen bg-bg p-6">
         <div className="max-w-4xl mx-auto">
@@ -899,6 +946,13 @@ export default function AdminSessionPage() {
               </p>
             </div>
             <div className="flex gap-2">
+              <button
+                onClick={() => recargarTodo(true)}
+                className="px-4 py-2 bg-azul/10 text-azul rounded-lg font-heading font-bold text-sm hover:bg-azul/20"
+                title="Volver a leer sesión, jugadores y respuestas desde la base de datos"
+              >
+                🔄 Recargar
+              </button>
               <a
                 href={`/presentacion/${sesionActiva.id}`}
                 target="_blank"
@@ -934,7 +988,14 @@ export default function AdminSessionPage() {
                   <p className="text-sm text-texto-light">
                     {respuestasPregunta.length} de{" "}
                     {jugadores.filter((j) => j.conectado).length} conectados
-                    respondieron
+                    respondieron ·{" "}
+                    <span className="text-verde font-bold">
+                      {bienActiva} bien
+                    </span>{" "}
+                    ·{" "}
+                    <span className="text-rojo-error font-bold">
+                      {malActiva} mal
+                    </span>
                   </p>
                 </div>
                 <button
@@ -956,8 +1017,15 @@ export default function AdminSessionPage() {
                   </p>
                   <p className="text-sm text-texto-light">
                     {respuestasPregunta.filter((r) => r.correcta).length} de{" "}
-                    {respuestasPregunta.length} acertaron — lista para la
-                    siguiente
+                    {respuestasPregunta.length} acertaron ·{" "}
+                    <span className="text-verde font-bold">
+                      {bienActiva} bien
+                    </span>{" "}
+                    ·{" "}
+                    <span className="text-rojo-error font-bold">
+                      {malActiva} mal
+                    </span>{" "}
+                    — lista para la siguiente
                   </p>
                 </div>
                 <button
@@ -1057,6 +1125,103 @@ export default function AdminSessionPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10 mb-6 overflow-x-auto">
+            <h2 className="font-heading font-bold text-azul mb-3">
+              Resultados
+            </h2>
+            {jugadoresOrdenados.length === 0 ? (
+              <p className="text-texto-light text-sm">Sin jugadores.</p>
+            ) : (
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="text-texto-light">
+                    <th className="text-left py-1 pr-3 font-bold">
+                      Estudiante
+                    </th>
+                    {preguntas.map((p, i) => (
+                      <th
+                        key={p.id}
+                        className="px-1 text-center font-bold"
+                        title={p.enunciado}
+                      >
+                        #{i + 1}
+                      </th>
+                    ))}
+                    <th className="px-2 text-center font-bold text-verde">
+                      Bien
+                    </th>
+                    <th className="px-2 text-center font-bold text-rojo-error">
+                      Mal
+                    </th>
+                    <th className="px-2 text-center font-bold text-dorado">
+                      Pts
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {jugadoresOrdenados.map((j) => {
+                    const respuestasJugador = respuestasTodas.filter(
+                      (r) => r.jugador_id === j.id,
+                    );
+                    const bien = respuestasJugador.filter(
+                      (r) => r.correcta === true,
+                    ).length;
+                    const mal = respuestasJugador.filter(
+                      (r) => r.correcta === false,
+                    ).length;
+                    const pts = respuestasJugador.reduce(
+                      (a, r) => a + (r.puntos || 0),
+                      0,
+                    );
+                    return (
+                      <tr key={j.id} className="border-t border-azul/10">
+                        <td className="py-1 pr-3 font-medium text-texto">
+                          {j.nombre}
+                        </td>
+                        {preguntas.map((p) => {
+                          const r = respuestasPorJugadorPregunta.get(
+                            `${j.id}:${p.id}`,
+                          );
+                          return (
+                            <td key={p.id} className="px-1 text-center">
+                              {r ? (
+                                r.correcta === true ? (
+                                  <span className="text-verde font-bold">
+                                    ✓
+                                  </span>
+                                ) : r.correcta === false ? (
+                                  <span className="text-rojo-error font-bold">
+                                    ✗
+                                  </span>
+                                ) : (
+                                  <span className="text-texto-light">·</span>
+                                )
+                              ) : (
+                                <span className="text-azul/20">—</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td className="px-2 text-center font-bold text-verde">
+                          {bien}
+                        </td>
+                        <td className="px-2 text-center font-bold text-rojo-error">
+                          {mal}
+                        </td>
+                        <td className="px-2 text-center font-bold text-dorado">
+                          {pts}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+            <p className="text-xs text-texto-light mt-2">
+              ✓ bien · ✗ mal · · pendiente · — sin responder
+            </p>
           </div>
 
           {retosActivos && (

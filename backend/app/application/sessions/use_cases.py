@@ -45,6 +45,13 @@ PARAMETROS_DEFAULT: dict[str, str] = {
     "retos_habilitados": "false",
     "modo_quiz": "false",
     "preguntas_por_sesion": "10",
+    "mostrar_duelos": "true",
+    "mostrar_enfrentamiento": "true",
+    "grado_1": "true",
+    "grado_2": "true",
+    "grado_3": "true",
+    "grado_4": "true",
+    "grado_5": "true",
     "clave_admin": "ADMadm1234",
 }
 
