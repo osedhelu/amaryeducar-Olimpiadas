@@ -59,6 +59,10 @@ class EliminarSesionesRequest(BaseModel):
     sesion_ids: list[uuid.UUID] = Field(default_factory=list)
 
 
+class MostrarGanadorRequest(BaseModel):
+    ronda: int = Field(ge=1)
+
+
 class EnviarRespuestaRequest(BaseModel):
     pregunta_id: uuid.UUID
     jugador_id: uuid.UUID

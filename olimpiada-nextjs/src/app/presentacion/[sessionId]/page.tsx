@@ -6,6 +6,7 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { api, imagenPreguntaUrl } from "@/lib/api";
 import { useParametros, tieneRetos } from "@/lib/parametros";
 import type {
+  GanadorRonda,
   SesionJuego,
   Pregunta,
   Jugador,
@@ -24,6 +25,7 @@ type Vista =
   | "resultado"
   | "reto"
   | "reto_podium"
+  | "ronda_ganador"
   | "podium"
   | "final";
 
@@ -36,6 +38,7 @@ export default function PresentacionPage() {
   const [sesion, setSesion] = useState<SesionJuego | null>(null);
   const [pregunta, setPregunta] = useState<Pregunta | null>(null);
   const [retoActivo, setRetoActivo] = useState<Reto | null>(null);
+  const [ganadorRonda, setGanadorRonda] = useState<GanadorRonda | null>(null);
   const [jugadores, setJugadores] = useState<Jugador[]>([]);
   const [respuestas, setRespuestas] = useState<Respuesta[]>([]);
   const [puntajesReto, setPuntajesReto] = useState<PuntajeReto[]>([]);
@@ -67,6 +70,15 @@ export default function PresentacionPage() {
     } else {
       setRetoActivo(null);
       setPuntajesReto([]);
+    }
+
+    if (s.ronda_ganador_num != null) {
+      api
+        .ganadorRonda(s.id, s.ronda_ganador_num)
+        .then(setGanadorRonda)
+        .catch(() => setGanadorRonda(null));
+    } else {
+      setGanadorRonda(null);
     }
 
     if (s.pregunta_activa_id) {
@@ -107,6 +119,14 @@ export default function PresentacionPage() {
         break;
       case "sesion_cambio":
         setSesion(ev.data);
+        if (ev.data.ronda_ganador_num != null) {
+          api
+            .ganadorRonda(ev.data.id, ev.data.ronda_ganador_num)
+            .then(setGanadorRonda)
+            .catch(() => {});
+        } else {
+          setGanadorRonda(null);
+        }
         if (ev.data.estado === "podium" || ev.data.estado === "final") {
           api.podium(ev.data.id).then(setPodium);
           api
@@ -190,6 +210,10 @@ export default function PresentacionPage() {
 
   useEffect(() => {
     if (!sesion) return;
+    if (sesion.ronda_ganador_num != null) {
+      setVista("ronda_ganador");
+      return;
+    }
     if (sesion.estado === "lobby") setVista("lobby");
     else if (sesion.estado === "pregunta") setVista("pregunta");
     else if (sesion.estado === "resultado") setVista("resultado");
@@ -197,7 +221,7 @@ export default function PresentacionPage() {
     else if (sesion.estado === "reto_podium") setVista("reto_podium");
     else if (sesion.estado === "podium") setVista("podium");
     else if (sesion.estado === "final") setVista("final");
-  }, [sesion?.estado]);
+  }, [sesion?.estado, sesion?.ronda_ganador_num]);
 
   useEffect(() => {
     if (!sesion?.cronometro_inicio || !sesion?.cronometro_segundos) return;
@@ -498,6 +522,67 @@ export default function PresentacionPage() {
     );
   }
 
+  if (vista === "ronda_ganador") {
+    const ronda = sesion.ronda_ganador_num ?? ganadorRonda?.ronda ?? 1;
+    const ranking = ganadorRonda?.ranking ?? [];
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
+        <div className="max-w-3xl w-full text-center space-y-8">
+          <div className="text-7xl animate-bounce-in">🏆</div>
+          <h1 className="text-5xl font-heading font-extrabold text-azul">
+            Ganador de la Ronda {ronda}
+          </h1>
+          <div className="space-y-4">
+            {ranking.length === 0 && (
+              <p className="text-texto-light text-xl">
+                Aún no hay respuestas en esta ronda.
+              </p>
+            )}
+            {ranking.map((e, idx) => (
+              <div
+                key={e.puesto}
+                className={`flex items-center justify-between p-6 rounded-2xl shadow-xl animate-slide-up ${
+                  e.puesto === 1
+                    ? "bg-dorado text-azul-dark scale-105"
+                    : e.puesto === 2
+                      ? "bg-bg-card text-texto"
+                      : e.puesto === 3
+                        ? "bg-white border border-azul/15 text-texto"
+                        : "bg-white border border-azul/10 text-texto-light"
+                }`}
+                style={{ animationDelay: `${idx * 250}ms` }}
+              >
+                <div className="flex items-center gap-5">
+                  <span className="text-5xl">
+                    {e.puesto === 1
+                      ? "🥇"
+                      : e.puesto === 2
+                        ? "🥈"
+                        : e.puesto === 3
+                          ? "🥉"
+                          : `${e.puesto}°`}
+                  </span>
+                  <span className="font-heading font-extrabold text-2xl md:text-3xl">
+                    {e.nombre}
+                  </span>
+                </div>
+                <span className="font-heading font-extrabold text-2xl md:text-3xl">
+                  {e.aciertos}
+                  <span className="text-lg ml-1 opacity-70">aciertos</span>
+                </span>
+              </div>
+            ))}
+          </div>
+          {ganadorRonda && (
+            <p className="text-texto-light text-sm">
+              Ronda {ronda} · {ganadorRonda.total_preguntas} preguntas
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (vista === "podium") {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
@@ -539,6 +624,11 @@ export default function PresentacionPage() {
                 <span className="font-heading font-extrabold text-3xl md:text-4xl">
                   {entry.puntos_total}
                   <span className="text-lg ml-1 opacity-70">pts</span>
+                  {entry.aciertos != null && (
+                    <span className="block text-sm font-bold opacity-70">
+                      {entry.aciertos} aciertos
+                    </span>
+                  )}
                 </span>
               </div>
             ))}

@@ -148,6 +148,7 @@ class SesionJuegoORM(Base):
         DateTime(timezone=True), nullable=True
     )
     cronometro_segundos: Mapped[int] = mapped_column(Integer, server_default="30")
+    ronda_ganador_num: Mapped[int | None] = mapped_column(Integer, nullable=True)
     creado_en: Mapped[datetime] = _ts()
     actualizado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now()")

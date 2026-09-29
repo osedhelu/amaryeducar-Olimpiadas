@@ -242,6 +242,8 @@ class SesionRepo:
         tipo: str | None = None,
         colegio_id: uuid.UUID | None = None,
         reset_pregunta: bool = False,
+        ronda_ganador_num: int | None = None,
+        reset_ronda_ganador: bool = False,
     ) -> SesionJuego | None:
         values: dict = {}
         if estado is not None:
@@ -260,6 +262,10 @@ class SesionRepo:
             values["cronometro_inicio"] = cronometro_inicio
         if cronometro_segundos is not None:
             values["cronometro_segundos"] = cronometro_segundos
+        if reset_ronda_ganador:
+            values["ronda_ganador_num"] = None
+        elif ronda_ganador_num is not None:
+            values["ronda_ganador_num"] = ronda_ganador_num
         if values:
             await self.db.execute(
                 update(SesionJuegoORM)
@@ -1053,3 +1059,78 @@ class SesionPreguntaRepo:
             .all()
         )
         return [_row_to_obj(r, Pregunta) for r in rows]
+
+    async def listar_ids_con_orden(
+        self, sesion_id: uuid.UUID
+    ) -> list[tuple[uuid.UUID, int]]:
+        rows = (
+            await self.db.execute(
+                select(SesionPreguntaORM.pregunta_id, SesionPreguntaORM.orden)
+                .where(SesionPreguntaORM.sesion_id == sesion_id)
+                .order_by(SesionPreguntaORM.orden)
+            )
+        ).all()
+        return [(r[0], int(r[1])) for r in rows]
+
+    async def contar_disponibles(
+        self, grado_id: uuid.UUID, sesion_id: uuid.UUID
+    ) -> int:
+        asignadas = select(SesionPreguntaORM.pregunta_id).where(
+            SesionPreguntaORM.sesion_id == sesion_id
+        )
+        total = (
+            await self.db.execute(
+                select(func.count())
+                .select_from(PreguntaORM)
+                .where(
+                    PreguntaORM.grado_id == grado_id,
+                    PreguntaORM.activa.is_(True),
+                    PreguntaORM.id.notin_(asignadas),
+                )
+            )
+        ).scalar_one()
+        return int(total)
+
+    async def agregar_aleatorias(
+        self, sesion_id: uuid.UUID, grado_id: uuid.UUID, n: int
+    ) -> int:
+        """Agrega `n` preguntas activas al azar del grado que AÚN no estén
+        asignadas a la sesión (no repite rondas anteriores)."""
+        asignadas = (
+            (
+                await self.db.execute(
+                    select(SesionPreguntaORM.pregunta_id).where(
+                        SesionPreguntaORM.sesion_id == sesion_id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        stmt = select(PreguntaORM.id).where(
+            PreguntaORM.grado_id == grado_id,
+            PreguntaORM.activa.is_(True),
+        )
+        if asignadas:
+            stmt = stmt.where(PreguntaORM.id.notin_(asignadas))
+        ids = (
+            (await self.db.execute(stmt.order_by(func.random()).limit(n)))
+            .scalars()
+            .all()
+        )
+        maximo = (
+            await self.db.execute(
+                select(func.coalesce(func.max(SesionPreguntaORM.orden), 0)).where(
+                    SesionPreguntaORM.sesion_id == sesion_id
+                )
+            )
+        ).scalar_one()
+        for i, pregunta_id in enumerate(ids, start=1):
+            self.db.add(
+                SesionPreguntaORM(
+                    sesion_id=sesion_id,
+                    pregunta_id=pregunta_id,
+                    orden=int(maximo) + i,
+                )
+            )
+        return len(ids)

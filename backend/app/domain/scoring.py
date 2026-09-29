@@ -66,6 +66,30 @@ def _sumar_puntos(
     return totales
 
 
+def _contar_aciertos(
+    respuestas: list[Respuesta],
+    *,
+    es_grupal: bool,
+    jugadores_por_id: dict[uuid.UUID, Jugador],
+) -> dict[uuid.UUID, int]:
+    aciertos: dict[uuid.UUID, int] = {}
+
+    def _add(entity_id: uuid.UUID | None) -> None:
+        if entity_id is None:
+            return
+        aciertos[entity_id] = aciertos.get(entity_id, 0) + 1
+
+    for r in respuestas:
+        if not r.correcta:
+            continue
+        if es_grupal:
+            jugador = jugadores_por_id.get(r.jugador_id)
+            _add(jugador.colegio_id if jugador else None)
+        else:
+            _add(r.jugador_id)
+    return aciertos
+
+
 def _nombres(entidades: list[Colegio] | list[Jugador]) -> dict[uuid.UUID, str]:
     return {e.id: e.nombre for e in entidades}
 
@@ -75,7 +99,9 @@ def _rankear(
     nombres: dict[uuid.UUID, str],
     *,
     es_colegio: bool,
+    aciertos: dict[uuid.UUID, int] | None = None,
 ) -> list[PodiumEntry]:
+    aciertos = aciertos or {}
     ordenados = sorted(totales.items(), key=lambda kv: (-kv[1], nombres.get(kv[0], "")))
     return [
         PodiumEntry(
@@ -84,6 +110,7 @@ def _rankear(
             puntos_total=total,
             es_colegio=es_colegio,
             entity_id=entity_id,
+            aciertos=aciertos.get(entity_id, 0),
         )
         for i, (entity_id, total) in enumerate(ordenados)
     ]
@@ -109,6 +136,9 @@ def agregar_podium(
         es_grupal=es_grupal,
         jugadores_por_id=jugadores_por_id,
     )
+    aciertos = _contar_aciertos(
+        respuestas, es_grupal=es_grupal, jugadores_por_id=jugadores_por_id
+    )
 
     if es_grupal:
         permitidos = {j.colegio_id for j in jugadores if j.colegio_id}
@@ -118,7 +148,7 @@ def agregar_podium(
         nombres = _nombres(jugadores)
 
     totales = {k: v for k, v in totales.items() if k in permitidos}
-    return _rankear(totales, nombres, es_colegio=es_grupal)
+    return _rankear(totales, nombres, es_colegio=es_grupal, aciertos=aciertos)
 
 
 def agregar_tabla_colegios(

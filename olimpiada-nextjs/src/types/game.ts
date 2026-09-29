@@ -86,8 +86,33 @@ export interface SesionJuego {
   reto_activo_id: string | null;
   cronometro_inicio: string | null;
   cronometro_segundos: number;
+  ronda_ganador_num: number | null;
   creado_en: string;
   actualizado_en: string;
+}
+
+export interface InfoRondas {
+  ronda_size: number;
+  asignadas: number;
+  disponibles: number;
+  banco: number;
+  ronda_actual: number;
+  total_rondas: number;
+  ronda_ganador_num: number | null;
+  agregadas?: number;
+}
+
+export interface GanadorRondaEntry {
+  puesto: number;
+  nombre: string;
+  aciertos: number;
+  puntos: number;
+}
+
+export interface GanadorRonda {
+  ronda: number;
+  total_preguntas: number;
+  ranking: GanadorRondaEntry[];
 }
 
 export interface Pregunta {
@@ -160,6 +185,7 @@ export interface PodiumEntry {
   puntos_total: number;
   es_colegio: boolean;
   entity_id: string;
+  aciertos?: number;
 }
 
 export type EventoWS =

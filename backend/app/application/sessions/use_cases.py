@@ -15,7 +15,7 @@ from app.core.exceptions import (
     SesionNoActiva,
 )
 from app.core.security import crear_jwt, validar_clave_admin
-from app.domain.entities import entity_to_dict
+from app.domain.entities import SesionJuego, entity_to_dict
 from app.domain.enums import EstadoSesion, RolJWT
 from app.domain.rules import es_grado_grupal
 from app.infrastructure.db.repositories import (
@@ -183,6 +183,110 @@ class SesionUseCases:
         if not preguntas:
             preguntas = await PreguntaRepo(self.db).listar_por_grado(sesion.grado_id)
         return [entity_to_dict(p) for p in preguntas]
+
+    async def _ronda_info(self, sesion: SesionJuego) -> dict:
+        n = await preguntas_por_sesion(self.db)
+        repo = SesionPreguntaRepo(self.db)
+        asignadas = await repo.contar(sesion.id)
+        disponibles = await repo.contar_disponibles(sesion.grado_id, sesion.id)
+        banco = asignadas + disponibles
+        total_rondas = ((banco + n - 1) // n) if n else 1
+        ronda_actual = ((asignadas + n - 1) // n) if n else 1
+        return {
+            "ronda_size": n,
+            "asignadas": asignadas,
+            "disponibles": disponibles,
+            "banco": banco,
+            "ronda_actual": max(1, ronda_actual),
+            "total_rondas": max(1, total_rondas),
+            "ronda_ganador_num": sesion.ronda_ganador_num,
+        }
+
+    async def info_rondas(self, sesion_id: str) -> dict:
+        sesion = await SesionRepo(self.db).por_id(uuid.UUID(sesion_id))
+        if not sesion:
+            raise PinNoEncontrado()
+        return await self._ronda_info(sesion)
+
+    async def nueva_ronda(self, sesion_id: str) -> dict:
+        """Agrega las siguientes N preguntas al azar (sin repetir las ya vistas)."""
+        sesion = await SesionRepo(self.db).por_id(uuid.UUID(sesion_id))
+        if not sesion:
+            raise PinNoEncontrado()
+        n = await preguntas_por_sesion(self.db)
+        agregadas = await SesionPreguntaRepo(self.db).agregar_aleatorias(
+            sesion.id, sesion.grado_id, n
+        )
+        # Al abrir una nueva ronda se oculta el ganador anterior en pantalla grande.
+        updated = await SesionRepo(self.db).actualizar(
+            sesion.id, reset_ronda_ganador=True
+        )
+        await self.db.commit()
+        if updated:
+            await self.realtime.publish(
+                "sesion_cambio", entity_to_dict(updated), str(updated.id)
+            )
+        info = await self._ronda_info(updated or sesion)
+        info["agregadas"] = agregadas
+        return info
+
+    async def ganador_ronda(self, sesion_id: str, ronda: int) -> dict:
+        """Ranking de una ronda: aciertos de cada estudiante en esa ronda."""
+        sesion = await SesionRepo(self.db).por_id(uuid.UUID(sesion_id))
+        if not sesion:
+            raise PinNoEncontrado()
+        n = await preguntas_por_sesion(self.db)
+        pares = await SesionPreguntaRepo(self.db).listar_ids_con_orden(sesion.id)
+        ids_ronda = {pid for pid, orden in pares if ((orden - 1) // n + 1) == ronda}
+        jugadores = await JugadorRepo(self.db).listar_por_sesion(sesion.id)
+        conteo: dict[uuid.UUID, dict] = {
+            j.id: {"nombre": j.nombre, "aciertos": 0, "puntos": 0} for j in jugadores
+        }
+        respuestas = await RespuestaRepo(self.db).listar_por_sesion(sesion.id)
+        for r in respuestas:
+            if r.pregunta_id in ids_ronda and r.correcta:
+                d = conteo.get(r.jugador_id)
+                if d is not None:
+                    d["aciertos"] += 1
+                    d["puntos"] += int(r.puntos or 0)
+        ranking = sorted(
+            conteo.values(), key=lambda x: (-x["aciertos"], -x["puntos"], x["nombre"])
+        )
+        return {
+            "ronda": ronda,
+            "total_preguntas": len(ids_ronda),
+            "ranking": [
+                {
+                    "puesto": i + 1,
+                    "nombre": d["nombre"],
+                    "aciertos": d["aciertos"],
+                    "puntos": d["puntos"],
+                }
+                for i, d in enumerate(ranking)
+            ],
+        }
+
+    async def mostrar_ganador(self, sesion_id: str, ronda: int) -> dict:
+        updated = await SesionRepo(self.db).actualizar(
+            uuid.UUID(sesion_id), ronda_ganador_num=ronda
+        )
+        await self.db.commit()
+        if updated:
+            await self.realtime.publish(
+                "sesion_cambio", entity_to_dict(updated), str(updated.id)
+            )
+        return await self.ganador_ronda(sesion_id, ronda)
+
+    async def ocultar_ganador(self, sesion_id: str) -> dict:
+        updated = await SesionRepo(self.db).actualizar(
+            uuid.UUID(sesion_id), reset_ronda_ganador=True
+        )
+        await self.db.commit()
+        if updated:
+            await self.realtime.publish(
+                "sesion_cambio", entity_to_dict(updated), str(updated.id)
+            )
+        return entity_to_dict(updated) if updated else {}
 
     async def unirse(self, req: JoinRequest) -> dict:
         sesion_repo = SesionRepo(self.db)

@@ -9,6 +9,7 @@ from app.application.dto import (
     ActualizarSesionRequest,
     CrearSesionRequest,
     EliminarSesionesRequest,
+    MostrarGanadorRequest,
 )
 from app.application.sessions.use_cases import ControlRondaUseCases, SesionUseCases
 from app.core.exceptions import DomainError
@@ -83,6 +84,60 @@ async def preguntas_de_sesion(
 ) -> list[dict]:  # noqa: B008
     try:
         return await SesionUseCases(db, get_manager()).preguntas_de_sesion(sesion_id)
+    except (ValueError, DomainError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/sessions/{sesion_id}/rondas")
+async def info_rondas(
+    sesion_id: str, db: AsyncSession = Depends(get_db)
+) -> dict:  # noqa: B008
+    try:
+        return await SesionUseCases(db, get_manager()).info_rondas(sesion_id)
+    except (ValueError, DomainError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/sessions/{sesion_id}/nueva-ronda")
+async def nueva_ronda(
+    sesion_id: str, db: AsyncSession = Depends(get_db)
+) -> dict:  # noqa: B008
+    try:
+        return await SesionUseCases(db, get_manager()).nueva_ronda(sesion_id)
+    except (ValueError, DomainError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/sessions/{sesion_id}/ronda/{ronda}")
+async def ganador_ronda(
+    sesion_id: str, ronda: int, db: AsyncSession = Depends(get_db)
+) -> dict:  # noqa: B008
+    try:
+        return await SesionUseCases(db, get_manager()).ganador_ronda(sesion_id, ronda)
+    except (ValueError, DomainError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/sessions/{sesion_id}/mostrar-ganador")
+async def mostrar_ganador(
+    sesion_id: str,
+    body: MostrarGanadorRequest,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> dict:
+    try:
+        return await SesionUseCases(db, get_manager()).mostrar_ganador(
+            sesion_id, body.ronda
+        )
+    except (ValueError, DomainError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/sessions/{sesion_id}/ocultar-ganador")
+async def ocultar_ganador(
+    sesion_id: str, db: AsyncSession = Depends(get_db)
+) -> dict:  # noqa: B008
+    try:
+        return await SesionUseCases(db, get_manager()).ocultar_ganador(sesion_id)
     except (ValueError, DomainError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

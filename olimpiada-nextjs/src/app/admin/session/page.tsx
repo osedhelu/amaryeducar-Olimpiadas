@@ -19,7 +19,9 @@ import ParametrosPanel from "@/components/admin/ParametrosPanel";
 import RetosPanel from "@/components/admin/RetosPanel";
 import type {
   Colegio,
+  GanadorRonda,
   Grado,
+  InfoRondas,
   SesionJuego,
   Pregunta,
   Jugador,
@@ -64,6 +66,10 @@ export default function AdminSessionPage() {
   const [tiempoRestante, setTiempoRestante] = useState(0);
   const [verificando, setVerificando] = useState(true);
   const [seleccionadas, setSeleccionadas] = useState<string[]>([]);
+  const [rondas, setRondas] = useState<InfoRondas | null>(null);
+  const [resultadosAbierto, setResultadosAbierto] = useState(false);
+  const [rondaTab, setRondaTab] = useState(1);
+  const [ganadorRonda, setGanadorRonda] = useState<GanadorRonda | null>(null);
 
   const parametros = useParametros();
   const retosActivos = tieneRetos(parametros);
@@ -235,7 +241,12 @@ export default function AdminSessionPage() {
             : [],
         );
         if (conPreguntas) {
-          setPreguntas(await api.preguntasSesion(id));
+          const [ps, info] = await Promise.all([
+            api.preguntasSesion(id),
+            api.infoRondas(id),
+          ]);
+          setPreguntas(ps);
+          setRondas(info);
         }
       } catch {
         /* mantener estado actual */
@@ -251,6 +262,45 @@ export default function AdminSessionPage() {
     },
     [sesionActiva?.id, cargarEstadoControl],
   );
+
+  async function continuarRonda() {
+    if (!sesionActiva) return;
+    setLoading(true);
+    try {
+      const info = await api.nuevaRonda(sesionActiva.id);
+      setRondas(info);
+      setRondaTab(info.ronda_actual);
+      setGanadorRonda(null);
+      await cargarEstadoControl(sesionActiva.id, true);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo crear la ronda");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function mostrarGanadorRonda() {
+    if (!sesionActiva) return;
+    const ronda = rondas?.ronda_actual ?? 1;
+    try {
+      const g = await api.mostrarGanador(sesionActiva.id, ronda);
+      setGanadorRonda(g);
+      await cargarEstadoControl(sesionActiva.id, false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo mostrar");
+    }
+  }
+
+  async function ocultarGanadorRonda() {
+    if (!sesionActiva) return;
+    try {
+      await api.ocultarGanador(sesionActiva.id);
+      setGanadorRonda(null);
+      await cargarEstadoControl(sesionActiva.id, false);
+    } catch {
+      /* ignorar */
+    }
+  }
 
   useEffect(() => {
     if (!lastEvent || !sesionActiva) return;
@@ -384,10 +434,18 @@ export default function AdminSessionPage() {
     const next = preguntas[index + 1];
     if (next) {
       await lanzarPregunta(next);
-    } else {
-      const updated = await api.finalizarSesion(sesionActiva.id);
-      setSesionActiva(updated);
+      return;
     }
+    // Fin de la lista: en modo quiz, si quedan preguntas en el banco NO se
+    // finaliza; el docente pulsa "Nueva ronda".
+    if (rondas && rondas.disponibles > 0) {
+      window.alert(
+        "Fin de la ronda. Pulsa «➕ Nueva ronda» para cargar las siguientes preguntas.",
+      );
+      return;
+    }
+    const updated = await api.finalizarSesion(sesionActiva.id);
+    setSesionActiva(updated);
   }
 
   // Cronómetro en vivo: SOLO visual. No cierra la pregunta; esta se cierra
@@ -819,9 +877,12 @@ export default function AdminSessionPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-left">
             <div className="bg-bg-card border border-azul/10 rounded-2xl p-5">
-              <h2 className="text-lg font-heading font-bold text-azul mb-3 text-center">
+              <h2 className="text-lg font-heading font-bold text-azul mb-1 text-center">
                 🎓 Estudiantes
               </h2>
+              <p className="text-xs text-texto-light text-center mb-3">
+                Quien acierta más preguntas
+              </p>
               <div className="space-y-2">
                 {estudiantes.map((entry) => (
                   <div
@@ -846,8 +907,11 @@ export default function AdminSessionPage() {
                         {entry.nombre}
                       </span>
                     </div>
-                    <span className="font-heading font-extrabold">
-                      {entry.puntos_total} pts
+                    <span className="font-heading font-extrabold text-right">
+                      {entry.aciertos ?? 0} aciertos
+                      <span className="ml-2 font-normal text-sm opacity-70">
+                        {entry.puntos_total} pts
+                      </span>
                     </span>
                   </div>
                 ))}
@@ -919,6 +983,81 @@ export default function AdminSessionPage() {
     for (const r of respuestasTodas) {
       respuestasPorJugadorPregunta.set(`${r.jugador_id}:${r.pregunta_id}`, r);
     }
+    const rondaSize = rondas?.ronda_size ?? 10;
+    const totalRondas = rondas?.total_rondas ?? 1;
+    const preguntasDeRonda = (tab: number): Pregunta[] =>
+      tab === 0
+        ? preguntas
+        : preguntas.filter((_, i) => Math.floor(i / rondaSize) + 1 === tab);
+    const tablaResultados = (qs: Pregunta[]) => (
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="text-texto-light">
+            <th className="text-left py-1 pr-3 font-bold">Estudiante</th>
+            {qs.map((p, i) => (
+              <th
+                key={p.id}
+                className="px-1 text-center font-bold"
+                title={p.enunciado}
+              >
+                #{i + 1}
+              </th>
+            ))}
+            <th className="px-2 text-center font-bold text-verde">Bien</th>
+            <th className="px-2 text-center font-bold text-rojo-error">Mal</th>
+            <th className="px-2 text-center font-bold text-dorado">Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jugadoresOrdenados.map((j) => {
+            let bien = 0;
+            let mal = 0;
+            let pts = 0;
+            const celdas = qs.map((p) => {
+              const r = respuestasPorJugadorPregunta.get(`${j.id}:${p.id}`);
+              if (r) {
+                if (r.correcta === true) {
+                  bien += 1;
+                  pts += r.puntos || 0;
+                } else if (r.correcta === false) {
+                  mal += 1;
+                }
+              }
+              return r;
+            });
+            return (
+              <tr key={j.id} className="border-t border-azul/10">
+                <td className="py-1 pr-3 font-medium text-texto">{j.nombre}</td>
+                {celdas.map((r, i) => (
+                  <td key={qs[i].id} className="px-1 text-center">
+                    {r ? (
+                      r.correcta === true ? (
+                        <span className="text-verde font-bold">✓</span>
+                      ) : r.correcta === false ? (
+                        <span className="text-rojo-error font-bold">✗</span>
+                      ) : (
+                        <span className="text-texto-light">·</span>
+                      )
+                    ) : (
+                      <span className="text-azul/20">—</span>
+                    )}
+                  </td>
+                ))}
+                <td className="px-2 text-center font-bold text-verde">
+                  {bien}
+                </td>
+                <td className="px-2 text-center font-bold text-rojo-error">
+                  {mal}
+                </td>
+                <td className="px-2 text-center font-bold text-dorado">
+                  {pts}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    );
 
     return (
       <main className="min-h-screen bg-bg p-6">
@@ -1127,101 +1266,26 @@ export default function AdminSessionPage() {
             )}
           </div>
 
-          <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10 mb-6 overflow-x-auto">
-            <h2 className="font-heading font-bold text-azul mb-3">
-              Resultados
-            </h2>
-            {jugadoresOrdenados.length === 0 ? (
-              <p className="text-texto-light text-sm">Sin jugadores.</p>
-            ) : (
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="text-texto-light">
-                    <th className="text-left py-1 pr-3 font-bold">
-                      Estudiante
-                    </th>
-                    {preguntas.map((p, i) => (
-                      <th
-                        key={p.id}
-                        className="px-1 text-center font-bold"
-                        title={p.enunciado}
-                      >
-                        #{i + 1}
-                      </th>
-                    ))}
-                    <th className="px-2 text-center font-bold text-verde">
-                      Bien
-                    </th>
-                    <th className="px-2 text-center font-bold text-rojo-error">
-                      Mal
-                    </th>
-                    <th className="px-2 text-center font-bold text-dorado">
-                      Pts
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {jugadoresOrdenados.map((j) => {
-                    const respuestasJugador = respuestasTodas.filter(
-                      (r) => r.jugador_id === j.id,
-                    );
-                    const bien = respuestasJugador.filter(
-                      (r) => r.correcta === true,
-                    ).length;
-                    const mal = respuestasJugador.filter(
-                      (r) => r.correcta === false,
-                    ).length;
-                    const pts = respuestasJugador.reduce(
-                      (a, r) => a + (r.puntos || 0),
-                      0,
-                    );
-                    return (
-                      <tr key={j.id} className="border-t border-azul/10">
-                        <td className="py-1 pr-3 font-medium text-texto">
-                          {j.nombre}
-                        </td>
-                        {preguntas.map((p) => {
-                          const r = respuestasPorJugadorPregunta.get(
-                            `${j.id}:${p.id}`,
-                          );
-                          return (
-                            <td key={p.id} className="px-1 text-center">
-                              {r ? (
-                                r.correcta === true ? (
-                                  <span className="text-verde font-bold">
-                                    ✓
-                                  </span>
-                                ) : r.correcta === false ? (
-                                  <span className="text-rojo-error font-bold">
-                                    ✗
-                                  </span>
-                                ) : (
-                                  <span className="text-texto-light">·</span>
-                                )
-                              ) : (
-                                <span className="text-azul/20">—</span>
-                              )}
-                            </td>
-                          );
-                        })}
-                        <td className="px-2 text-center font-bold text-verde">
-                          {bien}
-                        </td>
-                        <td className="px-2 text-center font-bold text-rojo-error">
-                          {mal}
-                        </td>
-                        <td className="px-2 text-center font-bold text-dorado">
-                          {pts}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-            <p className="text-xs text-texto-light mt-2">
-              ✓ bien · ✗ mal · · pendiente · — sin responder
-            </p>
+          <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10 mb-6">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <h2 className="font-heading font-bold text-azul">Resultados</h2>
+                <p className="text-sm text-texto-light">
+                  {rondas
+                    ? `Ronda ${rondas.ronda_actual} de ${rondas.total_rondas} · quedan ${rondas.disponibles} de ${rondas.banco}`
+                    : "Resultados por estudiante y por ronda."}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setRondaTab(1);
+                  setResultadosAbierto(true);
+                }}
+                className="px-4 py-2 bg-azul/10 text-azul rounded-lg font-heading font-bold text-sm hover:bg-azul/20"
+              >
+                📊 Ver por ronda
+              </button>
+            </div>
           </div>
 
           {retosActivos && (
@@ -1237,9 +1301,46 @@ export default function AdminSessionPage() {
           )}
 
           <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="font-heading font-bold text-azul">Preguntas</h2>
-              <div className="flex gap-2">
+            <div className="flex justify-between items-start mb-3 gap-3 flex-wrap">
+              <div>
+                <h2 className="font-heading font-bold text-azul">Preguntas</h2>
+                {rondas && (
+                  <p className="text-xs text-texto-light">
+                    Ronda {rondas.ronda_actual} de {rondas.total_rondas} ·
+                    quedan {rondas.disponibles} preguntas
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {parametros.modo_quiz === "true" &&
+                  sesionActiva.ronda_ganador_num == null &&
+                  rondas != null && (
+                    <button
+                      onClick={mostrarGanadorRonda}
+                      className="px-3 py-2 bg-dorado text-azul-dark rounded-lg font-heading font-bold text-sm hover:bg-dorado-light"
+                    >
+                      🏆 Mostrar ganador de ronda
+                    </button>
+                  )}
+                {sesionActiva.ronda_ganador_num != null && (
+                  <button
+                    onClick={ocultarGanadorRonda}
+                    className="px-3 py-2 bg-azul/10 text-azul rounded-lg font-heading font-bold text-sm hover:bg-azul/20"
+                  >
+                    Ocultar ganador
+                  </button>
+                )}
+                {parametros.modo_quiz === "true" &&
+                  rondas != null &&
+                  rondas.disponibles > 0 && (
+                    <button
+                      onClick={continuarRonda}
+                      disabled={loading}
+                      className="px-3 py-2 bg-azul text-white rounded-lg font-heading font-bold text-sm hover:bg-azul-light disabled:opacity-50"
+                    >
+                      ➕ Nueva ronda (+{rondas.ronda_size})
+                    </button>
+                  )}
                 {sesionActiva.estado === "pregunta" && (
                   <button
                     onClick={cerrarPregunta}
@@ -1323,6 +1424,69 @@ export default function AdminSessionPage() {
             </div>
           </div>
         </div>
+        {resultadosAbierto && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setResultadosAbierto(false)}
+          >
+            <div
+              className="bg-white rounded-2xl p-5 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-bounce-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-heading font-extrabold text-azul">
+                  📊 Resultados por ronda
+                </h3>
+                <button
+                  onClick={() => setResultadosAbierto(false)}
+                  className="text-texto-light hover:text-texto text-xl"
+                  aria-label="Cerrar"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex gap-2 flex-wrap mb-4">
+                {Array.from({ length: totalRondas }, (_, i) => i + 1).map(
+                  (r) => (
+                    <button
+                      key={r}
+                      onClick={() => setRondaTab(r)}
+                      className={`px-3 py-1 rounded-lg text-sm font-bold ${
+                        rondaTab === r
+                          ? "bg-azul text-white"
+                          : "bg-azul/10 text-azul hover:bg-azul/20"
+                      }`}
+                    >
+                      Ronda {r}
+                    </button>
+                  ),
+                )}
+                <button
+                  onClick={() => setRondaTab(0)}
+                  className={`px-3 py-1 rounded-lg text-sm font-bold ${
+                    rondaTab === 0
+                      ? "bg-azul text-white"
+                      : "bg-azul/10 text-azul hover:bg-azul/20"
+                  }`}
+                >
+                  Total
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                {jugadoresOrdenados.length === 0 ? (
+                  <p className="text-texto-light text-sm">Sin jugadores.</p>
+                ) : (
+                  tablaResultados(preguntasDeRonda(rondaTab))
+                )}
+              </div>
+              <p className="text-xs text-texto-light mt-2">
+                ✓ bien · ✗ mal · · pendiente · — sin responder
+              </p>
+            </div>
+          </div>
+        )}
         {podiumReto && (
           <div
             className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"

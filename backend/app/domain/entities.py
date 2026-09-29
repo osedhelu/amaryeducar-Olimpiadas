@@ -48,6 +48,7 @@ class SesionJuego:
     reto_activo_id: Optional[UUID] = None
     cronometro_inicio: Optional[datetime] = None
     cronometro_segundos: int = 30
+    ronda_ganador_num: Optional[int] = None
     creado_en: Optional[datetime] = None
     actualizado_en: Optional[datetime] = None
 
@@ -129,6 +130,7 @@ class PodiumEntry:
     puntos_total: int
     es_colegio: bool
     entity_id: UUID
+    aciertos: int = 0
 
 
 @dataclass

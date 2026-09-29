@@ -1,7 +1,9 @@
 import type {
   Alumno,
   Colegio,
+  GanadorRonda,
   Grado,
+  InfoRondas,
   Jugador,
   ParametrosEvento,
   PodiumEntry,
@@ -229,6 +231,23 @@ export const api = {
     request<Jugador[]>(`/sessions/${sesionId}/jugadores`),
   preguntasSesion: (sesionId: string): Promise<Pregunta[]> =>
     request<Pregunta[]>(`/sessions/${sesionId}/preguntas`),
+  infoRondas: (sesionId: string): Promise<InfoRondas> =>
+    request<InfoRondas>(`/sessions/${sesionId}/rondas`),
+  nuevaRonda: (sesionId: string): Promise<InfoRondas> =>
+    request<InfoRondas>(`/sessions/${sesionId}/nueva-ronda`, {
+      method: "POST",
+    }),
+  ganadorRonda: (sesionId: string, ronda: number): Promise<GanadorRonda> =>
+    request<GanadorRonda>(`/sessions/${sesionId}/ronda/${ronda}`),
+  mostrarGanador: (sesionId: string, ronda: number): Promise<GanadorRonda> =>
+    request<GanadorRonda>(`/sessions/${sesionId}/mostrar-ganador`, {
+      method: "POST",
+      body: JSON.stringify({ ronda }),
+    }),
+  ocultarGanador: (sesionId: string): Promise<SesionJuego> =>
+    request<SesionJuego>(`/sessions/${sesionId}/ocultar-ganador`, {
+      method: "POST",
+    }),
   respuestasSesion: (
     sesionId: string,
     preguntaId?: string | null,
