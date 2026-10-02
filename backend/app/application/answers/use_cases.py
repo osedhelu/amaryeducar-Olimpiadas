@@ -320,6 +320,7 @@ class PodiumUseCases:
                 "es_colegio": r.es_colegio,
                 "entity_id": str(r.entity_id),
                 "aciertos": r.aciertos,
+                "respondidas": r.respondidas,
             }
             for r in rows
         ]

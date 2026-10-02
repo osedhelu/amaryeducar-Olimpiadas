@@ -72,11 +72,16 @@ class TestPodiumIndividual:
         )
 
         totales = {e.nombre: e.puntos_total for e in podium}
-        assert totales == {"Ana": 50, "Carla": 30}
-        # Bruno (0 puntos) no aparece: se preserva el comportamiento actual.
-        assert [e.nombre for e in podium] == ["Ana", "Carla"]
-        assert [e.puesto for e in podium] == [1, 2]
+        assert totales == {"Ana": 50, "Carla": 30, "Bruno": 0}
+        # Bruno (0 puntos) también aparece: el ranking incluye a todos.
+        assert [e.nombre for e in podium] == ["Ana", "Carla", "Bruno"]
+        assert [e.puesto for e in podium] == [1, 2, 3]
         assert podium[0].es_colegio is False
+        # Cuántas preguntas respondió cada uno (aciertos + fallos)
+        por_nombre = {e.nombre: e for e in podium}
+        assert por_nombre["Ana"].respondidas == 1
+        assert por_nombre["Bruno"].respondidas == 1
+        assert por_nombre["Carla"].respondidas == 1
 
     def test_varias_preguntas_se_acumulan(self):
         sesion = uuid.uuid4()
@@ -173,8 +178,9 @@ class TestPodiumGrupal:
             [], puntajes, [jugador_a, jugador_b], [a, b], es_grupal=True
         )
         totales = {e.nombre: e.puntos_total for e in podium}
-        assert totales == {"Colegio A": 50}
-        assert "Colegio B" not in totales
+        # El reto individual no se atribuye a otro colegio; pero el colegio B
+        # sí aparece con 0 puntos por tener jugador en la sesión.
+        assert totales == {"Colegio A": 50, "Colegio B": 0}
 
     def test_jugador_sin_colegio_no_aporta(self):
         sesion = uuid.uuid4()

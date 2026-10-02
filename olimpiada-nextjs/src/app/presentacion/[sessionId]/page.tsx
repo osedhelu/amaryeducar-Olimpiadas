@@ -222,6 +222,16 @@ export default function PresentacionPage() {
 
   useEffect(() => {
     if (!sesion) return;
+    // El pódium/final tiene prioridad sobre el ganador de ronda: cuando el
+    // docente pulsa "Ver Podium" la pantalla grande debe cambiar de vista.
+    if (sesion.estado === "podium") {
+      setVista("podium");
+      return;
+    }
+    if (sesion.estado === "final") {
+      setVista("final");
+      return;
+    }
     if (sesion.ronda_ganador_num != null) {
       setVista("ronda_ganador");
       return;
@@ -231,8 +241,6 @@ export default function PresentacionPage() {
     else if (sesion.estado === "resultado") setVista("resultado");
     else if (sesion.estado === "reto") setVista("reto");
     else if (sesion.estado === "reto_podium") setVista("reto_podium");
-    else if (sesion.estado === "podium") setVista("podium");
-    else if (sesion.estado === "final") setVista("final");
   }, [sesion?.estado, sesion?.ronda_ganador_num]);
 
   useEffect(() => {
@@ -695,8 +703,11 @@ export default function PresentacionPage() {
                   {entry.puntos_total}
                   <span className="text-lg ml-1 opacity-70">pts</span>
                   {entry.aciertos != null && (
-                    <span className="block text-sm font-bold opacity-70">
+                    <span className="block text-sm font-bold opacity-70 text-right">
                       {entry.aciertos} aciertos
+                      {entry.respondidas != null
+                        ? ` · ${entry.respondidas} respondidas`
+                        : ""}
                     </span>
                   )}
                 </span>

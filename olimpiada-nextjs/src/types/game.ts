@@ -202,6 +202,7 @@ export interface PodiumEntry {
   es_colegio: boolean;
   entity_id: string;
   aciertos?: number;
+  respondidas?: number;
 }
 
 export type EventoWS =

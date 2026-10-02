@@ -499,6 +499,16 @@ export default function AdminSessionPage() {
     if (!sesionActiva) return;
     const p = await api.podium(sesionActiva.id);
     setPodium(p);
+    // Si se estaba mostrando el ganador de una ronda, ocultarlo para que la
+    // pantalla grande salte directo al pódium.
+    if (sesionActiva.ronda_ganador_num != null) {
+      try {
+        await api.ocultarGanador(sesionActiva.id);
+      } catch {
+        /* sin ganador activo */
+      }
+      setGanadorRonda(null);
+    }
     cambiarVista("podium", sesionActiva.id);
     await api.actualizarSesion(sesionActiva.id, { estado: "podium" });
   }
@@ -803,6 +813,11 @@ export default function AdminSessionPage() {
                     </div>
                     <span className="font-heading font-extrabold text-right">
                       {entry.aciertos ?? 0} aciertos
+                      {entry.respondidas != null && (
+                        <span className="ml-1 font-normal text-sm opacity-70">
+                          · {entry.respondidas} respondidas
+                        </span>
+                      )}
                       <span className="ml-2 font-normal text-sm opacity-70">
                         {entry.puntos_total} pts
                       </span>

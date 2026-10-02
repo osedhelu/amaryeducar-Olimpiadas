@@ -131,6 +131,7 @@ class PodiumEntry:
     es_colegio: bool
     entity_id: UUID
     aciertos: int = 0
+    respondidas: int = 0
 
 
 @dataclass

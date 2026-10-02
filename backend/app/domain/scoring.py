@@ -90,6 +90,29 @@ def _contar_aciertos(
     return aciertos
 
 
+def _contar_respondidas(
+    respuestas: list[Respuesta],
+    *,
+    es_grupal: bool,
+    jugadores_por_id: dict[uuid.UUID, Jugador],
+) -> dict[uuid.UUID, int]:
+    """Total de preguntas respondidas (aciertos + fallos) por entidad."""
+    respondidas: dict[uuid.UUID, int] = {}
+
+    def _add(entity_id: uuid.UUID | None) -> None:
+        if entity_id is None:
+            return
+        respondidas[entity_id] = respondidas.get(entity_id, 0) + 1
+
+    for r in respuestas:
+        if es_grupal:
+            jugador = jugadores_por_id.get(r.jugador_id)
+            _add(jugador.colegio_id if jugador else None)
+        else:
+            _add(r.jugador_id)
+    return respondidas
+
+
 def _nombres(entidades: list[Colegio] | list[Jugador]) -> dict[uuid.UUID, str]:
     return {e.id: e.nombre for e in entidades}
 
@@ -100,8 +123,10 @@ def _rankear(
     *,
     es_colegio: bool,
     aciertos: dict[uuid.UUID, int] | None = None,
+    respondidas: dict[uuid.UUID, int] | None = None,
 ) -> list[PodiumEntry]:
     aciertos = aciertos or {}
+    respondidas = respondidas or {}
     ordenados = sorted(totales.items(), key=lambda kv: (-kv[1], nombres.get(kv[0], "")))
     return [
         PodiumEntry(
@@ -111,6 +136,7 @@ def _rankear(
             es_colegio=es_colegio,
             entity_id=entity_id,
             aciertos=aciertos.get(entity_id, 0),
+            respondidas=respondidas.get(entity_id, 0),
         )
         for i, (entity_id, total) in enumerate(ordenados)
     ]
@@ -124,7 +150,9 @@ def agregar_podium(
     *,
     es_grupal: bool,
 ) -> list[PodiumEntry]:
-    """Podium de una sesión. No incluye participantes con 0 puntos.
+    """Podium de una sesión. Incluye TODOS los participantes de la sesión,
+    incluso los que aciertan 0 (puntos totales en 0), para que nadie
+    desaparezca del ranking.
 
     Solo considera participantes de la sesión (jugadores para grados 1-3,
     colegios con jugadores en la sesión para 4-5).
@@ -139,6 +167,9 @@ def agregar_podium(
     aciertos = _contar_aciertos(
         respuestas, es_grupal=es_grupal, jugadores_por_id=jugadores_por_id
     )
+    respondidas = _contar_respondidas(
+        respuestas, es_grupal=es_grupal, jugadores_por_id=jugadores_por_id
+    )
 
     if es_grupal:
         permitidos = {j.colegio_id for j in jugadores if j.colegio_id}
@@ -148,7 +179,15 @@ def agregar_podium(
         nombres = _nombres(jugadores)
 
     totales = {k: v for k, v in totales.items() if k in permitidos}
-    return _rankear(totales, nombres, es_colegio=es_grupal, aciertos=aciertos)
+    for entidad in permitidos:
+        totales.setdefault(entidad, 0)
+    return _rankear(
+        totales,
+        nombres,
+        es_colegio=es_grupal,
+        aciertos=aciertos,
+        respondidas=respondidas,
+    )
 
 
 def agregar_tabla_colegios(
