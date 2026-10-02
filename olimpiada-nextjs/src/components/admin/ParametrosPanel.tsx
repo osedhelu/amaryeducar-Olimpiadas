@@ -99,6 +99,13 @@ const CAMPOS: Campo[] = [
     descripcion: "Cuántas vidas recibe cada estudiante al entrar a la sala.",
   },
   {
+    clave: "sonido_habilitado",
+    etiqueta: "Efectos de sonido",
+    descripcion:
+      "Si está habilitado, suenan efectos (acierto, fallo, fanfarria) en la pantalla grande y los dispositivos. Se puede silenciar con el botón flotante.",
+    tipo: "checkbox",
+  },
+  {
     clave: "mostrar_duelos",
     etiqueta: "Mostrar Prueba 1v1",
     descripcion: "Muestra la tarjeta y la vista de duelo alumno vs alumno.",

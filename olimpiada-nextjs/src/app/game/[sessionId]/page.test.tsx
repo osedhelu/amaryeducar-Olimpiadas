@@ -41,6 +41,14 @@ vi.mock("@/lib/parametros", () => ({
   tieneRetos: () => false,
   vidasHabilitadas: () => h.params.vidasOn,
   numVidas: () => h.params.maxVidas,
+  sonidoHabilitado: () => false,
+}));
+vi.mock("@/lib/sound", () => ({
+  sonido: { play: vi.fn(), unlock: vi.fn(), setMuted: vi.fn(), muted: false },
+}));
+vi.mock("@/components/Confetti", () => ({
+  fuegoConfeti: vi.fn(),
+  lluviaConfeti: vi.fn(),
 }));
 
 import GamePage from "./page";

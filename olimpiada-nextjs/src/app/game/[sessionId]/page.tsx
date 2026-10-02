@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { api, imagenPreguntaUrl } from "@/lib/api";
@@ -9,8 +9,11 @@ import {
   tieneRetos,
   vidasHabilitadas,
   numVidas,
+  sonidoHabilitado,
 } from "@/lib/parametros";
 import { getDatosSesionEstudiante } from "@/lib/session";
+import { sonido } from "@/lib/sound";
+import { fuegoConfeti } from "@/components/Confetti";
 import type {
   SesionJuego,
   Pregunta,
@@ -28,6 +31,7 @@ export default function GamePage() {
   const retosActivos = tieneRetos(parametros);
   const vidasActivas = vidasHabilitadas(parametros);
   const maxVidas = numVidas(parametros);
+  const sonidoActivo = sonidoHabilitado(parametros);
 
   const [sesion, setSesion] = useState<SesionJuego | null>(null);
   const [preguntaActual, setPreguntaActual] = useState<Pregunta | null>(null);
@@ -39,6 +43,11 @@ export default function GamePage() {
   } | null>(null);
   const [tiempoRestante, setTiempoRestante] = useState(0);
   const [vidas, setVidas] = useState<EstadoVida | null>(null);
+  const vidasRef = useRef<EstadoVida | null>(null);
+
+  useEffect(() => {
+    vidasRef.current = vidas;
+  }, [vidas]);
 
   const { lastEvent, connected } = useWebSocket(sessionId, "student");
 
@@ -135,6 +144,14 @@ export default function GamePage() {
             correcta: miRespuesta.correcta === true,
             puntos: miRespuesta.puntos,
           });
+          if (sonidoActivo) {
+            if (miRespuesta.correcta === true) {
+              sonido.play("correcto");
+              fuegoConfeti();
+            } else {
+              sonido.play("incorrecto");
+            }
+          }
           if (miRespuesta.eliminado != null) {
             setVidas((prev) =>
               prev
@@ -154,6 +171,12 @@ export default function GamePage() {
       }
       case "vidas_cambio":
         if (ev.data.jugador_id === getDatosSesionEstudiante().jugadorId) {
+          if (sonidoActivo) {
+            const prev = vidasRef.current;
+            if (prev && ev.data.errores > prev.errores) {
+              sonido.play(ev.data.eliminado ? "eliminado" : "perder-vida");
+            }
+          }
           setVidas(ev.data);
         }
         break;
@@ -183,6 +206,8 @@ export default function GamePage() {
     const { getDatosSesionEstudiante } = await import("@/lib/session");
     const jugadorId = getDatosSesionEstudiante().jugadorId;
     if (!jugadorId) return;
+
+    sonido.unlock();
 
     try {
       const timestampCliente = new Date().toISOString();
@@ -295,7 +320,11 @@ export default function GamePage() {
   if (sesion.estado === "resultado" && ultimoResultado) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
-        <div className="text-center animate-bounce-in">
+        <div
+          className={`text-center ${
+            ultimoResultado.correcta ? "animate-bounce-in" : "animate-shake"
+          }`}
+        >
           <div className="text-6xl mb-4">
             {ultimoResultado.correcta ? "🎉" : "😔"}
           </div>
@@ -303,7 +332,7 @@ export default function GamePage() {
             {ultimoResultado.correcta ? "¡Correcto!" : "Incorrecto"}
           </h2>
           {ultimoResultado.correcta && (
-            <div className="text-azul text-4xl font-heading font-extrabold animate-pulse-score">
+            <div className="text-azul text-4xl font-heading font-extrabold animate-pop">
               +{ultimoResultado.puntos} pts
             </div>
           )}
@@ -361,13 +390,25 @@ export default function GamePage() {
           )}
           {sesion.cronometro_segundos > 0 && (
             <div className="flex items-center gap-2">
-              <div className="w-32 h-3 bg-azul/15 rounded-full overflow-hidden">
+              <div
+                className={`w-32 h-3 rounded-full ${
+                  tiempoRestante > 0 && tiempoRestante <= 5
+                    ? "animate-pulse-ring"
+                    : ""
+                } ${tiempoRestante > 0 && tiempoRestante <= 5 ? "bg-dorado/30" : "bg-azul/15"} overflow-hidden`}
+              >
                 <div
                   className="h-full bg-dorado transition-all duration-250"
                   style={{ width: `${porcentajeTiempo}%` }}
                 />
               </div>
-              <span className="text-azul font-heading font-bold text-sm w-8 text-right">
+              <span
+                className={`font-heading font-bold text-sm w-8 text-right ${
+                  tiempoRestante > 0 && tiempoRestante <= 5
+                    ? "text-dorado text-base"
+                    : "text-azul"
+                }`}
+              >
                 {tiempoRestante}s
               </span>
             </div>
@@ -375,7 +416,7 @@ export default function GamePage() {
         </div>
 
         <div className="flex-1 flex flex-col justify-center max-w-xl mx-auto w-full space-y-6">
-          <div className="bg-azul rounded-2xl p-6 animate-fade-in">
+          <div className="bg-azul rounded-2xl p-6 animate-zoom-in">
             <p className="text-white text-lg md:text-xl font-body leading-relaxed">
               {preguntaActual.enunciado}
             </p>

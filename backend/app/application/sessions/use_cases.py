@@ -49,6 +49,7 @@ PARAMETROS_DEFAULT: dict[str, str] = {
     "preguntas_por_sesion": "10",
     "vidas_habilitadas": "true",
     "vidas_por_sesion": "3",
+    "sonido_habilitado": "true",
     "mostrar_duelos": "true",
     "mostrar_enfrentamiento": "true",
     "grado_1": "true",

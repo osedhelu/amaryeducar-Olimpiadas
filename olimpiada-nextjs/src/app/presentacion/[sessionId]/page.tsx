@@ -4,7 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { api, imagenPreguntaUrl } from "@/lib/api";
-import { useParametros, tieneRetos } from "@/lib/parametros";
+import { useParametros, tieneRetos, sonidoHabilitado } from "@/lib/parametros";
+import { sonido } from "@/lib/sound";
+import { fuegoConfeti, lluviaConfeti } from "@/components/Confetti";
 import type {
   GanadorRonda,
   SesionJuego,
@@ -124,6 +126,7 @@ export default function PresentacionPage() {
         break;
       case "sesion_cambio":
         setSesion(ev.data);
+        if (ev.data.estado === "pregunta") sonido.play("contar");
         cargarVidas(ev.data.id);
         if (ev.data.ronda_ganador_num != null) {
           api
@@ -177,6 +180,9 @@ export default function PresentacionPage() {
             a.nombre.localeCompare(b.nombre),
           );
         });
+        break;
+      case "resultado_pregunta":
+        sonido.play("revelar");
         break;
       default:
         break;
@@ -242,6 +248,19 @@ export default function PresentacionPage() {
     else if (sesion.estado === "reto") setVista("reto");
     else if (sesion.estado === "reto_podium") setVista("reto_podium");
   }, [sesion?.estado, sesion?.ronda_ganador_num]);
+
+  // Sonido y confeti según la vista (pódium, final, ganador de ronda).
+  useEffect(() => {
+    if (vista === "podium") {
+      sonido.play("fanfarria");
+      lluviaConfeti();
+    } else if (vista === "final") {
+      sonido.play("fanfarria");
+    } else if (vista === "ronda_ganador") {
+      sonido.play("revelar");
+      fuegoConfeti();
+    }
+  }, [vista]);
 
   useEffect(() => {
     if (!sesion?.cronometro_inicio || !sesion?.cronometro_segundos) return;
@@ -374,7 +393,7 @@ export default function PresentacionPage() {
         </div>
 
         <div className="flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full space-y-8">
-          <div className="bg-azul rounded-2xl p-8 shadow-2xl animate-fade-in">
+          <div className="bg-azul rounded-2xl p-8 shadow-2xl animate-zoom-in">
             <p className="text-white text-2xl md:text-3xl font-body leading-relaxed text-center">
               {pregunta.enunciado}
             </p>

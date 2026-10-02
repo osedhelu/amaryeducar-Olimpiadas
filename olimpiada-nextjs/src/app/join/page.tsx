@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useParametros } from "@/lib/parametros";
+import { sonido } from "@/lib/sound";
 
 export default function JoinPage() {
   const parametros = useParametros();
@@ -22,6 +23,7 @@ export default function JoinPage() {
     }
     setLoading(true);
     setError("");
+    sonido.unlock();
     try {
       const data = await api.joinSesion(pin, limpio);
       const { guardarSesionEstudiante } = await import("@/lib/session");
@@ -31,6 +33,7 @@ export default function JoinPage() {
         data.sesionId,
         data.nombre,
       );
+      sonido.play("unir");
       router.push(`/game/${data.sesionId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de conexión");

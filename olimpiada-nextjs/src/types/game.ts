@@ -17,6 +17,7 @@ export interface ParametrosEvento {
   preguntas_por_sesion?: string;
   vidas_habilitadas?: string;
   vidas_por_sesion?: string;
+  sonido_habilitado?: string;
   mostrar_duelos?: string;
   mostrar_enfrentamiento?: string;
   grado_1?: string;

@@ -22,6 +22,7 @@ export const PARAMETROS_DEFAULT: ParametrosEvento = {
   preguntas_por_sesion: "10",
   vidas_habilitadas: "true",
   vidas_por_sesion: "3",
+  sonido_habilitado: "true",
   mostrar_duelos: "true",
   mostrar_enfrentamiento: "true",
   grado_1: "true",
@@ -47,6 +48,10 @@ export function vidasHabilitadas(p: ParametrosEvento): boolean {
 export function numVidas(p: ParametrosEvento): number {
   const n = parseInt(String(p.vidas_por_sesion ?? "3"), 10);
   return Number.isFinite(n) && n > 0 ? n : 3;
+}
+
+export function sonidoHabilitado(p: ParametrosEvento): boolean {
+  return esVerdadero(p.sonido_habilitado ?? "true");
 }
 
 export function mostrarDuelos(p: ParametrosEvento): boolean {

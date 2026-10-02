@@ -39,6 +39,14 @@ vi.mock("@/lib/parametros", () => ({
     texto_ronda_completada: "¡Ronda completada!",
   }),
   tieneRetos: () => false,
+  sonidoHabilitado: () => false,
+}));
+vi.mock("@/lib/sound", () => ({
+  sonido: { play: vi.fn(), unlock: vi.fn(), setMuted: vi.fn(), muted: false },
+}));
+vi.mock("@/components/Confetti", () => ({
+  fuegoConfeti: vi.fn(),
+  lluviaConfeti: vi.fn(),
 }));
 
 import PresentacionPage from "./page";

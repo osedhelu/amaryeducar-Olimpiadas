@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Montserrat, Open_Sans } from "next/font/google";
+import SonidoControl from "@/components/SonidoControl";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${montserrat.variable} ${openSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-bg text-texto">
+        <SonidoControl />
         {children}
       </body>
     </html>
