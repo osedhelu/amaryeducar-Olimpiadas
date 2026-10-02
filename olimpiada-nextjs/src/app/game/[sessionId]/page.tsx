@@ -186,12 +186,29 @@ export default function GamePage() {
 
     try {
       const timestampCliente = new Date().toISOString();
-      await api.enviarRespuesta({
+      const res = await api.enviarRespuesta({
         pregunta_id: preguntaActual.id,
         jugador_id: jugadorId,
         opcion_seleccionada: opcion,
         enviado_en: timestampCliente,
       });
+      // Actualizar las vidas CON la respuesta del servidor (fuente de verdad),
+      // para no depender del timing del evento vidas_cambio por WebSocket.
+      const vres = res?.vidas_restantes;
+      if (vres != null) {
+        const errores = res?.errores;
+        const eliminado = res?.eliminado;
+        setVidas((prev) => ({
+          jugador_id: jugadorId,
+          nombre: prev?.nombre ?? jugadorNombre,
+          conectado: true,
+          aciertos: prev?.aciertos ?? 0,
+          errores: errores ?? prev?.errores ?? 0,
+          vidas_restantes: vres,
+          vidas_max: prev?.vidas_max ?? maxVidas,
+          eliminado: eliminado ?? prev?.eliminado ?? false,
+        }));
+      }
     } catch (err) {
       if (err instanceof Error && err.message.toLowerCase().includes("vidas")) {
         // El servidor rechazó por vidas (409): el jugador quedó eliminado.
