@@ -14,7 +14,6 @@ import type {
   PuntajeReto,
   Respuesta,
   EventoWS,
-  TablaColegio,
   Reto,
   EstadoVida,
 } from "@/types/game";
@@ -44,7 +43,6 @@ export default function PresentacionPage() {
   const [respuestas, setRespuestas] = useState<Respuesta[]>([]);
   const [puntajesReto, setPuntajesReto] = useState<PuntajeReto[]>([]);
   const [podium, setPodium] = useState<PodiumEntry[]>([]);
-  const [tabla, setTabla] = useState<TablaColegio[]>([]);
   const [vidas, setVidas] = useState<EstadoVida[]>([]);
   const [vista, setVista] = useState<Vista>("bienvenida");
   const [tiempoRestante, setTiempoRestante] = useState(0);
@@ -102,10 +100,6 @@ export default function PresentacionPage() {
     if (s.estado === "podium" || s.estado === "final") {
       const p = await api.podium(s.id);
       setPodium(p);
-      api
-        .tablaGrado(s.grado_id)
-        .then(setTabla)
-        .catch(() => {});
     }
   }, [sessionId]);
 
@@ -141,10 +135,6 @@ export default function PresentacionPage() {
         }
         if (ev.data.estado === "podium" || ev.data.estado === "final") {
           api.podium(ev.data.id).then(setPodium);
-          api
-            .tablaGrado(ev.data.grado_id)
-            .then(setTabla)
-            .catch(() => {});
         }
         if (
           (ev.data.estado === "reto" || ev.data.estado === "reto_podium") &&
@@ -720,12 +710,10 @@ export default function PresentacionPage() {
 
   if (vista === "final") {
     const estudiantes = podium.filter((e) => !e.es_colegio);
-    const colegiosTabla =
-      tabla.length > 0 ? tabla : podium.filter((e) => e.es_colegio);
 
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
-        <div className="max-w-5xl w-full text-center space-y-8">
+        <div className="max-w-3xl w-full text-center space-y-8">
           <div className="text-6xl">🏁</div>
           <h1 className="text-4xl font-heading font-extrabold text-azul">
             ¡Sesión terminada!
@@ -734,86 +722,48 @@ export default function PresentacionPage() {
             Resultados finales de este grupo
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-bg-card border border-azul/10 rounded-2xl p-6">
-              <h2 className="text-2xl font-heading font-bold text-azul mb-4">
-                🎓 Puntos por estudiante
-              </h2>
-              <div className="space-y-2">
-                {estudiantes.length === 0 && (
-                  <p className="text-texto-light text-sm">Sin resultados.</p>
-                )}
-                {estudiantes.map((entry, idx) => (
-                  <div
-                    key={entry.entity_id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-white border border-azul/10 animate-slide-up"
-                    style={{ animationDelay: `${idx * 100}ms` }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">
-                        {entry.puesto === 1
-                          ? "🥇"
-                          : entry.puesto === 2
-                            ? "🥈"
-                            : entry.puesto === 3
-                              ? "🥉"
-                              : `${entry.puesto}°`}
-                      </span>
-                      <span
-                        className={`font-heading font-bold text-texto text-lg ${
-                          estaEliminado(entry.nombre)
-                            ? "opacity-60 line-through"
-                            : ""
-                        }`}
-                      >
-                        {entry.nombre}
-                        {estaEliminado(entry.nombre) && (
-                          <span className="ml-1">💔</span>
-                        )}
-                      </span>
-                    </div>
-                    <span className="font-heading font-extrabold text-azul text-xl">
-                      {entry.puntos_total} pts
+          <div className="bg-bg-card border border-azul/10 rounded-2xl p-6 text-left">
+            <h2 className="text-2xl font-heading font-bold text-azul mb-4 text-center">
+              🎓 Puntos por estudiante
+            </h2>
+            <div className="space-y-2">
+              {estudiantes.length === 0 && (
+                <p className="text-texto-light text-sm">Sin resultados.</p>
+              )}
+              {estudiantes.map((entry, idx) => (
+                <div
+                  key={entry.entity_id}
+                  className="flex items-center justify-between p-3 rounded-xl bg-white border border-azul/10 animate-slide-up"
+                  style={{ animationDelay: `${idx * 100}ms` }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">
+                      {entry.puesto === 1
+                        ? "🥇"
+                        : entry.puesto === 2
+                          ? "🥈"
+                          : entry.puesto === 3
+                            ? "🥉"
+                            : `${entry.puesto}°`}
+                    </span>
+                    <span
+                      className={`font-heading font-bold text-texto text-lg ${
+                        estaEliminado(entry.nombre)
+                          ? "opacity-60 line-through"
+                          : ""
+                      }`}
+                    >
+                      {entry.nombre}
+                      {estaEliminado(entry.nombre) && (
+                        <span className="ml-1">💔</span>
+                      )}
                     </span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-bg-card border border-azul/10 rounded-2xl p-6">
-              <h2 className="text-2xl font-heading font-bold text-azul mb-4">
-                🏫 Puntos por colegio
-              </h2>
-              <div className="space-y-2">
-                {colegiosTabla.length === 0 && (
-                  <p className="text-texto-light text-sm">Sin resultados.</p>
-                )}
-                {colegiosTabla.map((entry, idx) => (
-                  <div
-                    key={`${entry.nombre}-${idx}`}
-                    className="flex items-center justify-between p-3 rounded-xl bg-white border border-azul/10 animate-slide-up"
-                    style={{ animationDelay: `${idx * 100}ms` }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">
-                        {entry.puesto === 1
-                          ? "🥇"
-                          : entry.puesto === 2
-                            ? "🥈"
-                            : entry.puesto === 3
-                              ? "🥉"
-                              : `${entry.puesto}°`}
-                      </span>
-                      <span className="font-heading font-bold text-texto text-lg">
-                        {entry.nombre}
-                      </span>
-                    </div>
-                    <span className="font-heading font-extrabold text-azul text-xl">
-                      {entry.puntos_total} pts
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  <span className="font-heading font-extrabold text-azul text-xl">
+                    {entry.puntos_total} pts
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

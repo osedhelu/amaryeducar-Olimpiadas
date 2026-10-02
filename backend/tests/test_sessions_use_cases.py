@@ -91,13 +91,42 @@ class TestUnirse:
         with pytest.raises(DatosInvalidos):
             await uc_sesion.unirse(JoinRequest(pin="1234", alumno_id=uuid.uuid4()))
 
-    async def test_alumno_id_obligatorio_en_dto(self):
-        with pytest.raises(Exception):
-            JoinRequest(pin="1234")
-
     async def test_pin_de_4_digitos_es_obligatorio(self):
         with pytest.raises(Exception):
             JoinRequest(pin="12", alumno_id=uuid.uuid4())
+
+    async def test_join_por_nombre_crea_jugador_nuevo(
+        self, uc_sesion, realtime, sesion_lobby
+    ):
+        res = await uc_sesion.unirse(JoinRequest(pin="1234", nombre="Pepe"))
+        assert res["nombre"] == "Pepe"
+        assert res["sesionId"] == str(sesion_lobby.id)
+        assert res["jugadorId"]
+        assert res["alumnoId"] is None
+        assert res["colegioId"] is None
+        payload = verificar_jwt(res["token"])
+        assert payload and payload["role"] == "estudiante"
+        tipos = [e[0] for e in realtime.eventos]
+        assert "jugador_unido" in tipos
+
+    async def test_join_por_nombre_reutiliza_jugador_existente(
+        self, uc_sesion, repos, realtime, sesion_lobby
+    ):
+        j = await repos.jugador.crear(sesion_lobby.id, "Pepe")
+        j.conectado = False
+        res = await uc_sesion.unirse(JoinRequest(pin="1234", nombre="Pepe"))
+        assert res["jugadorId"] == str(j.id)
+        assert j.conectado is True
+        assert len(await repos.jugador.listar_por_sesion(sesion_lobby.id)) == 1
+        tipos = [e[0] for e in realtime.eventos]
+        assert "jugador_cambio" in tipos
+        assert "jugador_unido" not in tipos
+
+    async def test_join_sin_nombre_ni_alumno_lanza_datos_invalidos(
+        self, uc_sesion, realtime, sesion_lobby
+    ):
+        with pytest.raises(DatosInvalidos):
+            await uc_sesion.unirse(JoinRequest(pin="1234"))
 
 
 class TestCrearSesion:

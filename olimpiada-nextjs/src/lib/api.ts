@@ -147,17 +147,17 @@ export const api = {
     return r.token;
   },
 
-  joinSesion: (pin: string, alumnoId: string) =>
+  joinSesion: (pin: string, nombre: string) =>
     request<{
       token: string;
       jugadorId: string;
       sesionId: string;
       nombre: string;
-      alumnoId: string;
+      alumnoId: string | null;
       colegioId: string | null;
     }>("/session/join", {
       method: "POST",
-      body: JSON.stringify({ pin, alumno_id: alumnoId }),
+      body: JSON.stringify({ pin, nombre }),
     }),
 
   // ── Catálogos ────────────────────────────────────────

@@ -7,15 +7,9 @@ import {
   useParametros,
   tieneRetos,
   gradosHabilitados,
-  mostrarDuelos,
-  mostrarEnfrentamiento,
   vidasHabilitadas,
 } from "@/lib/parametros";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import ColegiosPanel from "@/components/admin/ColegiosPanel";
-import AlumnosPanel from "@/components/admin/AlumnosPanel";
-import EnfrentamientoPanel from "@/components/admin/EnfrentamientoPanel";
-import DuelosPanel from "@/components/admin/DuelosPanel";
 import ParametrosPanel from "@/components/admin/ParametrosPanel";
 import RetosPanel from "@/components/admin/RetosPanel";
 import type {
@@ -31,7 +25,6 @@ import type {
   Respuesta,
   Reto,
   EventoWS,
-  TablaColegio,
   EstadoVida,
 } from "@/types/game";
 
@@ -61,7 +54,6 @@ export default function AdminSessionPage() {
   const [respuestasTodas, setRespuestasTodas] = useState<Respuesta[]>([]);
   const [podium, setPodium] = useState<PodiumEntry[]>([]);
   const [podiumReto, setPodiumReto] = useState<PuntajeReto[] | null>(null);
-  const [tablaColegios, setTablaColegios] = useState<TablaColegio[]>([]);
   const [colegios, setColegios] = useState<Colegio[]>([]);
   const [nuevoPin, setNuevoPin] = useState("");
   const [loading, setLoading] = useState(false);
@@ -77,10 +69,8 @@ export default function AdminSessionPage() {
   const parametros = useParametros();
   const retosActivos = tieneRetos(parametros);
   const vidasActivas = vidasHabilitadas(parametros);
-  const gradosSet = gradosHabilitados(parametros);
-  const verDuelos = mostrarDuelos(parametros);
-  const verEnfrentamiento = mostrarEnfrentamiento(parametros);
   const gradosVisibles = grados.filter((g) => gradosSet.has(g.orden));
+  const gradosSet = gradosHabilitados(parametros);
 
   const { lastEvent } = useWebSocket(sesionActiva?.id ?? null, "admin");
 
@@ -178,10 +168,6 @@ export default function AdminSessionPage() {
             api
               .podium(s.id)
               .then(setPodium)
-              .catch(() => {});
-            api
-              .tablaGrado(s.grado_id)
-              .then(setTablaColegios)
               .catch(() => {});
           }
         })
@@ -513,10 +499,6 @@ export default function AdminSessionPage() {
     if (!sesionActiva) return;
     const p = await api.podium(sesionActiva.id);
     setPodium(p);
-    api
-      .tablaGrado(sesionActiva.grado_id)
-      .then(setTablaColegios)
-      .catch(() => {});
     cambiarVista("podium", sesionActiva.id);
     await api.actualizarSesion(sesionActiva.id, { estado: "podium" });
   }
@@ -576,70 +558,6 @@ export default function AdminSessionPage() {
     );
   }
 
-  if (vista === "colegios") {
-    return (
-      <main className="min-h-screen bg-bg p-6">
-        <div className="max-w-4xl mx-auto">
-          <button
-            onClick={() => cambiarVista("menu")}
-            className="text-azul mb-4 hover:text-azul-light"
-          >
-            ← Volver al menú
-          </button>
-          <ColegiosPanel />
-        </div>
-      </main>
-    );
-  }
-
-  if (vista === "alumnos") {
-    return (
-      <main className="min-h-screen bg-bg p-6">
-        <div className="max-w-4xl mx-auto">
-          <button
-            onClick={() => cambiarVista("menu")}
-            className="text-azul mb-4 hover:text-azul-light"
-          >
-            ← Volver al menú
-          </button>
-          <AlumnosPanel />
-        </div>
-      </main>
-    );
-  }
-
-  if (vista === "enfrentamiento" && verEnfrentamiento) {
-    return (
-      <main className="min-h-screen bg-bg p-6">
-        <div className="max-w-4xl mx-auto">
-          <button
-            onClick={() => cambiarVista("menu")}
-            className="text-azul mb-4 hover:text-azul-light"
-          >
-            ← Volver al menú
-          </button>
-          <EnfrentamientoPanel />
-        </div>
-      </main>
-    );
-  }
-
-  if (vista === "duelos" && verDuelos) {
-    return (
-      <main className="min-h-screen bg-bg p-6">
-        <div className="max-w-4xl mx-auto">
-          <button
-            onClick={() => cambiarVista("menu")}
-            className="text-azul mb-4 hover:text-azul-light"
-          >
-            ← Volver al menú
-          </button>
-          <DuelosPanel />
-        </div>
-      </main>
-    );
-  }
-
   if (vista === "parametros") {
     return (
       <main className="min-h-screen bg-bg p-6">
@@ -666,7 +584,7 @@ export default function AdminSessionPage() {
                 Panel del Docente
               </h1>
               <p className="text-texto-light">
-                Registra colegios y alumnos, arma duelos y controla las sesiones
+                Controla las sesiones, lanza preguntas y revisa resultados
               </p>
             </div>
             <button
@@ -691,52 +609,6 @@ export default function AdminSessionPage() {
                 Crear, editar y poner imagen
               </p>
             </button>
-            <button
-              onClick={() => cambiarVista("colegios")}
-              className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
-            >
-              <div className="text-3xl mb-1">🏫</div>
-              <p className="font-heading font-bold text-azul">Colegios</p>
-              <p className="text-xs text-texto-light">
-                Registrar y administrar colegios
-              </p>
-            </button>
-            <button
-              onClick={() => cambiarVista("alumnos")}
-              className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
-            >
-              <div className="text-3xl mb-1">🎓</div>
-              <p className="font-heading font-bold text-azul">Alumnos</p>
-              <p className="text-xs text-texto-light">
-                Registrar alumnos por grado
-              </p>
-            </button>
-            {verEnfrentamiento && (
-              <button
-                onClick={() => cambiarVista("enfrentamiento")}
-                className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
-              >
-                <div className="text-3xl mb-1">⚔️</div>
-                <p className="font-heading font-bold text-azul">
-                  Enfrentamiento
-                </p>
-                <p className="text-xs text-texto-light">
-                  Tabla colegio vs colegio
-                </p>
-              </button>
-            )}
-            {verDuelos && (
-              <button
-                onClick={() => cambiarVista("duelos")}
-                className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
-              >
-                <div className="text-3xl mb-1">🥊</div>
-                <p className="font-heading font-bold text-azul">Prueba 1v1</p>
-                <p className="text-xs text-texto-light">
-                  Duelo interno alumno vs alumno
-                </p>
-              </button>
-            )}
             <button
               onClick={() => cambiarVista("parametros")}
               className="bg-bg-card rounded-xl p-4 shadow-sm border border-azul/10 hover:border-azul/30 transition-colors text-left"
@@ -876,10 +748,6 @@ export default function AdminSessionPage() {
 
   if (vista === "podium") {
     const estudiantes = podium.filter((e) => !e.es_colegio);
-    const colegiosTabla =
-      tablaColegios.length > 0
-        ? tablaColegios
-        : podium.filter((e) => e.es_colegio);
     return (
       <main className="min-h-screen bg-bg p-6">
         <div className="max-w-4xl mx-auto text-center">
@@ -901,7 +769,7 @@ export default function AdminSessionPage() {
             🏆 Podium
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-left">
+          <div className="mb-8 text-left">
             <div className="bg-bg-card border border-azul/10 rounded-2xl p-5">
               <h2 className="text-lg font-heading font-bold text-azul mb-1 text-center">
                 🎓 Estudiantes
@@ -944,47 +812,6 @@ export default function AdminSessionPage() {
                 {estudiantes.length === 0 && (
                   <p className="text-texto-light text-sm text-center">
                     Sin datos individuales.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-bg-card border border-azul/10 rounded-2xl p-5">
-              <h2 className="text-lg font-heading font-bold text-azul mb-3 text-center">
-                🏫 Colegios
-              </h2>
-              <div className="space-y-2">
-                {colegiosTabla.map((entry, idx) => (
-                  <div
-                    key={`${entry.nombre}-${idx}`}
-                    className={`flex items-center justify-between p-3 rounded-xl ${
-                      entry.puesto === 1
-                        ? "bg-dorado text-azul-dark"
-                        : "bg-white border border-azul/10 text-texto"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">
-                        {entry.puesto === 1
-                          ? "🥇"
-                          : entry.puesto === 2
-                            ? "🥈"
-                            : entry.puesto === 3
-                              ? "🥉"
-                              : `${entry.puesto}°`}
-                      </span>
-                      <span className="font-heading font-bold">
-                        {entry.nombre}
-                      </span>
-                    </div>
-                    <span className="font-heading font-extrabold">
-                      {entry.puntos_total} pts
-                    </span>
-                  </div>
-                ))}
-                {colegiosTabla.length === 0 && (
-                  <p className="text-texto-light text-sm text-center">
-                    Sin datos de colegios.
                   </p>
                 )}
               </div>

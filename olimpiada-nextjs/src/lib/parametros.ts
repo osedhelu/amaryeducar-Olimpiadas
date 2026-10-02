@@ -12,7 +12,7 @@ export const PARAMETROS_DEFAULT: ParametrosEvento = {
   texto_bienvenida:
     "Nos alegra enormemente darles la bienvenida a esta jornada de conocimiento, idioma y superación.",
   texto_unirse: "Únete a la Olimpiada",
-  texto_join_ayuda: "Ingresa el PIN y toca tu nombre en la lista",
+  texto_join_ayuda: "Ingresa el PIN y escribe tu nombre",
   texto_panel_docente: "Panel del Docente",
   texto_unirme_estudiante: "Unirme como Estudiante",
   texto_pin_label: "PIN de la sesión",

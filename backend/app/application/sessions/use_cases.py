@@ -39,7 +39,7 @@ PARAMETROS_DEFAULT: dict[str, str] = {
     "subtitulo_evento": "Preguntas y respuestas en inglés",
     "texto_bienvenida": "Nos alegra enormemente darles la bienvenida a esta jornada de conocimiento, idioma y superación.",
     "texto_unirse": "Únete a la Olimpiada",
-    "texto_join_ayuda": "Ingresa el PIN y toca tu nombre en la lista",
+    "texto_join_ayuda": "Ingresa el PIN y escribe tu nombre",
     "texto_panel_docente": "Panel del Docente",
     "texto_unirme_estudiante": "Unirme como Estudiante",
     "texto_pin_label": "PIN de la sesión",
@@ -295,12 +295,46 @@ class SesionUseCases:
     async def unirse(self, req: JoinRequest) -> dict:
         sesion_repo = SesionRepo(self.db)
         jugador_repo = JugadorRepo(self.db)
-        alumno_repo = AlumnoRepo(self.db)
 
         sesion = await sesion_repo.por_pin(req.pin)
         if not sesion or sesion.estado == EstadoSesion.BORRADOR.value:
             raise PinNoEncontrado()
 
+        nombre = (req.nombre or "").strip()
+        if nombre:
+            # Ingreso libre por nombre (sin colegio/alumno): el participante
+            # escribe su nombre y juega. Si ya existe un jugador con ese nombre
+            # en la sesión, se reconecta (misma identidad).
+            jugador = await jugador_repo.por_sesion_y_nombre(sesion.id, nombre)
+            if jugador:
+                await jugador_repo.actualizar(jugador.id, conectado=True)
+                await self.db.commit()
+                await self.realtime.publish(
+                    "jugador_cambio", entity_to_dict(jugador), str(sesion.id)
+                )
+            else:
+                jugador = await jugador_repo.crear(sesion.id, nombre, None, None)
+                await self.db.commit()
+                await self.realtime.publish(
+                    "jugador_unido", entity_to_dict(jugador), str(sesion.id)
+                )
+
+            token = crear_jwt(RolJWT.ESTUDIANTE.value, str(jugador.id), str(sesion.id))
+            return {
+                "token": token,
+                "jugadorId": str(jugador.id),
+                "sesionId": str(sesion.id),
+                "nombre": nombre,
+                "alumnoId": None,
+                "colegioId": None,
+            }
+
+        if not req.alumno_id:
+            raise DatosInvalidos("Debes escribir tu nombre")
+
+        # Flujo de registro (v1): el docente registró colegios y alumnos y el
+        # estudiante toca su nombre en la lista.
+        alumno_repo = AlumnoRepo(self.db)
         alumno = await alumno_repo.por_id(req.alumno_id)
         if not alumno:
             raise DatosInvalidos("Alumno no encontrado en el registro")

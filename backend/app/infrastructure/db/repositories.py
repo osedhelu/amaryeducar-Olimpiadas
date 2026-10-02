@@ -816,11 +816,9 @@ async def obtener_podium_rows(
     grado_row = await db.get(GradoORM, sesion_row.grado_id)
     if not grado_row:
         return []
-    # Modo quiz (competición individual): los grados 4-5 rankean por ALUMNO.
-    modo_quiz = (
-        await ParametroRepo(db).obtener("modo_quiz", "false")
-    ).strip().lower() in ("true", "1", "si", "sí")
-    es_grupal = grado_row.orden >= 4 and not modo_quiz
+    # Ranking SIEMPRE individual (por jugador/nombre): colegios y alumnos están
+    # desactivados, así que no agrupamos por colegio en ningún grado.
+    es_grupal = False
 
     jugadores = [
         _row_to_obj(r, Jugador)
