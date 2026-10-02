@@ -375,8 +375,8 @@ export default function GamePage() {
         </div>
 
         <div className="flex-1 flex flex-col justify-center max-w-xl mx-auto w-full space-y-6">
-          <div className="bg-bg-card border border-azul/10 rounded-2xl p-6 animate-fade-in">
-            <p className="text-texto text-lg md:text-xl font-body leading-relaxed">
+          <div className="bg-azul rounded-2xl p-6 animate-fade-in">
+            <p className="text-white text-lg md:text-xl font-body leading-relaxed">
               {preguntaActual.enunciado}
             </p>
           </div>

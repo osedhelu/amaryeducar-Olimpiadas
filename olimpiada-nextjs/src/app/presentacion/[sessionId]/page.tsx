@@ -374,8 +374,8 @@ export default function PresentacionPage() {
         </div>
 
         <div className="flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full space-y-8">
-          <div className="bg-white rounded-2xl p-8 shadow-2xl animate-fade-in">
-            <p className="text-texto text-2xl md:text-3xl font-body leading-relaxed text-center">
+          <div className="bg-azul rounded-2xl p-8 shadow-2xl animate-fade-in">
+            <p className="text-white text-2xl md:text-3xl font-body leading-relaxed text-center">
               {pregunta.enunciado}
             </p>
           </div>
