@@ -16,6 +16,7 @@ import type {
   EventoWS,
   TablaColegio,
   Reto,
+  EstadoVida,
 } from "@/types/game";
 
 type Vista =
@@ -44,10 +45,19 @@ export default function PresentacionPage() {
   const [puntajesReto, setPuntajesReto] = useState<PuntajeReto[]>([]);
   const [podium, setPodium] = useState<PodiumEntry[]>([]);
   const [tabla, setTabla] = useState<TablaColegio[]>([]);
+  const [vidas, setVidas] = useState<EstadoVida[]>([]);
   const [vista, setVista] = useState<Vista>("bienvenida");
   const [tiempoRestante, setTiempoRestante] = useState(0);
 
   const { lastEvent, connected } = useWebSocket(sessionId, "presentacion");
+
+  const cargarVidas = useCallback(async (sesionId: string) => {
+    try {
+      setVidas(await api.vidasSesion(sesionId));
+    } catch {
+      /* sistema de vidas opcional */
+    }
+  }, []);
 
   const cargarEstado = useCallback(async () => {
     const s = await api.sesion(sessionId);
@@ -56,6 +66,7 @@ export default function PresentacionPage() {
 
     const j = await api.jugadores(s.id);
     setJugadores(j);
+    await cargarVidas(s.id);
 
     if (
       (s.estado === "reto" || s.estado === "reto_podium") &&
@@ -119,6 +130,7 @@ export default function PresentacionPage() {
         break;
       case "sesion_cambio":
         setSesion(ev.data);
+        cargarVidas(ev.data.id);
         if (ev.data.ronda_ganador_num != null) {
           api
             .ganadorRonda(ev.data.id, ev.data.ronda_ganador_num)
@@ -165,6 +177,16 @@ export default function PresentacionPage() {
             return [...prev, ev.data];
           });
         }
+        break;
+      case "vidas_cambio":
+        setVidas((prev) => {
+          const sinEse = prev.filter(
+            (v) => v.jugador_id !== ev.data.jugador_id,
+          );
+          return [...sinEse, ev.data].sort((a, b) =>
+            a.nombre.localeCompare(b.nombre),
+          );
+        });
         break;
       default:
         break;
@@ -262,6 +284,9 @@ export default function PresentacionPage() {
       </div>
     );
   }
+
+  const estaEliminado = (nombre: string): boolean =>
+    vidas.find((v) => v.nombre === nombre)?.eliminado ?? false;
 
   if (vista === "bienvenida" || vista === "lobby") {
     return (
@@ -382,6 +407,25 @@ export default function PresentacionPage() {
                 {totalRespondidos}/{totalConectados} respondieron
               </span>
             </div>
+            {vidas.length > 0 && (
+              <div className="flex flex-wrap gap-2 justify-center">
+                {vidas.map((e) => (
+                  <span
+                    key={e.jugador_id}
+                    className={`px-3 py-1 rounded-full text-xs font-heading font-bold ${
+                      e.eliminado
+                        ? "bg-rojo/10 text-rojo-error line-through opacity-70"
+                        : "bg-verde/10 text-verde"
+                    }`}
+                  >
+                    {e.nombre} ·{" "}
+                    {e.eliminado
+                      ? "☠️ 0"
+                      : `❤️ ${e.vidas_restantes}/${e.vidas_max}`}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -426,6 +470,33 @@ export default function PresentacionPage() {
               <p className="text-texto-light text-sm">sin responder</p>
             </div>
           </div>
+
+          {vidas.length > 0 && (
+            <div className="bg-bg-card border border-azul/10 rounded-2xl p-4 animate-fade-in">
+              <p className="text-sm font-bold text-azul mb-3">
+                ❤️ Vidas restantes
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {vidas.map((e) => (
+                  <span
+                    key={e.jugador_id}
+                    className={`px-4 py-2 rounded-full text-sm font-heading font-bold flex items-center gap-2 ${
+                      e.eliminado
+                        ? "bg-rojo/10 text-rojo-error line-through opacity-80"
+                        : "bg-verde/10 text-verde"
+                    }`}
+                  >
+                    <span>{e.nombre}</span>
+                    <span className="text-base">
+                      {e.eliminado
+                        ? "☠️ 0 vidas"
+                        : `❤️ ${e.vidas_restantes}/${e.vidas_max}`}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -617,8 +688,17 @@ export default function PresentacionPage() {
                           ? "🥉"
                           : `${entry.puesto}°`}
                   </span>
-                  <span className="font-heading font-extrabold text-2xl md:text-3xl">
+                  <span
+                    className={`font-heading font-extrabold text-2xl md:text-3xl ${
+                      !entry.es_colegio && estaEliminado(entry.nombre)
+                        ? "opacity-50 line-through"
+                        : ""
+                    }`}
+                  >
                     {entry.nombre}
+                    {!entry.es_colegio && estaEliminado(entry.nombre) && (
+                      <span className="ml-2">💔</span>
+                    )}
                   </span>
                 </div>
                 <span className="font-heading font-extrabold text-3xl md:text-4xl">
@@ -679,8 +759,17 @@ export default function PresentacionPage() {
                               ? "🥉"
                               : `${entry.puesto}°`}
                       </span>
-                      <span className="font-heading font-bold text-texto text-lg">
+                      <span
+                        className={`font-heading font-bold text-texto text-lg ${
+                          estaEliminado(entry.nombre)
+                            ? "opacity-60 line-through"
+                            : ""
+                        }`}
+                      >
                         {entry.nombre}
+                        {estaEliminado(entry.nombre) && (
+                          <span className="ml-1">💔</span>
+                        )}
                       </span>
                     </div>
                     <span className="font-heading font-extrabold text-azul text-xl">

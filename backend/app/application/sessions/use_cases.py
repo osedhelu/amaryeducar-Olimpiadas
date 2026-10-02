@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dto import ActualizarSesionRequest, CrearSesionRequest, JoinRequest
 from app.application.ports import RealtimePublisher
+from app.application.vidas.use_cases import vidas_config
 from app.core.exceptions import (
     ClaveIncorrecta,
     DatosInvalidos,
@@ -18,6 +19,7 @@ from app.core.security import crear_jwt, validar_clave_admin
 from app.domain.entities import SesionJuego, entity_to_dict
 from app.domain.enums import EstadoSesion, RolJWT
 from app.domain.rules import es_grado_grupal
+from app.domain.vidas import calcular_estados_vidas
 from app.infrastructure.db.repositories import (
     AlumnoRepo,
     ColegioRepo,
@@ -45,6 +47,8 @@ PARAMETROS_DEFAULT: dict[str, str] = {
     "retos_habilitados": "false",
     "modo_quiz": "false",
     "preguntas_por_sesion": "10",
+    "vidas_habilitadas": "true",
+    "vidas_por_sesion": "3",
     "mostrar_duelos": "true",
     "mostrar_enfrentamiento": "true",
     "grado_1": "true",
@@ -489,6 +493,17 @@ class ControlRondaUseCases:
             await self.realtime.publish("sesion_cambio", data, str(sesion.id))
         return entity_to_dict(updated) if updated else {}
 
+    async def _estados_vidas(self, sesion: SesionJuego) -> list[dict]:
+        """Estados de vidas de la sesión (para incluirlos en el resultado)."""
+        jugadores = await JugadorRepo(self.db).listar_por_sesion(sesion.id)
+        respuestas = await RespuestaRepo(self.db).listar_por_sesion(sesion.id)
+        preguntas = await PreguntaRepo(self.db).listar_por_grado(sesion.grado_id)
+        hab, max_vidas = await vidas_config(self.db)
+        estados = calcular_estados_vidas(
+            jugadores, respuestas, preguntas, habilitadas=hab, max_vidas=max_vidas
+        )
+        return [e.a_dict() for e in estados.values()]
+
     async def cerrar_pregunta(self, sesion_id: str) -> dict:
         sesion_repo = SesionRepo(self.db)
         sesion = await sesion_repo.por_id(uuid.UUID(sesion_id))
@@ -516,6 +531,7 @@ class ControlRondaUseCases:
                         else None
                     ),
                     "respuestas": [entity_to_dict(r) for r in respuestas],
+                    "estados": await self._estados_vidas(updated),
                 },
                 str(sesion.id),
             )

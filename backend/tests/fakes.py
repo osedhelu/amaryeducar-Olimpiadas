@@ -519,6 +519,10 @@ class FakeRespuestaRepo(_Singleton):
             if r.pregunta_id == pregunta_id:
                 self.respuestas.pop(rid, None)
 
+    async def eliminar_muchas(self, ids):
+        for rid in ids:
+            self.respuestas.pop(rid, None)
+
 
 class FakeRetoRepo(_Singleton):
     def __init__(self, db=None):

@@ -9,6 +9,7 @@ import {
   gradosHabilitados,
   mostrarDuelos,
   mostrarEnfrentamiento,
+  vidasHabilitadas,
 } from "@/lib/parametros";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import ColegiosPanel from "@/components/admin/ColegiosPanel";
@@ -31,6 +32,7 @@ import type {
   Reto,
   EventoWS,
   TablaColegio,
+  EstadoVida,
 } from "@/types/game";
 
 type Vista =
@@ -70,9 +72,11 @@ export default function AdminSessionPage() {
   const [resultadosAbierto, setResultadosAbierto] = useState(false);
   const [rondaTab, setRondaTab] = useState(1);
   const [ganadorRonda, setGanadorRonda] = useState<GanadorRonda | null>(null);
+  const [vidasEstado, setVidasEstado] = useState<EstadoVida[]>([]);
 
   const parametros = useParametros();
   const retosActivos = tieneRetos(parametros);
+  const vidasActivas = vidasHabilitadas(parametros);
   const gradosSet = gradosHabilitados(parametros);
   const verDuelos = mostrarDuelos(parametros);
   const verEnfrentamiento = mostrarEnfrentamiento(parametros);
@@ -204,6 +208,15 @@ export default function AdminSessionPage() {
       );
     }
 
+    if (ev.tipo === "vidas_cambio") {
+      setVidasEstado((prev) => {
+        const sinEse = prev.filter((v) => v.jugador_id !== ev.data.jugador_id);
+        return [...sinEse, ev.data].sort((a, b) =>
+          a.nombre.localeCompare(b.nombre),
+        );
+      });
+    }
+
     if (ev.tipo === "sesion_cambio" && ev.data.id === sesionActiva.id) {
       setSesionActiva(ev.data);
       if (ev.data.pregunta_activa_id) {
@@ -227,13 +240,15 @@ export default function AdminSessionPage() {
   const cargarEstadoControl = useCallback(
     async (id: string, conPreguntas = true) => {
       try {
-        const [s, js, todas] = await Promise.all([
+        const [s, js, todas, vs] = await Promise.all([
           api.sesion(id),
           api.jugadores(id),
           api.respuestasSesion(id),
+          api.vidasSesion(id).catch(() => [] as EstadoVida[]),
         ]);
         setSesionActiva(s);
         setJugadores(js);
+        setVidasEstado(vs);
         setRespuestasTodas(todas);
         setRespuestasPregunta(
           s.pregunta_activa_id
@@ -536,6 +551,17 @@ export default function AdminSessionPage() {
 
   async function aprobarRespuesta(respuestaId: string, correcta: boolean) {
     await api.aprobarRespuesta(respuestaId, correcta);
+  }
+
+  async function revivirJugador(jugadorId: string, todas = false) {
+    if (!sesionActiva) return;
+    try {
+      await api.revivirJugador(sesionActiva.id, jugadorId, todas);
+      const vs = await api.vidasSesion(sesionActiva.id);
+      setVidasEstado(vs);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo revivir");
+    }
   }
 
   const sesionConGrado = sesiones.find((s) => s.id === sesionActiva?.id);
@@ -1265,6 +1291,52 @@ export default function AdminSessionPage() {
               </div>
             )}
           </div>
+
+          {vidasActivas && vidasEstado.length > 0 && (
+            <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10 mb-6">
+              <h2 className="font-heading font-bold text-azul mb-3">
+                ❤️ Vidas
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {vidasEstado.map((v) => (
+                  <div
+                    key={v.jugador_id}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
+                      v.eliminado
+                        ? "bg-rojo/10 text-rojo-error"
+                        : "bg-verde/10 text-verde"
+                    }`}
+                  >
+                    <span className="font-bold">{v.nombre}</span>
+                    <span className="font-extrabold">
+                      {v.eliminado
+                        ? "☠️ 0"
+                        : `❤️ ${v.vidas_restantes}/${v.vidas_max}`}
+                    </span>
+                    <button
+                      onClick={() => revivirJugador(v.jugador_id)}
+                      disabled={
+                        !v.eliminado && v.vidas_restantes >= v.vidas_max
+                      }
+                      title="Devolver 1 vida"
+                      className="ml-1 px-2 py-0.5 rounded-md bg-white/70 hover:bg-white text-azul-dark font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      +1
+                    </button>
+                    {v.eliminado && (
+                      <button
+                        onClick={() => revivirJugador(v.jugador_id, true)}
+                        title="Revivir todas las vidas"
+                        className="px-2 py-0.5 rounded-md bg-white/70 hover:bg-white text-azul-dark font-bold text-xs"
+                      >
+                        Revivir
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="bg-bg-card rounded-xl p-5 shadow-sm border border-azul/10 mb-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">

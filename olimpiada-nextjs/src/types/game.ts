@@ -15,6 +15,8 @@ export interface ParametrosEvento {
   retos_habilitados?: string;
   modo_quiz?: string;
   preguntas_por_sesion?: string;
+  vidas_habilitadas?: string;
+  vidas_por_sesion?: string;
   mostrar_duelos?: string;
   mostrar_enfrentamiento?: string;
   grado_1?: string;
@@ -166,6 +168,20 @@ export interface Respuesta {
   puntos: number;
   creado_en: string;
   jugador_nombre?: string;
+  vidas_restantes?: number;
+  errores?: number;
+  eliminado?: boolean;
+}
+
+export interface EstadoVida {
+  jugador_id: string;
+  nombre: string;
+  conectado: boolean;
+  aciertos: number;
+  errores: number;
+  vidas_restantes: number;
+  vidas_max: number;
+  eliminado: boolean;
 }
 
 export interface PuntajeReto {
@@ -200,9 +216,14 @@ export type EventoWS =
     }
   | {
       tipo: "resultado_pregunta";
-      data: { pregunta_id: string; respuestas: Respuesta[] };
+      data: {
+        pregunta_id: string;
+        respuestas: Respuesta[];
+        estados?: EstadoVida[];
+      };
       ts: string;
     }
   | { tipo: "reto_lanzado"; data: Reto; ts: string }
   | { tipo: "podium_actualizado"; data: PodiumEntry[]; ts: string }
-  | { tipo: "cronometro"; data: { segundos_restantes: number }; ts: string };
+  | { tipo: "cronometro"; data: { segundos_restantes: number }; ts: string }
+  | { tipo: "vidas_cambio"; data: EstadoVida; ts: string };

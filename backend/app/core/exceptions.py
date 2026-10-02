@@ -32,6 +32,11 @@ class PreguntaNoActiva(DomainError):
         super().__init__("La pregunta ya no está activa", 409)
 
 
+class SinVidas(DomainError):
+    def __init__(self):
+        super().__init__("Ya no te quedan vidas. Se acabó tu turno de responder.", 409)
+
+
 class SinPermiso(DomainError):
     def __init__(self):
         super().__init__("No autorizado", 403)

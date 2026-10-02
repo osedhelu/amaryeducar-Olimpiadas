@@ -706,6 +706,13 @@ class RespuestaRepo:
         )
         await self.db.flush()
 
+    async def eliminar_muchas(self, ids: list[uuid.UUID]) -> None:
+        """Borra respuestas concretas por id (para revivir jugadores)."""
+        if not ids:
+            return
+        await self.db.execute(delete(RespuestaORM).where(RespuestaORM.id.in_(ids)))
+        await self.db.flush()
+
 
 class RetoRepo:
     def __init__(self, db: AsyncSession):

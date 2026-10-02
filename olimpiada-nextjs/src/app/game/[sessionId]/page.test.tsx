@@ -15,7 +15,9 @@ const h = vi.hoisted(() => ({
     preguntasPorId: vi.fn(),
     verificarRespuesta: vi.fn(),
     enviarRespuesta: vi.fn(),
+    vidasSesion: vi.fn(),
   },
+  params: { vidasOn: false, maxVidas: 3 },
 }));
 
 vi.mock("@/hooks/useWebSocket", () => ({ useWebSocket: () => h.ws }));
@@ -37,6 +39,8 @@ vi.mock("@/lib/session", () => ({
 vi.mock("@/lib/parametros", () => ({
   useParametros: () => ({}),
   tieneRetos: () => false,
+  vidasHabilitadas: () => h.params.vidasOn,
+  numVidas: () => h.params.maxVidas,
 }));
 
 import GamePage from "./page";
@@ -60,7 +64,10 @@ const pregunta = {
 beforeEach(() => {
   h.ws.lastEvent = null;
   h.ws.connected = true;
+  h.params.vidasOn = false;
+  h.params.maxVidas = 3;
   Object.values(h.api).forEach((fn) => fn.mockReset());
+  h.api.vidasSesion.mockResolvedValue([]);
 });
 
 describe("GamePage (estudiante)", () => {
@@ -119,5 +126,86 @@ describe("GamePage (estudiante)", () => {
     render(<GamePage />);
     expect(await screen.findByText(/¡Correcto!/)).toBeTruthy();
     expect(screen.getByText(/\+10 pts/)).toBeTruthy();
+  });
+
+  it("muestra los corazones y el número de vidas restantes", async () => {
+    h.params.vidasOn = true;
+    h.api.sesion.mockResolvedValue({
+      id: "s1",
+      estado: "pregunta",
+      pregunta_activa_id: "p1",
+      cronometro_segundos: 0,
+      cronometro_inicio: null,
+    });
+    h.api.preguntasPorId.mockResolvedValue(pregunta);
+    h.api.verificarRespuesta.mockResolvedValue(null);
+    h.api.vidasSesion.mockResolvedValue([
+      {
+        jugador_id: "j1",
+        nombre: "Ana",
+        conectado: true,
+        aciertos: 0,
+        errores: 1,
+        vidas_restantes: 2,
+        vidas_max: 3,
+        eliminado: false,
+      },
+    ]);
+
+    render(<GamePage />);
+    expect(await screen.findByText(/2\/3/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Dog/ })).toBeTruthy();
+  });
+
+  it("muestra la pantalla de eliminado y oculta las opciones", async () => {
+    h.params.vidasOn = true;
+    h.api.sesion.mockResolvedValue({
+      id: "s1",
+      estado: "pregunta",
+      pregunta_activa_id: "p1",
+      cronometro_segundos: 0,
+      cronometro_inicio: null,
+    });
+    h.api.preguntasPorId.mockResolvedValue(pregunta);
+    h.api.verificarRespuesta.mockResolvedValue(null);
+    h.api.vidasSesion.mockResolvedValue([
+      {
+        jugador_id: "j1",
+        nombre: "Ana",
+        conectado: true,
+        aciertos: 0,
+        errores: 3,
+        vidas_restantes: 0,
+        vidas_max: 3,
+        eliminado: true,
+      },
+    ]);
+
+    render(<GamePage />);
+    expect(await screen.findByText(/Perdiste todas tus vidas/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Dog/ })).toBeNull();
+    expect(h.api.enviarRespuesta).not.toHaveBeenCalled();
+  });
+
+  it("rechaza responder cuando el servidor dice que se quedó sin vidas", async () => {
+    h.params.vidasOn = true;
+    h.api.sesion.mockResolvedValue({
+      id: "s1",
+      estado: "pregunta",
+      pregunta_activa_id: "p1",
+      cronometro_segundos: 0,
+      cronometro_inicio: null,
+    });
+    h.api.preguntasPorId.mockResolvedValue(pregunta);
+    h.api.verificarRespuesta.mockResolvedValue(null);
+    h.api.enviarRespuesta.mockRejectedValue(
+      new Error("Ya no te quedan vidas. Se acabó tu turno de responder."),
+    );
+    h.api.vidasSesion.mockResolvedValue([]);
+
+    render(<GamePage />);
+    expect(await screen.findByRole("button", { name: /Dog/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Dog/ }));
+    expect(await screen.findByText(/Perdiste todas tus vidas/)).toBeTruthy();
   });
 });

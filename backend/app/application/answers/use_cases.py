@@ -8,10 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.dto import AprobarRespuestaRequest, EnviarRespuestaRequest
 from app.application.ports import RealtimePublisher
+from app.application.vidas.use_cases import vidas_config
 from app.core.exceptions import (
     DatosInvalidos,
     PreguntaNoActiva,
     SesionNoActiva,
+    SinVidas,
 )
 from app.domain.entities import entity_to_dict
 from app.domain.entities import Jugador
@@ -21,6 +23,7 @@ from app.domain.rules import (
     corregir_reloj,
     es_correcta_opcion,
 )
+from app.domain.vidas import calcular_estados_vidas
 from app.infrastructure.db.repositories import (
     GradoRepo,
     JugadorRepo,
@@ -71,6 +74,10 @@ class RespuestaUseCases:
             r_dict["jugador_nombre"] = jugador.nombre
             r_dict["secuencia"] = respuesta_existente.secuencia
             return r_dict
+
+        # Sistema de vidas: un jugador eliminado ya no puede responder.
+        if await self._jugador_eliminado(jugador, sesion):
+            raise SinVidas()
 
         enviado_en = corregir_reloj(req.enviado_en, _ahora())
         assert enviado_en is not None
@@ -129,31 +136,82 @@ class RespuestaUseCases:
             "respuesta_recibida", r_dict, str(jugador.sesion_id)
         )
 
-        # Auto-cierre: si todos los CONECTADOS respondieron → resultado
+        # Estado de vidas tras responder (puede haber eliminado al jugador).
+        mi_estado = await self._estado_jugador(jugador, sesion)
+        if mi_estado:
+            r_dict["vidas_restantes"] = mi_estado["vidas_restantes"]
+            r_dict["errores"] = mi_estado["errores"]
+            r_dict["eliminado"] = mi_estado["eliminado"]
+            await self.realtime.publish(
+                "vidas_cambio", mi_estado, str(jugador.sesion_id)
+            )
+
+        # Auto-cierre: si todos los CONECTADOS con vidas respondieron → resultado
         await self._auto_cerrar_si_todos(sesion, req.pregunta_id)
 
         return r_dict
 
+    async def _datos_vidas(self, sesion) -> tuple:
+        """(jugadores, respuestas, preguntas, habilitadas, max_vidas) de la sesión."""
+        jugadores = await JugadorRepo(self.db).listar_por_sesion(sesion.id)
+        respuestas = await RespuestaRepo(self.db).listar_por_sesion(sesion.id)
+        preguntas = await PreguntaRepo(self.db).listar_por_grado(sesion.grado_id)
+        hab, max_vidas = await vidas_config(self.db)
+        return jugadores, respuestas, preguntas, hab, max_vidas
+
+    async def _estado_jugador(self, jugador: Jugador, sesion) -> dict | None:
+        """Estado de vidas de UN jugador (dict para publicar) o None si no aplica."""
+        if not jugador:
+            return None
+        jugadores, respuestas, preguntas, hab, max_vidas = await self._datos_vidas(
+            sesion
+        )
+        estados = calcular_estados_vidas(
+            jugadores, respuestas, preguntas, habilitadas=hab, max_vidas=max_vidas
+        )
+        estado = estados.get(jugador.id)
+        return estado.a_dict() if estado else None
+
+    async def _jugador_eliminado(self, jugador: Jugador, sesion) -> bool:
+        if not jugador:
+            return False
+        estado = await self._estado_jugador(jugador, sesion)
+        return bool(estado and estado["eliminado"])
+
     async def _auto_cerrar_si_todos(self, sesion, pregunta_id: uuid.UUID) -> None:
-        """Cierra la pregunta y publica el resultado cuando todos los
-        conectados respondieron.
+        """Cierra la pregunta y publica el resultado cuando respondieron todos
+        los jugadores CONECTADOS que aún tienen vidas.
+
+        Los eliminados no se esperan (no pueden responder) y por tanto NO
+        bloquean el cierre. Si todos los conectados quedaron eliminados, la
+        pregunta también cierra.
 
         Publica SIEMPRE los eventos al alcanzarse el umbral, incluso si la
         sesión ya está en 'resultado' (p. ej. un trigger legacy de la BD la
         cerró antes). Así el frontend nunca se queda sin el aviso de resultado.
         """
         sesion_repo = SesionRepo(self.db)
-        jugador_repo = JugadorRepo(self.db)
-        respuesta_repo = RespuestaRepo(self.db)
 
-        total_conectados = await jugador_repo.contar_conectados(sesion.id)
-        if total_conectados <= 0:
+        jugadores, respuestas, preguntas, hab, max_vidas = await self._datos_vidas(
+            sesion
+        )
+        estados = calcular_estados_vidas(
+            jugadores, respuestas, preguntas, habilitadas=hab, max_vidas=max_vidas
+        )
+
+        conectados = [e for e in estados.values() if e.conectado]
+        if not conectados:
             return
 
-        total_respuestas = await respuesta_repo.contar_por_pregunta_sesion(
-            pregunta_id, sesion.id
-        )
-        if total_respuestas < total_conectados:
+        respondieron = {
+            r.jugador_id for r in respuestas if r.pregunta_id == pregunta_id
+        }
+        pendientes = [
+            e
+            for e in estados.values()
+            if e.conectado and not e.eliminado and e.jugador_id not in respondieron
+        ]
+        if pendientes:
             return
 
         # Cerrar (idempotente): solo si sigue en 'pregunta'.
@@ -173,9 +231,9 @@ class RespuestaUseCases:
             "sesion_cambio", entity_to_dict(updated), str(sesion.id)
         )
 
-        respuestas = await respuesta_repo.listar_por_sesion(
-            sesion.id, updated.pregunta_activa_id
-        )
+        respuestas_pregunta = [
+            e for e in respuestas if e.pregunta_id == updated.pregunta_activa_id
+        ]
         await self.realtime.publish(
             "resultado_pregunta",
             {
@@ -184,7 +242,8 @@ class RespuestaUseCases:
                     if updated.pregunta_activa_id
                     else None
                 ),
-                "respuestas": [entity_to_dict(r) for r in respuestas],
+                "respuestas": [entity_to_dict(r) for r in respuestas_pregunta],
+                "estados": [e.a_dict() for e in estados.values()],
             },
             str(sesion.id),
         )

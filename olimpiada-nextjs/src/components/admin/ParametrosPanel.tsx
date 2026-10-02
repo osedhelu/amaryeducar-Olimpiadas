@@ -87,6 +87,18 @@ const CAMPOS: Campo[] = [
       "Cuántas preguntas al azar se fijan para cada sala en modo quiz.",
   },
   {
+    clave: "vidas_habilitadas",
+    etiqueta: "Sistema de vidas",
+    descripcion:
+      "Si está habilitado, cada estudiante tiene vidas por sesión y pierde una al responder mal una pregunta de opción múltiple. Al llegar a 0 queda eliminado de la sección.",
+    tipo: "checkbox",
+  },
+  {
+    clave: "vidas_por_sesion",
+    etiqueta: "Vidas por estudiante",
+    descripcion: "Cuántas vidas recibe cada estudiante al entrar a la sala.",
+  },
+  {
     clave: "mostrar_duelos",
     etiqueta: "Mostrar Prueba 1v1",
     descripcion: "Muestra la tarjeta y la vista de duelo alumno vs alumno.",

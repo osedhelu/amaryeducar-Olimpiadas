@@ -15,6 +15,7 @@ import type {
   SesionNumero,
   TablaColegio,
   TipoPregunta,
+  EstadoVida,
 } from "@/types/game";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -266,6 +267,15 @@ export const api = {
 
   finalizarSesion: (id: string) =>
     request<SesionJuego>(`/sessions/${id}/finalizar`, { method: "PATCH" }),
+
+  vidasSesion: (sesionId: string): Promise<EstadoVida[]> =>
+    request<EstadoVida[]>(`/sessions/${sesionId}/vidas`),
+
+  revivirJugador: (sesionId: string, jugadorId: string, todas = false) =>
+    request<EstadoVida>(
+      `/sessions/${sesionId}/jugadores/${jugadorId}/revivir`,
+      { method: "POST", body: JSON.stringify({ todas }) },
+    ),
 
   eliminarSesion: (id: string) =>
     request<{ eliminadas: number }>(`/sessions/${id}`, { method: "DELETE" }),

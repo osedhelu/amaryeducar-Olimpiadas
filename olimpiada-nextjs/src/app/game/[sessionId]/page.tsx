@@ -4,9 +4,20 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { api, imagenPreguntaUrl } from "@/lib/api";
-import { useParametros, tieneRetos } from "@/lib/parametros";
+import {
+  useParametros,
+  tieneRetos,
+  vidasHabilitadas,
+  numVidas,
+} from "@/lib/parametros";
 import { getDatosSesionEstudiante } from "@/lib/session";
-import type { SesionJuego, Pregunta, Respuesta, EventoWS } from "@/types/game";
+import type {
+  SesionJuego,
+  Pregunta,
+  Respuesta,
+  EventoWS,
+  EstadoVida,
+} from "@/types/game";
 
 export default function GamePage() {
   const params = useParams();
@@ -15,6 +26,8 @@ export default function GamePage() {
 
   const parametros = useParametros();
   const retosActivos = tieneRetos(parametros);
+  const vidasActivas = vidasHabilitadas(parametros);
+  const maxVidas = numVidas(parametros);
 
   const [sesion, setSesion] = useState<SesionJuego | null>(null);
   const [preguntaActual, setPreguntaActual] = useState<Pregunta | null>(null);
@@ -25,8 +38,21 @@ export default function GamePage() {
     puntos: number;
   } | null>(null);
   const [tiempoRestante, setTiempoRestante] = useState(0);
+  const [vidas, setVidas] = useState<EstadoVida | null>(null);
 
   const { lastEvent, connected } = useWebSocket(sessionId, "student");
+
+  const cargarVidas = useCallback(async () => {
+    const datos = getDatosSesionEstudiante();
+    if (!datos.jugadorId) return;
+    try {
+      const todas = await api.vidasSesion(sessionId);
+      const mia = todas.find((v) => v.jugador_id === datos.jugadorId) ?? null;
+      setVidas(mia);
+    } catch {
+      /* sistema de vidas opcional */
+    }
+  }, [sessionId]);
 
   const cargarEstado = useCallback(async () => {
     const datos = getDatosSesionEstudiante();
@@ -44,6 +70,8 @@ export default function GamePage() {
       setPreguntaActual(pregunta);
       verificarRespuestaExistente(ses.pregunta_activa_id);
     }
+
+    cargarVidas();
   }, [sessionId, router]);
 
   async function verificarRespuestaExistente(preguntaId: string) {
@@ -75,6 +103,7 @@ export default function GamePage() {
     switch (ev.tipo) {
       case "sesion_cambio": {
         setSesion(ev.data);
+        cargarVidas();
         if (ev.data.pregunta_activa_id) {
           const preguntaId: string = ev.data.pregunta_activa_id;
           api.preguntasPorId(preguntaId).then((p) => {
@@ -94,6 +123,10 @@ export default function GamePage() {
       case "resultado_pregunta": {
         const sesionEstudiante = getDatosSesionEstudiante();
         const jugadorId = sesionEstudiante.jugadorId;
+        if (ev.data.estados?.length) {
+          const mia = ev.data.estados.find((e) => e.jugador_id === jugadorId);
+          if (mia) setVidas(mia);
+        }
         const miRespuesta = ev.data.respuestas.find(
           (r) => r.jugador_id === jugadorId,
         );
@@ -102,10 +135,28 @@ export default function GamePage() {
             correcta: miRespuesta.correcta === true,
             puntos: miRespuesta.puntos,
           });
+          if (miRespuesta.eliminado != null) {
+            setVidas((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    vidas_restantes:
+                      miRespuesta.vidas_restantes ?? prev.vidas_restantes,
+                    errores: miRespuesta.errores ?? prev.errores,
+                    eliminado: miRespuesta.eliminado ?? prev.eliminado,
+                  }
+                : prev,
+            );
+          }
         }
         setRespuestaEnviada(true);
         break;
       }
+      case "vidas_cambio":
+        if (ev.data.jugador_id === getDatosSesionEstudiante().jugadorId) {
+          setVidas(ev.data);
+        }
+        break;
       default:
         break;
     }
@@ -142,6 +193,25 @@ export default function GamePage() {
         enviado_en: timestampCliente,
       });
     } catch (err) {
+      if (err instanceof Error && err.message.toLowerCase().includes("vidas")) {
+        // El servidor rechazó por vidas (409): el jugador quedó eliminado.
+        // Marcar al instante; el evento vidas_cambio confirma el estado real.
+        setVidas((prev) =>
+          prev
+            ? { ...prev, vidas_restantes: 0, eliminado: true }
+            : {
+                jugador_id: jugadorId,
+                nombre: jugadorNombre,
+                conectado: true,
+                aciertos: 0,
+                errores: maxVidas,
+                vidas_restantes: 0,
+                vidas_max: maxVidas,
+                eliminado: true,
+              },
+        );
+        return;
+      }
       const yaRespondio =
         err instanceof Error &&
         (err.message.includes("duplicate") ||
@@ -182,6 +252,29 @@ export default function GamePage() {
     );
   }
 
+  if (
+    vidasActivas &&
+    vidas?.eliminado &&
+    (sesion.estado === "pregunta" || sesion.estado === "resultado")
+  ) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
+        <div className="text-center animate-bounce-in space-y-6">
+          <div className="text-8xl">💔</div>
+          <h1 className="text-4xl font-heading font-extrabold text-rojo-error">
+            Perdiste todas tus vidas
+          </h1>
+          <p className="text-texto text-lg">
+            Ya no puedes seguir respondiendo, {jugadorNombre}.
+          </p>
+          <p className="text-texto-light text-sm">
+            La sección continúa. ¡Gracias por participar!
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (sesion.estado === "resultado" && ultimoResultado) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg min-h-screen">
@@ -195,6 +288,21 @@ export default function GamePage() {
           {ultimoResultado.correcta && (
             <div className="text-azul text-4xl font-heading font-extrabold animate-pulse-score">
               +{ultimoResultado.puntos} pts
+            </div>
+          )}
+          {vidasActivas && vidas && (
+            <div className="flex items-center justify-center gap-0.5 mt-4 text-2xl">
+              {Array.from({ length: maxVidas }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`${i < vidas.vidas_restantes ? "" : "opacity-25 grayscale"}`}
+                >
+                  ❤️
+                </span>
+              ))}
+              <span className="ml-2 text-azul font-heading font-bold text-base">
+                {vidas.vidas_restantes}/{vidas.vidas_max} vidas
+              </span>
             </div>
           )}
           <p className="text-texto-light mt-4">
@@ -215,10 +323,25 @@ export default function GamePage() {
 
     return (
       <div className="flex-1 flex flex-col p-4 md:p-8 bg-bg min-h-screen">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 gap-3">
           <span className="text-azul font-heading font-bold text-sm">
             {jugadorNombre}
           </span>
+          {vidasActivas && vidas && (
+            <div className="flex items-center gap-1 text-lg">
+              {Array.from({ length: maxVidas }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`${i < vidas.vidas_restantes ? "" : "opacity-25 grayscale"}`}
+                >
+                  ❤️
+                </span>
+              ))}
+              <span className="ml-1 text-azul font-heading font-bold text-sm">
+                {vidas.vidas_restantes}/{vidas.vidas_max}
+              </span>
+            </div>
+          )}
           {sesion.cronometro_segundos > 0 && (
             <div className="flex items-center gap-2">
               <div className="w-32 h-3 bg-azul/15 rounded-full overflow-hidden">

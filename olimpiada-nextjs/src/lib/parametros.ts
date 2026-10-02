@@ -20,6 +20,8 @@ export const PARAMETROS_DEFAULT: ParametrosEvento = {
   retos_habilitados: "false",
   modo_quiz: "false",
   preguntas_por_sesion: "10",
+  vidas_habilitadas: "true",
+  vidas_por_sesion: "3",
   mostrar_duelos: "true",
   mostrar_enfrentamiento: "true",
   grado_1: "true",
@@ -36,6 +38,15 @@ function esVerdadero(valor: string | undefined): boolean {
 
 export function tieneRetos(p: ParametrosEvento): boolean {
   return esVerdadero(p.retos_habilitados ?? "false");
+}
+
+export function vidasHabilitadas(p: ParametrosEvento): boolean {
+  return esVerdadero(p.vidas_habilitadas ?? "true");
+}
+
+export function numVidas(p: ParametrosEvento): number {
+  const n = parseInt(String(p.vidas_por_sesion ?? "3"), 10);
+  return Number.isFinite(n) && n > 0 ? n : 3;
 }
 
 export function mostrarDuelos(p: ParametrosEvento): boolean {

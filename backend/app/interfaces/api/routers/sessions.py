@@ -12,6 +12,7 @@ from app.application.dto import (
     MostrarGanadorRequest,
 )
 from app.application.sessions.use_cases import ControlRondaUseCases, SesionUseCases
+from app.application.vidas.use_cases import VidasUseCases
 from app.core.exceptions import DomainError
 from app.interfaces.api.deps import get_db, get_manager
 
@@ -66,6 +67,36 @@ async def obtener_sesion(
     if not s:
         raise HTTPException(status_code=404, detail="Sesión no encontrada")
     return s
+
+
+@router.get("/sessions/{sesion_id}/vidas")
+async def vidas_sesion(
+    sesion_id: str, db: AsyncSession = Depends(get_db)
+) -> list[dict]:  # noqa: B008
+    try:
+        return await VidasUseCases(db).estado(sesion_id)
+    except (ValueError, DomainError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/sessions/{sesion_id}/jugadores/{jugador_id}/revivir")
+async def revivir_jugador(
+    sesion_id: str,
+    jugador_id: str,
+    body: dict | None = None,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> dict:
+    try:
+        return await VidasUseCases(db, get_manager()).revivir(
+            sesion_id,
+            jugador_id,
+            todas=bool((body or {}).get("todas", False)),
+        )
+    except (ValueError, DomainError) as exc:
+        raise HTTPException(
+            status_code=exc.status_code if isinstance(exc, DomainError) else 400,
+            detail=str(exc),
+        ) from exc
 
 
 @router.get("/sessions/{sesion_id}/jugadores")
