@@ -69,8 +69,8 @@ export default function AdminSessionPage() {
   const parametros = useParametros();
   const retosActivos = tieneRetos(parametros);
   const vidasActivas = vidasHabilitadas(parametros);
-  const gradosVisibles = grados.filter((g) => gradosSet.has(g.orden));
   const gradosSet = gradosHabilitados(parametros);
+  const gradosVisibles = grados.filter((g) => gradosSet.has(g.orden));
 
   const { lastEvent } = useWebSocket(sesionActiva?.id ?? null, "admin");
 
